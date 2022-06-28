@@ -1,0 +1,51 @@
+---
+- name: create and configure Unix users
+  hosts: "{{ hosts }}"
+
+  vars:
+    users: "{{ users }}"
+    sudoer: "{{ sudoer | default(true) }}"
+
+  tasks:
+  - name: "[USER] - create required users"
+    user:
+      name: "{{ item.name }}"
+      update_password: always
+      password: "{{ item.password|default(item.name)|password_hash('sha512') }}"
+      state: present
+      shell: /bin/bash
+      createhome: yes
+      home: /home/{{ item.name }}
+    loop: "{{ users }}"
+    become: yes
+    become_method: sudo
+
+  - name: "[GROUP] - Add user(s) to group sudo"
+    user:
+      name: "{{ item.name }}"
+      append: yes
+      groups: "{{ item.groups | default('sudo') }}"
+    loop: "{{ users }}"
+    become: yes
+    become_method: sudo
+    when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+  - name: "[GROUP] - Add user(s) to group sudo"
+    user:
+      name: "{{ item.name }}"
+      append: yes
+      groups: wheel
+    loop: "{{ users }}"
+    become: yes
+    become_method: sudo
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+  - name: "[SSH KEY] - Add authorized ssh key"
+    authorized_key:
+      user: "{{ item.name }}"
+      state: present
+      key: "{{ item.key }}"
+    loop: "{{ users }}"
+    become: yes
+    become_method: sudo
+

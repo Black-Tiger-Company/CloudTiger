@@ -1,0 +1,90 @@
+{%- if provider == "aws" %}provider "aws" {
+	region = var.region
+	access_key = "{{ env["AWS_ACCESS_KEY_ID"] }}"
+	secret_key = "{{ env["AWS_SECRET_ACCESS_KEY"] }}"
+}
+{%- endif %}
+{%- if provider == "gcp" %}provider "google" {
+	credentials = file("{{ env["CREDENTIALS_FILE"] }}")
+	project = "{{ env["PROJECT_ID"] }}"
+	region = "{{ env["REGION"] }}"
+}
+{%- endif %}
+{%- if provider == "azure" %}terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+    }
+  }
+}
+
+provider "azurerm" {
+	features {}
+}
+
+variable client_id {}
+variable client_secret {}
+
+{%- endif %}
+{%- if provider == "nutanix" %}terraform {
+  required_providers {
+	nutanix = {
+      source = "nutanix/nutanix"
+      version = "1.2.0"
+    }
+  }
+}
+
+variable nutanix_user {}
+variable nutanix_password {}
+variable nutanix_endpoint {}
+variable nutanix_insecure {}
+variable nutanix_port {}
+variable nutanix_timeout {}
+
+provider "nutanix" {
+	username     = var.nutanix_user
+	password     = var.nutanix_password
+	endpoint     = var.nutanix_endpoint
+	insecure     = var.nutanix_insecure
+	port         = var.nutanix_port
+	wait_timeout = var.nutanix_timeout //Optional
+}
+{%- endif %}
+
+{%- if provider == "vsphere" %}terraform {
+	required_providers {
+		vsphere = {
+			#version        = "1.24.3"
+		}
+	}
+}
+
+variable vsphere_user {}
+variable vsphere_password {}
+variable vsphere_url {}
+
+provider "vsphere" {
+      
+      user           = var.vsphere_user
+      password       = var.vsphere_password
+      vsphere_server = var.vsphere_url
+
+      # If you have a self-signed cert
+      allow_unverified_ssl = "1"
+}
+{%- endif %}
+
+{%- if use_tf_backend|default(false) %}
+
+terraform {
+  backend "pg" {
+  }
+}
+{%- else %}
+
+terraform {
+  backend "local" {
+  }
+}
+{%- endif %}

@@ -1,0 +1,38 @@
+---
+- name: Deploy docker_compose
+  hosts: "{{ hosts }}"
+
+  vars:
+    base_dir: "{{ base_dir }}"
+    project: "{{ project }}"
+    source: "{{ source }}"
+
+  tasks:
+  - name: create folder
+    file: 
+      path: "{{ base_dir }}/{{ project }}"
+      state: directory
+      mode: '0755'
+    become: true
+
+  - name: create docker compose
+    copy:
+      content: "{{ source | to_yaml }}"
+      dest: "{{ base_dir }}/{{ project }}/docker-compose.yml"
+    become: true
+
+  - name: create docker network
+    shell: docker network create {{ item.name }}
+    args:
+      chdir: "{{ base_dir }}/{{ project }}"
+    become: true
+    with_items: "{{ networks }}"
+
+  - name: docker-compose up/restart
+    shell: docker-compose up -d
+    args:
+      chdir: "{{ base_dir }}/{{ project }}"
+    become: true
+    # docker_compose:
+    #   project_src: "{{ base_dir }}/{{ project }}"
+    #   restarted: yes

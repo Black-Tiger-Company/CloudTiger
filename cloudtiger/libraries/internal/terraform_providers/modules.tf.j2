@@ -1,0 +1,114 @@
+### network : contains all networks and subnets, + NAT and Internet gateways
+module "network" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/network"
+
+  for_each = local.formatted_network
+	network = each.value
+
+	# network = each.value
+	# network_name        = each.key
+	# module_labels     = each.value.module_labels
+	# module_prefix       = each.value.network_module_prefix
+	# private_subnets = each.value.private_subnets
+	# public_subnets  = each.value.public_subnets
+
+}
+
+{%- if vm|default(False) %}
+
+### SSH : creates and uploads SSH keys needed for reaching the VMs
+module "ssh" {
+	source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/ssh"
+
+	for_each = local.formatted_ssh_keys
+
+		key = each.value
+}
+{%- endif %}
+
+{%- if profile|default(False) %}
+
+### IAM : Identity and Access Management (otherwise known as RBAC : Role-Based Access Control)
+module "iam" {
+	source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/iam"
+
+	role = var.role
+	policy = var.policy
+	profile = var.profile
+	region = var.region
+	common_labels = var.labels
+	common_prefix = var.prefix
+}
+{%- endif %}
+
+{%- if vm|default(False) %}
+
+### vm : contains virtual machines + dedicated firewalls
+module "vm" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/vm"
+
+  depends_on = [
+  	module.network,
+{%- if profile|default(False) %}
+	module.iam,
+{%- endif %}
+  ]
+
+  for_each = local.formatted_vm
+
+{%- if provider == "nutanix" %}
+	nutanix_username = var.nutanix_user
+	nutanix_password = var.nutanix_password
+{%- endif %}
+
+	vm = each.value
+	network = var.network
+
+}
+{%- endif %}
+
+{%- if kubernetes|default(False) %}
+
+### kubernetes : contains managed kubernetes clusters
+module "kubernetes" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/kubernetes"
+
+  depends_on = [module.network]
+
+  for_each = local.formatted_k8s
+	
+	k8s_cluster = each.value
+	network = module.network[each.value.network].network_parameters
+
+{%- if provider == "nutanix" %}
+	nutanix_username = var.nutanix_user
+	nutanix_password = var.nutanix_password
+{%- endif %}
+
+{%- if provider == "azure" %}
+	client_id = var.client_id
+	client_secret = var.client_secret
+	ssh_public_key_folder = var.ssh_public_key_folder
+{%- endif %}
+
+}
+{%- endif %}
+
+{%- if container_registry|default(False) %}
+
+### container registry : create a private Docker registry
+module "container_registry" {
+	source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/docker_registry"
+
+{%- if provider != "azure" %}
+	count = (var.container_registry == true ? 1 : 0)
+{%- endif %}
+
+{%- if provider == "azure" %}
+	for_each = var.container_registry_list
+	container_registry = each.value.container_registry
+        location = lookup(each.value, "location")
+	resource_group = lookup(each.value, "resource_group")
+{%- endif %}
+}
+{%- endif %}

@@ -1,0 +1,23 @@
+---
+- hosts: "{{ hosts }}"
+  gather_facts: yes
+
+  ### to_collect is a list of files with content to collect
+  # it should have the following format :
+  # to_collect :
+  # - target_file: /etc/hosts
+  #   gather_folder: resolver_data
+
+  vars:
+    to_collect: "{{ to_collect }}"
+
+  tasks:
+  - name: create data folder
+    local_action: "shell mkdir -p {{ exec_folder }}/data/{{ item.gather_folder }}"
+    with_items: "{{ to_collect }}"
+
+  - name: dump file content locally
+    fetch:
+      src: "{{ item.target_file }}"
+      dest: "{{ exec_folder }}/data/{{ item.gather_folder }}/{{ inventory_hostname }}"
+    with_items: "{{ to_collect }}"

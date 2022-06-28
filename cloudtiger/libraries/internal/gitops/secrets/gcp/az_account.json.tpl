@@ -1,0 +1,4 @@
+{
+	"subscriptionId": "XXX",
+	"tenantId": "XXX"
+  }

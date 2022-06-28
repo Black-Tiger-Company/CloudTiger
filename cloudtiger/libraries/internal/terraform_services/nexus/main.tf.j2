@@ -1,0 +1,54 @@
+terraform {
+  required_providers {
+    nexus = {
+      source = "datadrivers/nexus"
+      version = "1.12.0"
+    }
+  }
+}
+
+provider "nexus" {
+  insecure = true
+  password = var.nexus_password
+  url      = var.nexus_address
+  username = "admin"
+}
+
+variable "nexus_password" {}
+
+variable "nexus_address" {}
+
+variable "nexus_config" {}
+
+### nexus module
+module "nexus" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/nexus/resources"
+
+	nexus_config = var.nexus_config
+
+}
+
+### nexus data module
+module "nexus_data" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/nexus/data"
+
+	nexus_config = var.nexus_config
+
+}
+
+output nexus_privileges {
+	value = module.nexus.nexus_privileges
+}
+
+output nexus_roles {
+	value = module.nexus.nexus_roles
+}
+
+output nexus_security_users {
+	value = module.nexus.nexus_security_users
+	sensitive = true
+}
+
+output nexus_repositories {
+	value = module.nexus.nexus_repositories
+}

@@ -1,0 +1,2 @@
+### description of all kubernetes clusters in HCL format
+kubernetes = {{ kubernetes|tojson(indent=4)|replace(':',' =') }}

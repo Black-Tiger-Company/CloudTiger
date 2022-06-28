@@ -1,0 +1,51 @@
+terraform {
+  required_providers {
+    gitlab = {
+      source = "gitlabhq/gitlab"
+      version = "3.7.0"
+    }
+  }
+}
+
+provider "gitlab" {
+    token = var.gitlab_token
+	base_url = var.gitlab_address
+}
+
+variable "gitlab_token" {}
+
+variable "gitlab_address" {}
+
+variable "gitlab_config" {}
+
+### gitlab module
+module "gitlab" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/gitlab/resources"
+
+	gitlab_config = var.gitlab_config
+
+}
+
+### gitlab data module
+module "gitlab_data" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/gitlab/data"
+
+	gitlab_config = var.gitlab_config
+
+}
+
+output gitlab_privileges {
+	value = module.gitlab.gitlab_privileges
+}
+
+output gitlab_roles {
+	value = module.gitlab.gitlab_roles
+}
+
+output gitlab_security_users {
+	value = module.gitlab.gitlab_security_users
+}
+
+output gitlab_repositories {
+	value = module.gitlab.gitlab_repositories
+}

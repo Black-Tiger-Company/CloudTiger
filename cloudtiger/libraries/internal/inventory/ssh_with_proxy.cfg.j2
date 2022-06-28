@@ -1,0 +1,17 @@
+{% set sn2proxy = {} %}{% for vm_name, vm in vms.value.items() %}{% set escape_public_subnet = requested_networks.value[vm.network_name]["private_subnets_escape_public_subnet"] %}{% if vm.group == "bastion" %}{% set dummy = sn2proxy.__setitem__(escape_public_subnet, vm.public_ip) %}Host {{ vm.public_ip }}
+  Hostname {{ vm.public_ip }}
+  User {{ vm.user }}
+  IdentityFile {{ ssh_key_path }}
+  Port {{ vm.port }}
+{% endif %}{% endfor  %}{% for vm_name, vm in vms.value.items() %}{% set escape_public_subnet = requested_networks.value[vm.network_name]["private_subnets_escape_public_subnet"] %}{% if vm.private_ip != "" %}
+Host {{ vm.private_ip }}
+  ProxyCommand ssh -F ssh.cfg -W %h:%p {{ sn2proxy[escape_public_subnet] }}
+  User {{ vm.user }}
+  IdentityFile {{ ssh_key_path }}{% endif %}
+  Port {{ vm.port }}
+{% endfor  %}
+# multiplexing SSH
+Host *
+ ControlMaster   auto
+ ControlPath     ~/.ssh/mux-%r@%h:%p
+ ControlPersist  15m

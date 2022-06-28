@@ -1,0 +1,27 @@
+### select cloud provider
+cloud_provider = "{{ provider }}"
+
+### labels
+labels = {{ labels | default({}) | tojson }}
+
+### prefix
+prefix = "{{ prefix | default("") }}"
+
+{%- if provider in ["aws", "azure", "gcp"] %}
+### region
+region = "{{ region }}"
+{%- endif %}
+
+### SSH keys
+{%- if dedicated_ssh_keys|default(False) %}
+### using dedicated SSH key pair for the scope
+ssh_public_key = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}/secrets/ssh/public/{{ scope }}.pub"
+{%- else %}
+{%- if env["CLOUDTIGER_PUBLIC_SSH_KEY"] %}
+### using public SSH key set from the environment variable CLOUDTIGER_PUBLIC_SSH_KEY
+ssh_public_key = "{{ env["CLOUDTIGER_PUBLIC_SSH_KEY"] }}"
+{%- else %}
+### using either the ssh_public_key set in config.yml, or no default public key provided
+ssh_public_key = "{{ ssh_public_key|default("no_default_public_key") }}"
+{%- endif %}
+{%- endif %}

@@ -1,0 +1,152 @@
+provider: gcp
+region: us-west1
+use_proxy: true
+
+network:
+  main_network:
+    network_cidr: "10.0.0.0/16"
+    prefix: "demo_"
+    subnets:
+      datalake_dmz:
+        cidr_block: "10.0.5.0/24"
+        availability_zone: "us-west1-a"
+        public: true
+
+      datalake_subnet:
+        cidr_block: "10.0.10.0/24"
+        availability_zone: "us-west1-a"
+
+      datalake_replication_subnet_1:
+        cidr_block: "10.0.6.0/24"
+        availability_zone: "us-west1-a"
+        attached_kubernetes_cluster: "k8s_cluster"
+
+      datalake_replication_subnet_2:
+        cidr_block: "10.0.7.0/24"
+        availability_zone: "us-west1-b"
+        attached_kubernetes_cluster: "k8s_cluster"
+
+      datalake_replication_subnet_3:
+        cidr_block: "10.0.8.0/24"
+        availability_zone: "us-west1-c"
+        attached_kubernetes_cluster: "k8s_cluster"
+
+    private_subnets_escape_public_subnet: "datalake_dmz"
+
+profile:
+  container_registry_reader_profile:
+    role_name: "container_registry_reader"
+  default:
+    role_name: "default"
+
+role:
+  default:
+    custom_policies     : []
+    default_policies : []
+    services    : []
+
+vm:
+  main_network:
+    datalake_dmz:
+      ssh_bastion_dmz_datalake:
+        os_user: "ubuntu"
+        group: "bastion"
+        type: "bastion"
+        prefix: "demo_"
+        availability_zone: "us-west1-a"
+        system_image: "ubuntu_server"
+        subnet_type: "public"
+        private_ip: "10.0.5.10"
+        root_volume_type: "small_root"
+        volumes:
+          data:
+            index: 1
+        ingress_rules: ["icmp","ssh"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        
+        egress_rules: ["default"]
+        instance_profile: "default"
+
+    datalake:
+      jumpbox:
+        os_user: "ubuntu"
+        group: "jumpbox"
+        type: "jumpbox"
+        prefix: "demo_"
+        availability_zone: "us-west1-a"
+        system_image: "ubuntu_server"
+        subnet_type: "private"
+        private_ip: "10.0.10.10"
+        root_volume_type: "small_root"
+        data_volume_type: "large_data"
+        ingress_rules: ["icmp","ssh", "nexus"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        instance_profile: "container_registry_reader_profile"
+      backend:
+        os_user: "ubuntu"
+        group: "backend"
+        type: "backend"
+        prefix: "demo_"
+        availability_zone: "us-east-1a"
+        system_image: "ubuntu_server"
+        subnet_type: "private"
+        private_ip: "10.0.10.11"
+        root_volume_type: "large_root"
+        data_volume_type: "large_data"
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        instance_profile: "container_registry_reader_profile"
+
+independent_volumes: {}
+
+kubernetes:
+  k8s_cluster :
+    prefix: "bt"
+    zones: ["us-west1-a"]
+    network: "main_network"
+    subnetworks: ["datalake_replication_subnet_1", "datalake_replication_subnet_2", "datalake_replication_subnet_3"]
+    os_username: "acme"
+    password: "acme123acme#acme123"
+    system_image: "kubernetes"
+    instance_type: "k8s_worker"
+    k8s_node_groups :
+      k8s_main :
+        desired_size: 1
+        disk_size: 16
+        max_size: 1
+        min_size: 1
+        subnetwork: "datalake_replication_subnet_1"
+    ingress_rules: ["icmp","ssh","https", "http_bis", "http", "nginx_k8s", "resty_k8s", "keycloak_k8s"]
+    egress_rules: ["default"]
+    cluster_volumes :
+      first_cluster_volume :
+        size: 256
+        name: "data_disk"
+        zone: "us-west1-a"
+        type: "sc1"
+
+ansible:
+- name: "add users"
+  type: playbook
+  source: configure_users_standard
+  params:
+    hosts: backend
+    users:
+    - name : custom.username
+      key: "ssh-rsa AAAA"
+- name: "role datalake"
+  type: role
+  hosts: datalake_dmz
+  roles:
+  - source: geerlingguy.postgresql
+    params:
+      become: true

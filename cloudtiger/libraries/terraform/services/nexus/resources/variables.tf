@@ -1,0 +1,3 @@
+variable "nexus_config" {
+
+}

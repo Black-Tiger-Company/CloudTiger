@@ -1,0 +1,7 @@
+{% for vm_name, vm in vm_ssh_params.items() %}{% if vm.private_ip != "" %}Host {{ vm_name }}
+  Hostname {{ vm.private_ip }}
+  User {{ vm.standard_user }}
+  IdentityFile {{ ssh_key_path }}
+  Port {{ vm.ssh_port }}
+{% endif %}
+{% endfor  %}

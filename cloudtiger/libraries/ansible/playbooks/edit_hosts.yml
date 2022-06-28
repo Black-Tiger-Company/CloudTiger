@@ -1,0 +1,15 @@
+---
+- name: edit /etc/hosts with specific entries
+  hosts: "{{ hosts }}"
+  gather_facts: no
+
+  vars:
+    addresses: "{{ addresses }}"
+
+  tasks:
+  - name: add extra hosts
+    lineinfile:
+      line: "{{ item }}"
+      path: "/etc/hosts"
+    loop: "{{ addresses }}"
+    become: True

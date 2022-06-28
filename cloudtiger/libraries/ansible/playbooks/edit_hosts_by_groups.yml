@@ -1,0 +1,16 @@
+---
+- name: edit /etc/hosts file to add other hosts from hostfile groups
+  hosts: "{{ hosts }}"
+
+
+  vars:
+    addresses: "{{ addresses }}"
+
+  tasks:
+  - name: add extra hosts
+    lineinfile:
+      line: "{{ hostvars[groups[item.group_name][0]]['ansible_facts']['default_ipv4']['address'] }} {{ item.dns }}"
+      # line: "{{ groups[item.group_name][0]}} {{ item.dns }}"
+      path: "/etc/hosts"
+    with_items: "{{ addresses }}"
+    become: True

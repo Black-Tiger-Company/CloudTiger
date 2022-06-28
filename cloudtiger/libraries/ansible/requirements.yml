@@ -1,0 +1,13 @@
+---
+roles:
+- geerlingguy.postgresql
+- geerlingguy.java
+- andrewrothstein.openjdk
+- ansible-thoteam.nexus3-oss
+- geerlingguy.pip
+- geerlingguy.docker
+- andrewrothstein.kubectl
+- gantsign.helm
+- andrewrothstein.spark
+- veselahouba.openldap
+- geerlingguy.kubernetes

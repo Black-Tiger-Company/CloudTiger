@@ -1,0 +1,9 @@
+---
+- name: update hostname according to inventory file
+  hosts: "{{ hosts }}"
+
+  tasks:
+    - name: update hostname to inventory hostname
+      shell: hostnamectl set-hostname {{ vm_names[inventory_hostname] | default(inventory_hostname)}}
+      become: yes
+      become_method: sudo

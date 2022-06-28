@@ -1,0 +1,4 @@
+### description of all virtual machines in HCL format
+vm = {{ vm|tojson(indent=4)|replace(':',' =') }}
+
+independent_volumes = {}

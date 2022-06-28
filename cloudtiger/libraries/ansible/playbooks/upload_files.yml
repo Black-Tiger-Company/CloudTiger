@@ -1,0 +1,27 @@
+---
+- name: upload local files to remote hosts
+  hosts: "{{ hosts }}"
+
+  vars:
+    files: "{{ files }}"
+
+  tasks:
+  - name: Ensure destination folder exists
+    file:
+      path: "{{ item.dest | dirname }}"
+      state: directory
+      owner: "{{ item.owner | default('root') }}"
+      mode: "{{ item.mode | default('755') }}"
+    with_items: "{{ files }}"
+    become: true
+    become_method: sudo
+
+  - name: Upload file
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: "{{ item.owner | default('root') }}"
+      mode: "{{ item.mode | default('755') }}"
+    with_items: "{{ files }}"
+    become: true
+    become_method: sudo

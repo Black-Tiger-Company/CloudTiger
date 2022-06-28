@@ -1,0 +1,89 @@
+### GCP disk types :
+# pd-standard : HDD
+# pd-ssd : SSD
+# pd-balanced : cheaper SSD
+
+### AWS disk types :
+# sc1 : HDD
+# gp2 : SSD
+# standard : cheap HDD
+
+generic_volume_parameters:
+  azure:
+    small_root:
+      type: "pd-ssd"
+      size: 16
+
+    large_root:
+      type: "pd-ssd"
+      size: 32
+
+    large_data:
+      type: "pd-standard"
+      size: 512
+
+    none:
+      type: "pd-standard"
+      size: 0
+
+  gcp:
+    small_root:
+      type: "pd-ssd"
+      size: 16
+
+    large_root:
+      type: "pd-ssd"
+      size: 32
+
+    large_data:
+      type: "pd-standard"
+      size: 512
+
+    none:
+      type: "pd-standard"
+      size: 0
+
+  aws:
+    small_root:
+      type: "gp2"
+      size: 16
+
+    large_root:
+      type: "gp2"
+      size: 32
+
+    large_data:
+      type: "sc1"
+      size: 512
+
+    none:
+      type: "standard"
+      size: 0
+
+  default:
+    small_root:
+      size: 16
+      type: "generic"
+
+    small_data:
+      size: 16
+      type: "generic"
+
+    medium_data:
+      size: 128
+      type: "generic"
+
+    large_root:
+      size: 32
+      type: "generic"
+
+    large_data:
+      size: 512
+      type: "generic"
+
+    none:
+      size: 0
+      type: "generic"
+
+
+
