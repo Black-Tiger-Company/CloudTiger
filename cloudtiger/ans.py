@@ -243,14 +243,14 @@ def set_vm_ansible_parameters(operation: Operation, vm_name: str) -> dict:
     ansible_ssh_port = operation.scope_config_dict["vm_ssh_params"][vm_name]["ssh_port"]
 
     vm_ssh_parameters = {
-        "ansible_ssh_host": ansible_ssh_host
+        "ansible_ssh_host": ansible_ssh_host,
+        "ansible_user": ansible_user
     }
 
     if ansible_ssh_port != "22":
         vm_ssh_parameters["ansible_ssh_port"] = ansible_ssh_port
 
     if ansible_user != os.environ["CLOUDTIGER_SSH_USERNAME"]:
-        vm_ssh_parameters["ansible_user"] = ansible_user
         # if the SSH user is the OS user, we have to set the password for sudo actions
         if operation.default_user:
             vm_ssh_parameters["ansible_become_pass"] = ansible_user
