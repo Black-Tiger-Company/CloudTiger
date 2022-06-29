@@ -530,7 +530,7 @@ def execute_ansible(operation: Operation):
             cloudtiger_ssh_password = getpass.getpass(query_string)
             ansible_environ["CLOUDTIGER_SSH_PASSWORD"] = base64.b64encode(
                 bytes(cloudtiger_ssh_password, 'utf-8'))
-        command += ' --extra-vars "ansible_become_pass=$(echo $CLOUDTIGER_SSH_PASSWORD | base64 --decode)"'
+        command += ' --extra-vars "b64_ansible_ssh_pass=$(echo $CLOUDTIGER_SSH_PASSWORD)"'
 
     bash_action(operation.logger, command, operation.scope_inventory_folder,
                 ansible_environ, operation.stdout_file, operation.stderr_file)
