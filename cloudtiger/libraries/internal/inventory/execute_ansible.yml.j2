@@ -1,8 +1,9 @@
 ---{% for actions_batch in ansible %}
 - name: {{ actions_batch.name }}
 
-{% if "hosts" in actions_batch.keys() %}  hosts: {{ actions_batch.hosts }}{% endif %}{% if "sudo_prompt" in actions_batch.keys() %}{% if actions_batch.sudo_prompt %}{% endif %}{% endif %}{%if "extra_vars" in actions_batch.keys() %}  vars:
-    ansible_sudo_pass: {% raw %}"{{ b64_ansible_ssh_pass | b64decode }}"{% endraw %}
+{% if "hosts" in actions_batch.keys() %}  hosts: {{ actions_batch.hosts }}{% endif %}{% if "sudo_prompt" in actions_batch.keys() %}{% if actions_batch.sudo_prompt %}{% endif %}{% endif %}
+  vars:
+    ansible_sudo_pass: {% raw %}"{{ b64_ansible_ssh_pass | b64decode }}"{% endraw %}{%if "extra_vars" in actions_batch.keys() %}
     {% for extra_var in actions_batch.extra_vars  %}- {{ extra_var }} : {{ extra_var }}{% endfor  %}{% endif %}{% if actions_batch.type == "role" %}
 
   roles:{% for role in actions_batch.roles  %}
