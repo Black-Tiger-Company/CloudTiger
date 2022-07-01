@@ -11,19 +11,19 @@
 generic_volume_parameters:
   azure:
     small_root:
-      type: "pd-ssd"
+      type: "Standard_LRS"
       size: 16
 
     large_root:
-      type: "pd-ssd"
+      type: "Standard_LRS"
       size: 32
 
     large_data:
-      type: "pd-standard"
+      type: "Standard_LRS"
       size: 512
 
     none:
-      type: "pd-standard"
+      type: "Standard_LRS"
       size: 0
 
   gcp:

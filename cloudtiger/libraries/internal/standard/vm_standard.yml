@@ -67,17 +67,25 @@ system_images:
 vm_types:
   gcp:
     bastion:
-      prod: "e2-micro"
-      nonprod: "e2-micro"
+      prod: 
+        type: "e2-micro"
+      nonprod:
+        type: "e2-micro"
     jumpbox:
-      prod: "e2-small"
-      nonprod: "e2-small"
+      prod:
+        type: "e2-small"
+      nonprod:
+        type: "e2-small"
     k8s_worker:
-      prod: "e2-standard-4"
-      nonprod: "e2-standard-4"
+      prod:
+        type: "e2-standard-4"
+      nonprod:
+        type: "e2-standard-4"
     backend:
-      prod: "e2-standard-2"
-      nonprod: "e2-standard-2"
+      prod:
+        type: "e2-standard-2"
+      nonprod:
+        type: "e2-standard-2"
   aws:
     bastion:
       prod: 

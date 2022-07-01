@@ -59,7 +59,7 @@ resource "google_compute_instance" "virtual_machine" {
   61))
 
   # name = substr(replace(format("%s%s_vm", var.vm.module_prefix, var.vm.vm_name), "_", "-"), 0, 61)
-  machine_type = var.vm.instance_type
+  machine_type = var.vm.instance_type.type
   zone         = var.vm.availability_zone
 
   boot_disk {
@@ -157,7 +157,12 @@ resource "google_compute_disk" "vm_data_volume" {
   name = substr(replace(format("%s%s_data_volume", var.vm.module_prefix, var.vm.vm_name), "_", "-"), 0, 61)
 
   size = lookup(each.value, "size", var.vm.default_data_volume_size)
-  type = lookup(each.value, "type", lookup(var.vm.generic_volume_parameters, lookup(each.value, "type", "small_root"), "pd-standard"))
+  type = lookup(each.value, "type", 
+  lookup(
+    lookup(var.vm.generic_volume_parameters, lookup(each.value, "type", "small_root"), {"type":"pd-standard"}),
+    "type",
+    "pd-standard")
+  )
 
   labels = merge(
     var.vm.module_labels,

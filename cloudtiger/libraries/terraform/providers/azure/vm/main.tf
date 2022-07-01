@@ -141,7 +141,12 @@ resource "azurerm_managed_disk" "vm_data_volume" {
   name                 = format("%s%s_data_volume", var.vm.module_prefix, var.vm.vm_name)
   location             = var.vm.location
   resource_group_name  = azurerm_resource_group.rg.name
-  storage_account_type = "Standard_LRS"
+  storage_account_type = lookup(each.value, "type", 
+  lookup(
+    lookup(var.vm.generic_volume_parameters, lookup(each.value, "type", "small_root"), {"type":"pd-standard"}),
+    "type",
+    "Standard_LRS")
+  )
   create_option        = "Empty"
   disk_size_gb         = lookup(each.value, "size", var.vm.default_data_volume_size)
 

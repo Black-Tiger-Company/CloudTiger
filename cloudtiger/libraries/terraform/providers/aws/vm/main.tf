@@ -143,7 +143,12 @@ resource "aws_ebs_volume" "vm_data_volume" {
   for_each = local.non_empty_data_volumes
 
   size = lookup(each.value, "size", var.vm.default_data_volume_size)
-  type = lookup(each.value, "type", lookup(var.vm.generic_volume_parameters, lookup(each.value, "type", "small_root"), "gp2"))
+  type = lookup(each.value, "type", 
+  lookup(
+    lookup(var.vm.generic_volume_parameters, lookup(each.value, "type", "small_root"), {"type":"gp2"}),
+    "type",
+    "gp2")
+  )
 
   tags = merge(
     var.vm.module_labels,
