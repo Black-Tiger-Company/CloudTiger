@@ -465,21 +465,27 @@ def install_ansible_playbooks(operation: Operation):
     shutil.copytree(ansible_playbooks, target_folder, dirs_exist_ok=True)
 
 
-def prepare_ansible(operation: Operation):
+def prepare_ansible(operation: Operation, securize=False):
 
     """ this function creates the Ansible meta playbook 'execute_ansible.yml' using inputs
     from the 'ansible' key in config.yml
 
     :param operation: Operation, the current Operation
+    :param securize: bool, set to True if we are using the 'cloudtiger ... init Z' command
 
     :return: empty return
     """
 
     # prepare Ansible meta playbook
 
-    execute_ansible_template = os.path.join(
-        operation.libraries_path, "internal", "inventory", "execute_ansible.yml.j2"
-    )
+    if securize :
+        execute_ansible_template = os.path.join(
+            operation.libraries_path, "internal", "inventory", "execute_ansible_no_sudo_pass.yml.j2"
+        )
+    else:
+        execute_ansible_template = os.path.join(
+            operation.libraries_path, "internal", "inventory", "execute_ansible.yml.j2"
+        )
     execute_ansible_output = os.path.join(
         operation.scope_folder, 'inventory', "execute_ansible.yml"
     )
