@@ -53,7 +53,7 @@ Then, Cloud Tiger wraps the Ansible commands to execute the meta-Ansible playboo
 
 In order to run a quickstart of CloudTiger on a public cloud provider (AWS, Azure or GCP), you need :
 
-- the technical prerequisites for the chosen cloud provider, instructions [here](doc/prerequisites_public_cloud.md)
+- the technical prerequisites for the chosen cloud provider, instructions [here](doc/prerequisites_cloud_credentials.md)
 - a Unix shell
 - Docker installed on your workstation
 
