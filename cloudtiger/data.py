@@ -60,7 +60,7 @@ provider_secrets_helper = {
             },
             {
                 "helper": "Please provide your AWS secret access key",
-                "name": "AWS_ACCESS_KEY_ID",
+                "name": "AWS_SECRET_ACCESS_KEY",
                 "sensitive": True
             },
             {
