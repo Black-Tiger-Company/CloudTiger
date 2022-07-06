@@ -203,7 +203,7 @@ def bash_action(logger: Logger,
         logger.error("Error in the execution of command :\n%s" % e)
         raise Exception(e)
 
-    logger.info("Successful bash action")
+    logger.info("Bash action terminated")
 
 
 def find_exec_path(executable):

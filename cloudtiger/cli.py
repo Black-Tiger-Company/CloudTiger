@@ -148,6 +148,9 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
         else:
             # unallowed action
             operation.logger.error("Unallowed action %s" % action)
+            sys.exit()
+
+    operation.logger.info("Finished init action sucessfully")
 
 
 @click.command('tf', short_help='Terraform actions')
@@ -184,6 +187,9 @@ from declared resources and reimporting them
         else:
             # unallowed action
             operation.logger.error("Unallowed action %s" % action)
+            sys.exit()
+
+    operation.logger.info("Finished tf action sucessfully")
 
 
 @click.command('ans', short_help='Ansible actions')
@@ -266,6 +272,9 @@ def ans(context, action, consolidated, default_user, restricted_vms,
 
         else:
             operation.logger.error("Unallowed action %s" % action)
+            sys.exit()
+
+    operation.logger.info("Finished ansible action sucessfully")
 
 
 @click.command('service', short_help='service configuration')
@@ -313,6 +322,9 @@ steps :
 
         else:
             operation.logger.error("Unallowed service %s" % name)
+            sys.exit()
+
+    operation.logger.info("Finished service action sucessfully")
 
 
 main.add_command(init)

@@ -69,7 +69,7 @@ Once you have built and/or pulled the docker, move into a dedicated working dire
 
 ```bash
 cd <YOUR_CHOSEN_WORKING_DIRECTORY>
-docker run -v $(pwd):/workdir -it cloudtiger bash
+docker run -v "$(pwd)":/workdir -it cloudtiger bash
 ```
 
 The command above will prompt you a shell command inside the CloudTiger Docker. You can then proceed with the next instructions :
@@ -78,12 +78,19 @@ The command above will prompt you a shell command inside the CloudTiger Docker. 
 
 We are going to create a small environment in your public cloud account, and configure it with a few softwares.
 
-Execute the following commands :
+First, let us create a SSH key pair for the demo with the follow command :
 
 ```bash
+ssh-keygen -q -t rsa -f /workdir/id_rsa -N ''
+```
+
+Then, we will setup the CloudTiger root project. Execute the following commands :
+
+```bash
+cd /workdir
 cloudtiger gitops init folder
-cloudtiger gitops init config ### after this command, you will be asked for several credentials information. If you are not sur, do not use a Terraform backend for the demo
-cd gitops
+cloudtiger gitops init config ### after this command, you will be asked for several credentials information. If you are not sure, do not use a Terraform backend for the demo
+cd /workdir/gitops
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 0
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 1
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 2
@@ -102,9 +109,9 @@ It will probably take up to 15 minutes for your cloud provider to create all the
 Once everything is created, Terraform and CloudTiger will give you back the upper hand. You can then proceed with the following instructions :
 
 ```bash
-cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 1
-cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 2
-cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 3
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 1 -d
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 2 -d
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 3 -d
 ```
 
 If everything went smoothly, you now have a dedicated architecture on your chosen cloud provider, with a software stack configured on it !
@@ -113,6 +120,12 @@ If you want to delete everything (to avoid unnecessary cloud costs, for example)
 
 ```bash
 cloudtiger tf destroy
+```
+
+Once you have finished, you can leave the CloudTiger docker with this command :
+
+```bash
+exit
 ```
 
 ## Installation
