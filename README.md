@@ -109,6 +109,8 @@ It will probably take up to 15 minutes for your cloud provider to create all the
 Once everything is created, Terraform and CloudTiger will give you back the upper hand. You can then proceed with the following instructions :
 
 ```bash
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans P -d
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans D -d
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 1 -d
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 2 -d
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 3 -d

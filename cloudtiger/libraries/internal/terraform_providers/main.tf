@@ -250,13 +250,28 @@ locals {
 			system_image = lookup(var.system_images[var.cloud_provider], k8s_cluster.system_image)
 
 			### technical specifications of nodes
-			instance_type = lookup(lookup(lookup(var.vm_types, var.cloud_provider, var.vm_types["default"]), k8s_cluster.instance_type, {}), lookup(k8s_cluster, "caliber", "nonprod"), "k8s_instance_type_unset")
+			instance_type = lookup(
+						lookup(
+							lookup(
+								var.vm_types, 
+								var.cloud_provider, 
+								var.vm_types["default"]
+							),
+							lookup(k8s_cluster, "instance_type", "custom"),
+							{}
+						),
+						lookup(k8s_cluster, "caliber", "nonprod"),
+						"k8s_instance_type_unset"
+					)
+			
+			
+			# lookup(lookup(lookup(var.vm_types, var.cloud_provider, var.vm_types["default"]), k8s_cluster.instance_type, {}), lookup(k8s_cluster, "caliber", "nonprod"), "k8s_instance_type_unset")
 
 			### definition node groups
 			k8s_node_groups = k8s_cluster.k8s_node_groups
-			k8s_instance_types = { for node_group_name, node_group in k8s_cluster.k8s_node_groups :
-				node_group_name => lookup(lookup(var.vm_types, var.cloud_provider, var.vm_types["default"]), lookup(node_group, "instance_type", k8s_cluster.instance_type), k8s_cluster.instance_type)
-			}
+			# k8s_instance_types = { for node_group_name, node_group in k8s_cluster.k8s_node_groups :
+			# 	node_group_name => lookup(lookup(var.vm_types, var.cloud_provider, var.vm_types["default"]), lookup(node_group, "instance_type", k8s_cluster.instance_type), k8s_cluster.instance_type)
+			# }
 
 			### cluster volumes
 			dedicated_volumes = k8s_cluster.cluster_volumes
@@ -281,6 +296,10 @@ locals {
 					cidr        = lookup(lookup(k8s_cluster, "egress_cidr", {}), rule, ["0.0.0.0/0"])
 				}
 			}
+
+			### by default, managed K8s clusters on public cloud providers need the name of a public SSH key on the account
+			ssh_public_key = lookup(k8s_cluster, "ssh_key", basename(var.ssh_public_key))
+			ssh_public_key_path = var.ssh_public_key
 
 			### custom parameters
 			az_custom_parameters = lookup(k8s_cluster, "az_custom_parameters", {})

@@ -92,79 +92,79 @@ vm_types:
         type: "t2.small"
       nonprod: 
         type: "t2.small"
-        data_volume_size: 20
+        data_volume_size: 125
     jumpbox:
       prod: 
         type: "t2.small"
       nonprod: 
         type: "t2.small"
-        data_volume_size: 20
+        data_volume_size: 125
     k8s_worker:
       prod: 
         type: "t3.xlarge"
       nonprod: 
         type: "t3.xlarge"
-        data_volume_size: 20
+        data_volume_size: 125
     backend:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     elastic:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     k8s_master:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     k8s_worker:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     mongo:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     keycloak:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     sftp:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     sparkmaster:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     sparknode:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
     kibana:
       prod: 
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
-        data_volume_size: 20
+        data_volume_size: 125
   azure:
     bastion:
       prod: 

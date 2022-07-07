@@ -206,13 +206,15 @@ def load_ssh_parameters(operation: Operation):
                         .get("private_subnets_escape_public_subnet", None)
                     # then we get the VMs with a group tag 'bastion'
                     escape_bastions = {
-                        vm.get("prefix", "") + vm_name + "_vm": vm
+                        vm_name: vm
                         for vm_name, vm in operation.scope_config_dict["vm"][network_name]\
                             .get(escape_public_subnet, {}).items() \
                                 if vm.get("group", "") == "bastion"
                     }
+
                     # we choose the first available bastion
                     escape_bastion = list(escape_bastions.keys())[0]
+
                     # we attribute the bastion to the SSH parameters for the current VM
                     operation.scope_config_dict["vm_ssh_params"][vm_name]["bastion_address"] \
                         = operation.terraform_vm_data[escape_bastion].get("public_ip", "unset")

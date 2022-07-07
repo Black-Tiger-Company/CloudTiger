@@ -1,2 +1,2 @@
 ### POLICIES
-policy = {{ policy|tojson(indent=4)|replace(':',' =') }}
+policy = {{ policy|tojson(indent=4)|replace(':',' =')|replace('#',':') }}

@@ -13,6 +13,20 @@ locals {
       "query" : "ubuntu/images/hvm-ssd/ubuntu-*-*-amd64-server-*"
     }
   }
+
+  volume_device_name = {
+      "1" : "/dev/sdf",
+      "2" : "/dev/sdg",
+      "3" : "/dev/sdh",
+      "4" : "/dev/sdi",
+      "5" : "/dev/sdj",
+      "6" : "/dev/sdk",
+      "7" : "/dev/sdl",
+      "8" : "/dev/sdm",
+      "9" : "/dev/sdn",
+      "10" : "/dev/sdo",
+  }
+
 }
 
 data "aws_ami" "ami" {
@@ -70,7 +84,7 @@ resource "aws_security_group" "security_group_vm" {
   tags = merge(
     var.vm.module_labels,
     {
-      "Name" = format("%s_%s_firewall", var.vm.module_prefix, var.vm.vm_name)
+      "Name" = format("%s%s_firewall", var.vm.module_prefix, var.vm.vm_name)
     }
   )
 }
@@ -109,7 +123,7 @@ resource "aws_instance" "virtual_machine" {
   tags = merge(
     var.vm.module_labels,
     {
-      "Name"  = format("%s_%s_virtual_machine", var.vm.module_prefix, var.vm.vm_name),
+      "Name"  = format("%s%s_virtual_machine", var.vm.module_prefix, var.vm.vm_name),
       "group" = var.vm.group
     }
   )
@@ -117,7 +131,7 @@ resource "aws_instance" "virtual_machine" {
   volume_tags = merge(
     var.vm.module_labels,
     {
-      "Name" = format("%s_%s_vm_root_volume", var.vm.module_prefix, var.vm.vm_name)
+      "Name" = format("%s%s_vm_root_volume", var.vm.module_prefix, var.vm.vm_name)
     }
   )
 
@@ -153,7 +167,7 @@ resource "aws_ebs_volume" "vm_data_volume" {
   tags = merge(
     var.vm.module_labels,
     {
-      "Name" = format("%s_%s_data_volume", var.vm.module_prefix, var.vm.vm_name)
+      "Name" = format("%s%s_data_volume", var.vm.module_prefix, var.vm.vm_name)
     }
   )
 
@@ -165,7 +179,7 @@ resource "aws_volume_attachment" "vm_data_volume_attachment" {
 
   for_each = local.non_empty_data_volumes
 
-  device_name = each.key
+  device_name = local.volume_device_name[tostring(each.value.index)]
   volume_id   = aws_ebs_volume.vm_data_volume[each.key].id
   instance_id = aws_instance.virtual_machine.id
 
@@ -185,7 +199,7 @@ resource "aws_eip" "elastic_ip" {
   tags = merge(
     var.vm.module_labels,
     {
-      "Name" = format("%s_%s_elastic_ip", var.vm.module_prefix, var.vm.vm_name)
+      "Name" = format("%s%s_elastic_ip", var.vm.module_prefix, var.vm.vm_name)
     }
   )
 

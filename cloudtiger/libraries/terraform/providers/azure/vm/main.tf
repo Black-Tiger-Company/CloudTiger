@@ -56,7 +56,7 @@ resource "azurerm_virtual_machine" "virtual_machine" {
   tags = merge(
     var.vm.module_labels,
     {
-      "name" = format("%s%s_firewall", var.vm.module_prefix, var.vm.vm_name)
+      "name" = format("%s%s_virtual_machine", var.vm.module_prefix, var.vm.vm_name)
     }
   )
 }
