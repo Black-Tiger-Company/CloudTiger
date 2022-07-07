@@ -41,7 +41,7 @@ Then, Cloud Tiger wraps the Terraform commands to call the infrastructure provid
 
 Once the infrastructures are created, Cloud Tiger wraps Ansible commands
 
-First, Cloud Tiger parses the Terraform output to extract the IP addresses and generate the files needed by Ansibl to operate (`envt.hosts`, `ssh.cfg`, `ansible.cfg`), as illustrated below. Cloud Tiger also creates a meta-Ansible playbook that will call all the playbooks and roles listed in `config.yml` on the VMs.
+First, Cloud Tiger parses the Terraform output to extract the IP addresses and generate the files needed by Ansible to operate (`envt.hosts`, `ssh.cfg`, `ansible.cfg`), as illustrated below. Cloud Tiger also creates a meta-Ansible playbook that will call all the playbooks and roles listed in `config.yml` on the VMs.
 
 ![cloud_tiger](./doc/schemas/cloudtiger_logic_3.drawio.png)
 
