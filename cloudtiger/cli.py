@@ -265,7 +265,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
                 operation.devops_init()
                 create_inventory(operation)
                 setup_ssh_connection(operation)
-                prepare_ansible(operation, securize=True)
+                prepare_ansible(operation)
                 execute_ansible(operation)
                 return
 
