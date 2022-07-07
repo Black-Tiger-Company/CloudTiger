@@ -109,8 +109,11 @@ It will probably take up to 15 minutes for your cloud provider to create all the
 Once everything is created, Terraform and CloudTiger will give you back the upper hand. You can then proceed with the following instructions :
 
 ```bash
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans P
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans D
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 1 -d
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 2 -d
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans H
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo ans 3 -d
 ```
 
@@ -119,7 +122,7 @@ If everything went smoothly, you now have a dedicated architecture on your chose
 If you want to delete everything (to avoid unnecessary cloud costs, for example), run this command :
 
 ```bash
-cloudtiger tf destroy
+cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo tf destroy
 ```
 
 Once you have finished, you can leave the CloudTiger docker with this command :

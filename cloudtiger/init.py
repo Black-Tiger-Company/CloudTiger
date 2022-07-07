@@ -44,6 +44,15 @@ Please provide the local path to your private SSH key path"""
 
         root_dotenv["CLOUDTIGER_PRIVATE_SSH_KEY_PATH"] = private_ssh_key_path
 
+        dotenv_public_ssh_key_path = """
+Please provide the local path to your public SSH key path"""
+        public_ssh_key_path = click.prompt(dotenv_public_ssh_key_path, default="~/.ssh/id_rsa.pub")
+        if not os.path.exists(os.path.expanduser(public_ssh_key_path)):
+            operation.logger.info("The provided SSH key path %s does not exist, exiting" %
+                                  public_ssh_key_path)
+
+        root_dotenv["CLOUDTIGER_PUBLIC_SSH_KEY_PATH"] = public_ssh_key_path
+
     dotenv_asking_ssh_username = """
 Please provide a SSH username to connect to your resources"""
     ssh_username = click.prompt(dotenv_asking_ssh_username)

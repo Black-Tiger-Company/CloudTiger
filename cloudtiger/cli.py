@@ -31,6 +31,7 @@ from cloudtiger.tf import tf_generic
 
 
 @click.group()
+@click.version_option()
 @click.option('--project-root', '-p', default='.', help="set the gitops project root")
 @click.option('--libraries-path', '-l', default=None,
               help="set a custom folder of libraries for Terraform modules and Ansible playbooks")
@@ -264,7 +265,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
                 operation.devops_init()
                 create_inventory(operation)
                 setup_ssh_connection(operation)
-                prepare_ansible(operation, securize=True)
+                prepare_ansible(operation)
                 execute_ansible(operation)
                 return
 

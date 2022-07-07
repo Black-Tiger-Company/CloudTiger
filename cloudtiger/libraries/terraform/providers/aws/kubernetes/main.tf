@@ -49,7 +49,7 @@ resource "aws_eks_node_group" "k8s_node_groups" {
   node_role_arn   = aws_iam_role.k8s_role_node_group[each.key].arn
   subnet_ids      = [var.network["private_subnets"][each.value.subnetwork].id]
   remote_access {
-    ec2_ssh_key = format("%s", var.k8s_cluster.module_prefix)
+    ec2_ssh_key = var.k8s_cluster.ssh_public_key
   }
 
   scaling_config {
@@ -61,7 +61,7 @@ resource "aws_eks_node_group" "k8s_node_groups" {
   depends_on = [aws_eks_cluster.k8s_cluster]
 
   ami_type       = var.k8s_cluster.system_image
-  instance_types = [var.k8s_cluster.instance_type]
+  instance_types = [var.k8s_cluster.instance_type.type]
   disk_size      = each.value.disk_size
 
   tags = merge(

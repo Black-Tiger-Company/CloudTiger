@@ -206,13 +206,15 @@ def load_ssh_parameters(operation: Operation):
                         .get("private_subnets_escape_public_subnet", None)
                     # then we get the VMs with a group tag 'bastion'
                     escape_bastions = {
-                        vm.get("prefix", "") + vm_name + "_vm": vm
+                        vm_name: vm
                         for vm_name, vm in operation.scope_config_dict["vm"][network_name]\
                             .get(escape_public_subnet, {}).items() \
                                 if vm.get("group", "") == "bastion"
                     }
+
                     # we choose the first available bastion
                     escape_bastion = list(escape_bastions.keys())[0]
+
                     # we attribute the bastion to the SSH parameters for the current VM
                     operation.scope_config_dict["vm_ssh_params"][vm_name]["bastion_address"] \
                         = operation.terraform_vm_data[escape_bastion].get("public_ip", "unset")
@@ -465,7 +467,7 @@ def install_ansible_playbooks(operation: Operation):
     shutil.copytree(ansible_playbooks, target_folder, dirs_exist_ok=True)
 
 
-def prepare_ansible(operation: Operation, securize=False):
+def prepare_ansible(operation: Operation):
 
     """ this function creates the Ansible meta playbook 'execute_ansible.yml' using inputs
     from the 'ansible' key in config.yml
@@ -478,7 +480,7 @@ def prepare_ansible(operation: Operation, securize=False):
 
     # prepare Ansible meta playbook
 
-    if securize :
+    if operation.default_user:
         execute_ansible_template = os.path.join(
             operation.libraries_path, "internal", "inventory", "execute_ansible_no_sudo_pass.yml.j2"
         )
@@ -567,9 +569,13 @@ def setup_ssh_connection(operation: Operation):
     all_vms_ip = inventory.get_groups_dict()["all"]
 
     for vm in all_vms_ip:
-        operation.logger.debug("Removing vm %s from known hosts" % vm)
+        operation.logger.debug("Removing vm IP %s from known hosts" % vm)
         command = format("ssh-keygen -f \"/home/%s/.ssh/known_hosts\" -R \"%s\""
                          % (os.environ["USER"], operation.scope_unpacked_ips[vm]))
+        bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
+        operation.logger.debug("Removing vm hostname %s from known hosts" % vm)
+        command = format("ssh-keygen -f \"/home/%s/.ssh/known_hosts\" -R \"%s\""
+                         % (os.environ["USER"], vm))
         bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
 
 

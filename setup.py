@@ -46,6 +46,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/Black-Tiger-Company/CloudTiger',
-    version='0.1.2',
+    version='0.1.2.dev',
     zip_safe=False,
 )
