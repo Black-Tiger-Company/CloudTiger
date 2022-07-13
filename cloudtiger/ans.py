@@ -496,9 +496,10 @@ def prepare_ansible(operation: Operation):
     # it means we need to interprete some variables
     # in the 'ansible' dict that are in jinja format
     if "ansible_params" in operation.scope_config_dict.keys():
+        operation.logger.debug("Interpretating ansible parameters")
         buffer_config_file = os.path.join(operation.scope_folder, "inventory", "buffer_config.yml")
         j2(operation.logger, operation.scope_config,
-           operation.scope_config_dict, buffer_config_file)
+           operation.scope_config_dict["ansible_params"], buffer_config_file)
         ansible_config_dict = {
             **operation.scope_config_dict,
             **load_yaml(operation.logger, buffer_config_file)

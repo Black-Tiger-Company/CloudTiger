@@ -21,7 +21,9 @@ from cloudtiger.ans import (
     create_inventory,
     setup_ssh_connection,
     prepare_ansible,
-    execute_ansible
+    execute_ansible,
+    meta_distribute,
+    meta_aggregate
 )
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import create_logger
@@ -105,7 +107,8 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
         # command
         root_dotenv = os.path.join(project_root, ".env")
         config_file = os.path.join(project_root, scope, "config.yml")
-        if os.path.exists(root_dotenv) & os.path.exists(config_file):
+        meta_config_file = os.path.join(project_root, scope, "meta_config.yml")
+        if os.path.exists(root_dotenv) & (os.path.exists(config_file)|os.path.exists(meta_config_file)):
             operation.scope_setup()
             operation.secrets_setup()
             operation.logger.debug("Operations setup")
@@ -332,3 +335,6 @@ main.add_command(init)
 main.add_command(tf)
 main.add_command(ans)
 main.add_command(service)
+
+if __name__ == "__main__":
+    main()

@@ -5,7 +5,7 @@ locals {
 
 
 resource "azurerm_resource_group" "k8s_rg" {
-  name     = format("%s_rg", var.k8s_cluster.cluster_name)
+  name     = format("%s_k8s_rg", var.k8s_cluster.cluster_name)
   location = var.k8s_cluster.location
 }
 

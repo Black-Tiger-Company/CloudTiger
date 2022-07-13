@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "rg" {
-  name = format("%s%s_rg", var.network.module_prefix, var.network.network_name)
+  name = format("%s%s_network_rg", var.network.module_prefix, var.network.network_name)
   tags = merge(
     var.network.module_labels,
     {
@@ -79,4 +79,34 @@ resource "azurerm_nat_gateway_public_ip_association" "ip_association" {
   public_ip_address_id = azurerm_public_ip.public_ip.id
 
   depends_on = [azurerm_nat_gateway.aznat, azurerm_public_ip.public_ip]
+}
+
+################
+# Security groups
+################
+
+resource "azurerm_network_security_group" "public_network_security_group" {
+  for_each            = var.network.public_subnets
+  name                = format("%s%s_%s_subnet_sg", var.network.module_prefix, var.network.network_name, each.key)
+  location            = var.network.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_network_security_group" "private_network_security_group" {
+  for_each            = var.network.private_subnets
+  name                = format("%s%s_%s_subnet_sg", var.network.module_prefix, var.network.network_name, each.key)
+  location            = var.network.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet_network_security_group_association" "public_network_security_association" {
+  for_each                  = var.network.public_subnets
+  subnet_id                 = azurerm_subnet.public_subnets[each.key].id
+  network_security_group_id = azurerm_network_security_group.public_network_security_group[each.key].id
+}
+
+resource "azurerm_subnet_network_security_group_association" "private_network_security_association" {
+  for_each                  = var.network.private_subnets
+  subnet_id                 = azurerm_subnet.private_subnets[each.key].id
+  network_security_group_id = azurerm_network_security_group.private_network_security_group[each.key].id
 }

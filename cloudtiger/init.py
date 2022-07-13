@@ -368,11 +368,12 @@ def prepare_platform_action(
         "kubernetes": subfolder_values.get("kubernetes", {}),
         "policies": subfolder_values.get("policies", {}),
         "provider": subfolder_values.get("provider", {}),
+        "artefacts_repository_public_key_url": subfolder_values.get("artefacts_repository_public_key_url", "unset_repo_url"),
         "vm": {
             subfolder_network_name: {
                 subfolder_subnet_name: {
                     vm.get("vm_prefix", subfolder_values["vm_prefix"]) + environment
-                    + vm["type"] + vm.get("indice", "") + "."
+                    + vm["type"] + vm.get("suffix", "") + vm.get("indice", "") + "."
                     + subfolder_values["client_name"]: {
                         "availability_zone": vm.get("availability_zone",
                                                     subfolder_subnet["availability_zone"]),

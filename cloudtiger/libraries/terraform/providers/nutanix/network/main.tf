@@ -7,6 +7,8 @@ terraform {
   }
 }
 
+data "nutanix_clusters" "clusters" {}
+
 locals {
   cluster_map = { for cluster in data.nutanix_clusters.clusters.entities :
     cluster.name => cluster

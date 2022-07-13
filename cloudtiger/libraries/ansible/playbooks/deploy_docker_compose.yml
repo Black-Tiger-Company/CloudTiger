@@ -27,6 +27,7 @@
       chdir: "{{ base_dir }}/{{ project }}"
     become: true
     with_items: "{{ networks }}"
+    ignore_errors: yes
 
   - name: docker-compose up/restart
     shell: docker-compose up -d
