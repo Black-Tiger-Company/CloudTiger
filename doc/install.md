@@ -82,6 +82,12 @@ pip3 install ansible
 
 You can check the Ansible documentation for more [details](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) if needed.
 
+Some Unix distribution will need you to install the `sshpass` program :
+
+```bash
+sudo apt install sshpass
+```
+
 ### Terraform
 
 [Terraform](https://www.terraform.io/) is an Infrastructure as Code tool developed by HashiCorp.
