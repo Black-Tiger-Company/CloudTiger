@@ -579,6 +579,20 @@ def setup_ssh_connection(operation: Operation):
                          % (os.environ["USER"], vm))
         bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
 
+        # when using a proxy SSH connection, a first direct connection with plain SSH
+        # is necessary in order to have Ansible able to connect afterwards
+        if operation.scope_config_dict.get("use_proxy", False):
+            operation.logger.debug(
+                "Initializing first SSH connection to allow proxy connection")
+            if operation.default_user:
+                ansible_user = operation.scope_config_dict["vm_ssh_params"][vm]["os_user"]
+            else:
+                ansible_user = operation.scope_config_dict["vm_ssh_params"][vm]["standard_user"]
+            command = format(
+                "ssh -o \"StrictHostKeyChecking no\" -F ssh.cfg %s@%s bash -c 'echo \"done\"'" %
+                (ansible_user, vm))
+            bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
+
 
 def meta_aggregate(operation: Operation):
 
