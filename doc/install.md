@@ -84,8 +84,16 @@ You can check the Ansible documentation for more [details](https://docs.ansible.
 
 Some Unix distribution will need you to install the `sshpass` program :
 
+On debian-like
+
 ```bash
 sudo apt install sshpass
+```
+
+On MacOS :
+
+```bash
+
 ```
 
 ### Terraform

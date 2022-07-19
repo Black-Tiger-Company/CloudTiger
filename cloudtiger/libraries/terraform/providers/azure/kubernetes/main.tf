@@ -25,7 +25,8 @@ resource "azurerm_kubernetes_cluster" "k8s_cluster" {
     admin_username = var.k8s_cluster.username
 
     ssh_key {
-      key_data = file(format("%s/%s.pub", var.ssh_public_key_folder, var.k8s_cluster.module_prefix))
+    #   key_data = file(format("%s/%s.pub", var.ssh_public_key_path, var.k8s_cluster.module_prefix))
+	  key_data = file(var.k8s_cluster.ssh_public_key_path)
     }
   }
 
@@ -48,14 +49,14 @@ resource "azurerm_kubernetes_cluster" "k8s_cluster" {
     client_secret = var.client_secret
   }
 
-  addon_profile {
-    kube_dashboard {
-      enabled = true
-    }
-  }
+#   addon_profile {
+#     kube_dashboard {
+#       enabled = true
+#     }
+#   }
 
   network_profile {
-    load_balancer_sku  = "Standard"
+    load_balancer_sku  = "standard"
     network_plugin     = "azure"
     service_cidr       = "10.10.0.0/16"
     docker_bridge_cidr = "172.17.0.1/16"
