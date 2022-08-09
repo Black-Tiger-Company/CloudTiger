@@ -117,7 +117,8 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
 
     # necessary to pass main CLI context to sub actions
     context.obj = {
-        "operations": operations
+        "operations": operations,
+        "logger": logger
     }
 
     return
@@ -137,6 +138,8 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
 \n- meta_distribute (M2)  : distribute the meta_config.yml to children scopes
     """
 
+    logger = context.obj['logger']
+
     for operation_context in context.obj['operations']:
         operation: Operation = operation_context
 
@@ -154,7 +157,7 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
             operation.logger.error("Unallowed action %s" % action)
             sys.exit()
 
-    operation.logger.info("Finished init action sucessfully")
+    logger.info("Finished init action sucessfully")
 
 
 @click.command('tf', short_help='Terraform actions')

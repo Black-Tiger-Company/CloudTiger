@@ -116,6 +116,26 @@ variable container_registry {
 	default = "dockerhub.com"
 }
 
+variable storage {
+	description = "Storage"
+	default = {}
+}
+
+variable function {
+	description = "Serverless function"
+	default = {}
+}
+
+variable mq {
+	description = "Message Queuing"
+	default = {}
+}
+
+variable yarn {
+	description = "Cluster for big data processing"
+	default = {}
+}
+
 ### default images per OS
 variable default_os_images {
 	description = "default VM images per OS"

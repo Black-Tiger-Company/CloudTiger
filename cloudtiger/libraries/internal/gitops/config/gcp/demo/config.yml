@@ -12,7 +12,7 @@ network:
         availability_zone: "us-west1-a"
         public: true
 
-      datalake_subnet:
+      datalake:
         cidr_block: "10.0.10.0/24"
         availability_zone: "us-west1-a"
 
@@ -92,7 +92,7 @@ vm:
         group: "backend"
         type: "backend"
         prefix: "demo_"
-        availability_zone: "us-east-1a"
+        availability_zone: "us-west1-c"
         system_image: "ubuntu_server"
         subnet_type: "private"
         private_ip: "10.0.10.11"

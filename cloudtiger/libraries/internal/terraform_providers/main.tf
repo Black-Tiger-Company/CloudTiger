@@ -321,4 +321,88 @@ locals {
 		}
 	}
 
+	formatted_storage = { for storage_name, storage in var.storage :
+		storage_name => {
+			name = lookup(storage, "name", storage_name)
+			region = var.region
+			access_control = lookup(storage, "access_control", "private")
+			### labels + prefix
+			module_labels     = merge(
+				var.labels,
+				lookup(storage, "labels", {})
+			)
+			module_prefix       = lookup(storage, "prefix", "")
+		}
+	}
+
+	formatted_function = { for function_name, function in var.function :
+		function_name => {
+			
+			filename      = "../../../../config/aws/demo/lambda_function_payload.zip"
+			name = lookup(function, "name", function_name)
+			description = lookup(function, "description", "")
+			#role          = aws_iam_role.iam_for_lambda.arn
+			handler       = lookup(function, "handler", "index.js")
+
+			source_code = "../../../../config/aws/demo/lambda_function_payload.zip"
+
+			runtime = lookup(function, "runtime", "nodejs14.x")
+  			entry_point = lookup(function, "entry_point", "startWorkflow")
+			event_trigger = lookup(function, "event_trigger", null)
+
+			### labels + prefix
+			module_labels = merge(
+				var.labels,
+				lookup(function, "labels", {})
+			)
+			module_prefix = lookup(function, "prefix", "")
+		}
+	}
+
+	formatted_mq= { for mq_name, mq in var.mq :
+		mq_name => {
+			
+			name = lookup(mq, "name", mq_name)
+			delay_seconds = lookup(mq, "delay_seconds", 90)
+			max_message_size = lookup(mq, "max_message_size", 2048)
+			message_retention_seconds = lookup(mq, "message_retention_seconds", 86400)
+			receive_wait_time_seconds = lookup(mq, "receive_wait_time_seconds", 10)
+
+			### labels + prefix
+			module_labels = merge(
+				var.labels,
+				lookup(mq, "labels", {})
+			)
+			module_prefix = lookup(mq, "prefix", "")
+		}
+	}
+
+	formatted_yarn= { for yarn_name, yarn in var.yarn :
+		yarn_name => {
+			
+			### by default, managed K8s clusters on public cloud providers need the name of a public SSH key on the account
+			ssh_public_key = lookup(yarn, "ssh_key", basename(var.ssh_public_key))
+			ssh_public_key_path = var.ssh_public_key
+
+			name = lookup(yarn, "name", yarn_name)
+			region = var.region
+			applications = lookup(yarn, "applications", ["Hadoop","Spark"])
+			subnetworks = yarn.subnetworks
+
+			master_instance_type = lookup(yarn, "master_instance_type", "m1.medium")
+			master_instance_number = lookup(yarn, "master_instance_number", 1)
+			worker_instance_type = lookup(yarn, "worker_instance_type", "m1.large")
+			worker_instance_number = lookup(yarn, "worker_instance_number", 2)
+
+			job_file_path = lookup(yarn, "job_file_path", "no job")
+
+			### labels + prefix
+			module_labels = merge(
+				var.labels,
+				lookup(yarn, "labels", {})
+			)
+			module_prefix = lookup(yarn, "prefix", "")
+		}
+	}
+
 }
