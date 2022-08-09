@@ -1,0 +1,2 @@
+### description of all mq in HCL format
+mq = {{ mq|tojson(indent=4)|replace(':',' =') }}

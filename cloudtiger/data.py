@@ -11,6 +11,11 @@ available_infra_services = [
     "policy",
     "profile",
     "role",
+    "storage",
+    "function",
+    "mq",
+    "yarn",
+    "sql",
     "vm"
 ]
 

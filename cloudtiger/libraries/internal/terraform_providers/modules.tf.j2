@@ -112,3 +112,43 @@ module "container_registry" {
 {%- endif %}
 }
 {%- endif %}
+
+### storage : contains storage
+{%- if storage|default(False) %}
+module "storage" {
+	source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/storage"
+
+	for_each = local.formatted_storage
+		storage = each.value
+}
+{%- endif %}
+
+### function : contains serverless function
+{%- if function|default(False) %}
+module "function" {
+	source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/function"
+
+	for_each = local.formatted_function
+		function = each.value
+}
+{%- endif %}
+
+### MQ : contains message queuing
+{%- if mq|default(False) %}
+module "mq" {
+	source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/mq"
+
+	for_each = local.formatted_mq
+		mq = each.value
+}
+{%- endif %}
+
+### YARN : contains cluster for big data processing
+{%- if yarn|default(False) %}
+module "yarn" {
+	source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/yarn"
+
+	for_each = local.formatted_yarn
+		yarn = each.value
+}
+{%- endif %}

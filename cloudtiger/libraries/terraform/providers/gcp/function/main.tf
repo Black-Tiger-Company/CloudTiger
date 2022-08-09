@@ -1,0 +1,46 @@
+############
+# Function (Cloud Function for GCP)
+############
+
+resource "google_storage_bucket_object" "function-zip" {
+  name   = "function-wordcount.zip"
+  bucket = "eg-blacktiger"
+  source = "/mnt/c/Users/emeric.guibert/Documents/Infrastucture/CloudTiger/testGCP/functions/function-wordcount.zip"
+}
+
+resource "google_cloudfunctions_function" "function" {
+  name        = var.function.name
+  description = var.function.description
+  runtime     = var.function.runtime
+
+  available_memory_mb   = 128
+  source_archive_bucket = "eg-blacktiger"
+  source_archive_object = google_storage_bucket_object.function-zip.name
+  entry_point           = var.function.entry_point
+
+  # event_trigger {
+  #   event_type = var.function.event_trigger.event_type
+  #   resource   = var.function.event_trigger.resource
+  # }
+  # event_trigger = lookup(var.function, "event_trigger", null)
+  dynamic "event_trigger" {
+    for_each = var.function.event_trigger != null ? [var.function.event_trigger] : []
+    content {
+      event_type = event_trigger.value["event_type"]
+      resource = event_trigger.value["resource"]
+    }
+  }
+}
+
+# IAM entry for all users to invoke the function
+resource "google_cloudfunctions_function_iam_member" "invoker" {
+  project        = google_cloudfunctions_function.function.project
+  region         = google_cloudfunctions_function.function.region
+  cloud_function = google_cloudfunctions_function.function.name
+
+  role   = "roles/cloudfunctions.invoker"
+  member = "serviceAccount:${data.google_storage_project_service_account.gcs_account.email_address}"
+}
+
+data "google_storage_project_service_account" "gcs_account" {
+}
