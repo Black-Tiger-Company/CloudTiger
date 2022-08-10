@@ -467,7 +467,7 @@ def install_ansible_playbooks(operation: Operation):
     shutil.copytree(ansible_playbooks, target_folder, dirs_exist_ok=True)
 
 
-def prepare_ansible(operation: Operation):
+def prepare_ansible(operation: Operation, securize=False):
 
     """ this function creates the Ansible meta playbook 'execute_ansible.yml' using inputs
     from the 'ansible' key in config.yml
@@ -479,7 +479,6 @@ def prepare_ansible(operation: Operation):
     """
 
     # prepare Ansible meta playbook
-
     if operation.default_user:
         execute_ansible_template = os.path.join(
             operation.libraries_path, "internal", "inventory", "execute_ansible_no_sudo_pass.yml.j2"
@@ -495,7 +494,7 @@ def prepare_ansible(operation: Operation):
     # if we have an 'ansible_params' key in the config.yml,
     # it means we need to interprete some variables
     # in the 'ansible' dict that are in jinja format
-    if "ansible_params" in operation.scope_config_dict.keys():
+    if (not securize) & ("ansible_params" in operation.scope_config_dict.keys()):
         operation.logger.debug("Interpretating ansible parameters")
         buffer_config_file = os.path.join(operation.scope_folder, "inventory", "buffer_config.yml")
         j2(operation.logger, operation.scope_config,
