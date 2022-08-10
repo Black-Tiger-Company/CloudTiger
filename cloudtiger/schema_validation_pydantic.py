@@ -88,6 +88,31 @@ class Vm(BaseModel):
     size: VmSize
     volumes: Dict[str, VmVolume]
 
+# class Kubernetes(BaseModel):
+#     prefix: str
+#     zones: List[str]
+#     network: str
+#     subnetworks: List[str]
+#     os_username: str
+#     password: str
+#     system_image: str #"kubernetes"
+#     instance_type: str #"k8s_worker"
+#     k8s_node_groups :
+#         k8s_main :
+#         desired_size: 1
+#         disk_size: 16
+#         max_size: 1
+#         min_size: 1
+#         subnetwork: "datalake_replication_subnet_1"
+#     ingress_rules: List["icmp","ssh","https", "http_bis", "http", "nginx_k8s", "resty_k8s", "keycloak_k8s"]
+#     egress_rules: ["default"]
+#     cluster_volumes :
+#       first_cluster_volume :
+#         size: 256
+#         name: "data_disk"
+#         zone: "us-east-1a"
+#         type: "sc1"
+
 class AnsibleRoleParam(BaseModel):
     chart_environment: EnvironmentEnum
     context: str
