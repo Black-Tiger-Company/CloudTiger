@@ -326,6 +326,7 @@ locals {
 			name = lookup(storage, "name", storage_name)
 			region = var.region
 			access_control = lookup(storage, "access_control", "private")
+			force_destroy = lookup(storage, "force_destroy", false)
 			### labels + prefix
 			module_labels     = merge(
 				var.labels,
@@ -338,17 +339,17 @@ locals {
 	formatted_function = { for function_name, function in var.function :
 		function_name => {
 			
-			filename      = "../../../../config/aws/demo/lambda_function_payload.zip"
+			filename = format("%s/%s","../../../../functions/",lookup(function, "filename", ""))
 			name = lookup(function, "name", function_name)
 			description = lookup(function, "description", "")
-			#role          = aws_iam_role.iam_for_lambda.arn
 			handler       = lookup(function, "handler", "index.js")
 
-			source_code = "../../../../config/aws/demo/lambda_function_payload.zip"
-
+			# source_code = "../../../../functions/" + lookup(function, "filename", "")
 			runtime = lookup(function, "runtime", "nodejs14.x")
-  			entry_point = lookup(function, "entry_point", "startWorkflow")
+  			entry_point = lookup(function, "entry_point", "main")
 			event_trigger = lookup(function, "event_trigger", null)
+
+			source_archive_object = lookup(function, "source_archive_object", null)
 
 			### labels + prefix
 			module_labels = merge(
@@ -394,7 +395,10 @@ locals {
 			worker_instance_type = lookup(yarn, "worker_instance_type", "m1.large")
 			worker_instance_number = lookup(yarn, "worker_instance_number", 2)
 
+			termination_protection = lookup(yarn, "termination_protection", false)
+
 			job_file_path = lookup(yarn, "job_file_path", "no job")
+			jobs = lookup(yarn, "jobs", null)
 
 			### labels + prefix
 			module_labels = merge(
