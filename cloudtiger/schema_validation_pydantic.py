@@ -88,30 +88,33 @@ class Vm(BaseModel):
     size: VmSize
     volumes: Dict[str, VmVolume]
 
-# class Kubernetes(BaseModel):
-#     prefix: str
-#     zones: List[str]
-#     network: str
-#     subnetworks: List[str]
-#     os_username: str
-#     password: str
-#     system_image: str #"kubernetes"
-#     instance_type: str #"k8s_worker"
-#     k8s_node_groups :
-#         k8s_main :
-#         desired_size: 1
-#         disk_size: 16
-#         max_size: 1
-#         min_size: 1
-#         subnetwork: "datalake_replication_subnet_1"
-#     ingress_rules: List["icmp","ssh","https", "http_bis", "http", "nginx_k8s", "resty_k8s", "keycloak_k8s"]
-#     egress_rules: ["default"]
-#     cluster_volumes :
-#       first_cluster_volume :
-#         size: 256
-#         name: "data_disk"
-#         zone: "us-east-1a"
-#         type: "sc1"
+
+class KubernetesNodeGroup(BaseModel):
+    desired_size: int
+    disk_size: int
+    max_size: int
+    min_size: int
+    subnetwork: str
+
+class KubernetesClusterVolume(BaseModel):
+    size: int
+    name: str
+    zone: str
+    type: str
+
+class Kubernetes(BaseModel):
+    prefix: str
+    zones: List[str]
+    network: str
+    subnetworks: List[str]
+    os_username: str
+    password: str
+    system_image: str #"kubernetes"
+    instance_type: str #"k8s_worker"
+    k8s_node_groups: Dict[str, KubernetesNodeGroup]
+    ingress_rules: List[str]
+    egress_rules: List[str]
+    cluster_volumes: Dict[str, KubernetesClusterVolume]
 
 class AnsibleRoleParam(BaseModel):
     chart_environment: EnvironmentEnum
@@ -127,18 +130,22 @@ class AnsibleRole(BaseModel):
     source: str
     
 class Ansible(BaseModel):
-    hosts: str
+    hosts: Optional[str]
     name: str
-    roles: List[AnsibleRole]
-    sudo_prompt: bool
+    roles: Optional[List[AnsibleRole]]
+    sudo_prompt: Optional[bool]
     type: str
+    source: Optional[str]
+    params: Any
 
 # Main class
 class Blacktiger(BaseModel):
     network: Dict[str, Network]
     vm: Dict[str, Dict[str, Dict[str, Vm]]] #1st dict: network > 2nd dict: subnet > 3rd vm
+    kubernetes: Optional[Dict[str, Kubernetes]]
     provider: str
     ansible: List[Ansible]
+    use_tf_backend: Optional[bool]
 
     @root_validator
     def vm_network_validation(cls, values):

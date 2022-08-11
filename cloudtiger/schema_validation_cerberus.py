@@ -8,6 +8,9 @@
     "provider": {
         'type': 'string'
     },
+    "kubernetes": {
+        'type': 'dict', 'valuesrules': {'type': 'dict'}
+    },
     "ansible": {
         'type': 'list', 'schema': { 'type': 'dict', 'schema': {
                 'hosts': {'type': 'string'},
@@ -16,8 +19,13 @@
                     'type': 'list', 'schema': {'type': 'dict'}
                 },
                 'sudo_prompt': {'type': 'boolean'},
-                'type': {'type': 'string'}
+                'type': {'type': 'string'},
+                'params': {'type': 'dict'},
+                'source': {'type': 'string'}
             }
         }
+    },
+    "use_tf_backend": {
+        'type': 'boolean'
     }
 }
