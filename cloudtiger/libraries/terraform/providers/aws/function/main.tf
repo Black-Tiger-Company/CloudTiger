@@ -29,7 +29,7 @@ resource "aws_lambda_function" "lambda" {
   role          = aws_iam_role.iam_for_lambda.arn
   handler       = var.function.handler
 
-  source_code_hash = filebase64sha256(var.function.source_code)
+  #source_code_hash = filebase64sha256(var.function.filename)
 
   runtime = var.function.runtime
 

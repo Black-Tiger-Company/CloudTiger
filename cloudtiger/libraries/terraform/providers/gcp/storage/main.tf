@@ -5,7 +5,7 @@
 resource "google_storage_bucket" "storage" {
     name = var.storage.name
     location = "US" #upper(split(var.storage.region, "-")[0])
-    force_destroy = true
+    force_destroy = var.storage.force_destroy
     labels = merge(
     var.storage.module_labels,
     {
@@ -14,6 +14,7 @@ resource "google_storage_bucket" "storage" {
   )
 }
 
+# TEST Create notifation (optional) when update in storage
 resource "google_storage_notification" "notification" {
   bucket         = google_storage_bucket.storage.name
   payload_format = "JSON_API_V1"
@@ -21,7 +22,7 @@ resource "google_storage_notification" "notification" {
   event_types    = ["OBJECT_FINALIZE", "OBJECT_METADATA_UPDATE"]
   # object_name_prefix
   custom_attributes = {
-    test = "testEG"
+    test = "testCloudtiger"
   }
   depends_on = [google_pubsub_topic_iam_binding.binding]
 }

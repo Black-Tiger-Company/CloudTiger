@@ -1,8 +1,6 @@
 ############
 # YARN (EMR for AWS)
 ############
-# require: Instances, JobFlowRole, Name, ServiceRole
-# require instances: nothing
 
 
 # IAM role for EMR Service
@@ -124,8 +122,8 @@ resource "aws_iam_instance_profile" "emr_profile" {
 }
 
 resource "aws_iam_policy" "emr_ec2_policy" {
-  name        = "test-policy"
-  description = "A test policy"
+  name        = "emr_ec2_policy"
+  description = "Policy for ec2 composing EMR cluster"
 
   policy = <<EOF
 {
@@ -146,8 +144,8 @@ resource "aws_iam_policy" "emr_ec2_policy" {
 EOF
 }
 
-resource "aws_iam_policy_attachment" "test-attach" {
-  name       = "test-attachment"
+resource "aws_iam_policy_attachment" "policy-attach" {
+  name       = "policy-attachment"
   roles      = [aws_iam_role.iam_emr_profile_role.name]
   policy_arn = aws_iam_policy.emr_ec2_policy.arn
 }
@@ -157,12 +155,12 @@ resource "aws_emr_cluster" "yarn" {
   release_label = "emr-4.6.0" 
   applications  = var.yarn.applications # https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-release-app-versions-6.x.html
 
-  termination_protection            = false
+  termination_protection            = var.yarn.termination_protection
   keep_job_flow_alive_when_no_steps = true
 
   ec2_attributes {
-    subnet_ids                         = var.yarn.subnetworks
-    # emr_managed_master_security_group = aws_security_group.sg.id
+    #subnet_ids                         = var.yarn.subnetworks #EMR Job Flow: ValidationException: The supplied ec2SubnetId is not valid
+    # emr_managed_master_security_group = aws_security_group.sg.id #todo: add security group
     # emr_managed_slave_security_group  = aws_security_group.sg.id
     instance_profile                  = aws_iam_instance_profile.emr_profile.arn
   }
@@ -178,16 +176,10 @@ resource "aws_emr_cluster" "yarn" {
 
   ebs_root_volume_size = 100
 
-  # bootstrap_action {
-  #   path = "s3://elasticmapreduce/bootstrap-actions/run-if"
-  #   name = "runif"
-  #   args = ["instance.isMaster=true", "echo running on master node"]
-  # }
-
   service_role = aws_iam_role.iam_emr_service_role.arn
 
   tags = merge(
-    var.function.module_labels,
+    var.yarn.module_labels,
     {
         "Name" = format("%s%s_yarn", var.yarn.module_prefix, var.yarn.name)
     }

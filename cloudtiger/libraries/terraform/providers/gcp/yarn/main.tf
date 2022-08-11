@@ -11,7 +11,7 @@ resource "google_dataproc_cluster" "yarn" {
 
     master_config {
       num_instances = var.yarn.master_instance_number
-      machine_type  = var.yarn.master_instance_type # "e2-medium"
+      machine_type  = var.yarn.master_instance_type
       disk_config {
         boot_disk_type    = "pd-ssd" # pd-ssd or pd-standard
         boot_disk_size_gb = 30       # min 10G, default 500G
@@ -39,7 +39,7 @@ resource "google_dataproc_cluster" "yarn" {
   }
 
   labels = {
-       name = "cluster-eg"
+       name = var.yarn.name
   }
 
 }
@@ -78,20 +78,20 @@ resource "google_dataproc_autoscaling_policy" "dataproc_autoscaling_policy" {
 #     }
 # }
 
-resource "google_dataproc_workflow_template" "template" {
-  name = "workflow_template-eg"
+resource "google_dataproc_workflow_template" "workflow_template" {
+  name = "workflow_template"
   location = var.yarn.region
   placement {
     cluster_selector {
       cluster_labels = {
-         name = "cluster-eg"
+         name = var.yarn.name
       }
     }
   }
   jobs {
-    step_id = "wordCount"
+    step_id = var.yarn.jobs[0].step_id
     pyspark_job {
-      main_python_file_uri = "gs://eg-blacktiger/pyspark/wordcount.py"
+      main_python_file_uri = var.yarn.jobs[0].main_file_uri
     }
   }
 }

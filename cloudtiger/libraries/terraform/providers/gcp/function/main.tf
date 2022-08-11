@@ -3,9 +3,9 @@
 ############
 
 resource "google_storage_bucket_object" "function-zip" {
-  name   = "function-wordcount.zip"
-  bucket = "eg-blacktiger"
-  source = "/mnt/c/Users/emeric.guibert/Documents/Infrastucture/CloudTiger/testGCP/functions/function-wordcount.zip"
+  name   = var.function.source_archive_object.name
+  bucket = var.function.source_archive_object.bucket
+  source = var.function.filename
 }
 
 resource "google_cloudfunctions_function" "function" {
@@ -14,15 +14,10 @@ resource "google_cloudfunctions_function" "function" {
   runtime     = var.function.runtime
 
   available_memory_mb   = 128
-  source_archive_bucket = "eg-blacktiger"
+  source_archive_bucket = var.function.source_archive_object.bucket
   source_archive_object = google_storage_bucket_object.function-zip.name
   entry_point           = var.function.entry_point
 
-  # event_trigger {
-  #   event_type = var.function.event_trigger.event_type
-  #   resource   = var.function.event_trigger.resource
-  # }
-  # event_trigger = lookup(var.function, "event_trigger", null)
   dynamic "event_trigger" {
     for_each = var.function.event_trigger != null ? [var.function.event_trigger] : []
     content {
