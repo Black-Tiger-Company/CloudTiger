@@ -79,7 +79,7 @@ resource "google_dataproc_autoscaling_policy" "dataproc_autoscaling_policy" {
 # }
 
 resource "google_dataproc_workflow_template" "workflow_template" {
-  name = "workflow_template"
+  name = "cluster-demo-cloudtiger"
   location = var.yarn.region
   placement {
     cluster_selector {

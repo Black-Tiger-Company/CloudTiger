@@ -326,7 +326,9 @@ locals {
 			name = lookup(storage, "name", storage_name)
 			region = var.region
 			access_control = lookup(storage, "access_control", "private")
+			objects = lookup(storage, "objects", {})
 			force_destroy = lookup(storage, "force_destroy", false)
+
 			### labels + prefix
 			module_labels     = merge(
 				var.labels,
@@ -339,7 +341,7 @@ locals {
 	formatted_function = { for function_name, function in var.function :
 		function_name => {
 			
-			filename = format("%s/%s","../../../../functions/",lookup(function, "filename", ""))
+			filename = lookup(function, "filename", "") #format("%s/%s","../../../../functions/",
 			name = lookup(function, "name", function_name)
 			description = lookup(function, "description", "")
 			handler       = lookup(function, "handler", "index.js")

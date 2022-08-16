@@ -145,10 +145,10 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
     for operation_context in context.obj['operations']:
         operation: Operation = operation_context
 
-        if operation.empty_scope :
-            operation.logger.info("Empty scope %s, skipping operation"
-                                  % operation.scope)
-            continue
+        # if operation.empty_scope :
+        #     operation.logger.info("Empty scope %s, skipping operation"
+        #                           % operation.scope)
+        #     continue
 
         operation.logger.info("init action on scope %s" % operation.scope)
 

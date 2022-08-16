@@ -2,6 +2,11 @@
 # Function (Cloud Function for GCP)
 ############
 
+variable "storage_depends_on" {
+  type    = any
+  default = []
+}
+
 resource "google_storage_bucket_object" "function-zip" {
   name   = var.function.source_archive_object.name
   bucket = var.function.source_archive_object.bucket
@@ -25,6 +30,8 @@ resource "google_cloudfunctions_function" "function" {
       resource = event_trigger.value["resource"]
     }
   }
+
+  depends_on = [var.storage_depends_on]
 }
 
 # IAM entry for all users to invoke the function

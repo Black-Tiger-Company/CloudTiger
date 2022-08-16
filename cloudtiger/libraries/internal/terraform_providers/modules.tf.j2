@@ -130,6 +130,8 @@ module "function" {
 
 	for_each = local.formatted_function
 		function = each.value
+
+	storage_depends_on = [module.storage]
 }
 {%- endif %}
 

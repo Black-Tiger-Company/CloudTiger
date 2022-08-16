@@ -1,0 +1,121 @@
+#***************************
+# Demo template to,create a bucket on AWS, a lambda function and a cluster EMR
+#**************************
+
+provider: aws
+region: us-east-1
+use_proxy: true
+
+network:
+  main_network:
+    network_cidr: "10.0.0.0/16"
+    prefix: "demo_"
+    subnets:
+      datalake_dmz:
+        cidr_block: "10.0.5.0/24"
+        availability_zone: "us-east-1a"
+        public: true
+
+      datalake:
+        cidr_block: "10.0.10.0/24"
+        availability_zone: "us-east-1a"
+
+      datalake_replication_subnet_1:
+        cidr_block: "10.0.6.0/24"
+        availability_zone: "us-east-1a"
+        attached_kubernetes_cluster: "k8s_cluster"
+
+      datalake_replication_subnet_2:
+        cidr_block: "10.0.7.0/24"
+        availability_zone: "us-east-1b"
+        attached_kubernetes_cluster: "k8s_cluster"
+
+      datalake_replication_subnet_3:
+        cidr_block: "10.0.8.0/24"
+        availability_zone: "us-east-1c"
+        attached_kubernetes_cluster: "k8s_cluster"
+
+    private_subnets_escape_public_subnet: "datalake_dmz"
+
+policy:
+  storage_full_access_writing:
+    actions  : ["s3#*"]
+    effect   : "Allow"
+    resources: ["*"]
+
+profile:
+  container_registry_reader_profile:
+    role_name: "container_registry_reader"
+  default:
+    role_name: "default"
+
+role:
+  container_registry_reader:
+    custom_policies     : []
+    default_policies : ["AmazonEC2ContainerRegistryReadOnly"]
+    services    : ["ec2.amazonaws.com"]
+  default:
+    custom_policies     : []
+    default_policies : ["AmazonEC2ContainerRegistryReadOnly"]
+    services    : ["ec2.amazonaws.com"]
+
+vm: {}
+
+independent_volumes: {}
+
+kubernetes: {}
+
+storage:
+  storage_test:
+    name: "bucket_demo_cloudtiger" # Must be a unique name
+
+function:
+  lambda_demo_cloudtiger:
+    name: "function_demo_cloudtiger"
+    runtime: "nodejs16.x"
+    filename: "lambda_demo_function.zip"
+    handler: "index.js"
+    source_archive_object:
+      name: "function-wordcount.zip"
+      bucket: "bucket_demo_cloudtiger"
+    event_trigger: # each time a file is added /updated on the event_trigger.<resource> bucket, the function is trigger
+      event_type: "google.storage.object.finalize"
+      resource: "bucket_demo_cloudtiger"
+
+mq:
+  sqs_demo_cloudtiger:
+    name: "mq_demo_cloudtiger"
+    delay_seconds: 90
+    max_message_size: 2048
+    message_retention_seconds: 86400
+    receive_wait_time_seconds: 10
+
+yarn:
+  cluster_test:
+    name: "cluster-demo-cloudtiger"
+    applications: ["Hadoop","Spark"]
+    subnetworks: ["cloudtiger"]
+    master_instance_type: "m1.medium"
+    master_instance_number: 1
+    worker_instance_type: "m1.large"
+    worker_instance_number: 2
+    jobs:
+      - step_id: "wordcount"
+        main_file_uri: "gs://eg-blacktiger/pyspark/wordcount.py"
+
+ansible:
+- name: "add users"
+  type: playbook
+  source: configure_users_standard
+  params:
+    hosts: backend
+    users:
+    - name : custom.username
+      key: "ssh-rsa AAAA"
+- name: "role demo"
+  type: role
+  hosts: backend
+  roles:
+  - source: geerlingguy.postgresql
+    params:
+      become: true

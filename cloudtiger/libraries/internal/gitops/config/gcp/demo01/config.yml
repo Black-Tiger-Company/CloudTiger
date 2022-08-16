@@ -1,0 +1,116 @@
+#***************************
+# Demo template to,create a bucket on AWS, a lambda function and a cluster EMR
+#**************************
+
+provider: gcp
+region: us-east1
+use_proxy: true
+
+network:
+  main_network:
+    network_cidr: "10.0.0.0/16"
+    prefix: "demo_"
+    subnets:
+      datalake_dmz:
+        cidr_block: "10.0.5.0/24"
+        availability_zone: "us-east-1a"
+        public: true
+
+      datalake:
+        cidr_block: "10.0.10.0/24"
+        availability_zone: "us-east-1a"
+
+    private_subnets_escape_public_subnet: "datalake_dmz"
+
+policy:
+  storage_full_access_writing:
+    actions  : ["s3#*"]
+    effect   : "Allow"
+    resources: ["*"]
+
+profile:
+  container_registry_reader_profile:
+    role_name: "container_registry_reader"
+  default:
+    role_name: "default"
+
+role:
+  container_registry_reader:
+    custom_policies     : []
+    default_policies : ["AmazonEC2ContainerRegistryReadOnly"]
+    services    : ["ec2.amazonaws.com"]
+  default:
+    custom_policies     : []
+    default_policies : ["AmazonEC2ContainerRegistryReadOnly"]
+    services    : ["ec2.amazonaws.com"]
+
+vm: {}
+
+independent_volumes: {}
+
+kubernetes: {}
+
+storage:
+  storage_test:
+    name: "bucket-demo-cloudtiger" # Must be a unique name
+    objects:
+      - name: wordcount.py
+        path: /mnt/c/Users/emeric.guibert/Documents/Infrastucture/CloudTiger/testGCP/config/gcp/demo01/wordcount.py
+    force_destroy: true
+  storage_test_archive:
+    name: "bucket-demo-cloudtiger-archive" # Must be a unique name
+    force_destroy: true
+  inputs_wordcount:
+    name: "inputs-wordcount-cloudtiger" # Must be a unique name
+    force_destroy: true
+
+function:
+  lambda_demo_cloudtiger:
+    name: "function_demo_cloudtiger"
+    runtime: "nodejs16"
+    filename: ../../../../config/gcp/demo01/workflowTrigger.zip #create a folder "functions" in your work directory and put the zip of your function inside
+    entry_point: 'startWorkflow'
+    source_archive_object:
+      name: "workflowTrigger.zip"
+      bucket: "bucket-demo-cloudtiger-archive"
+    event_trigger: # each time a file is added /updated on the event_trigger.<resource> bucket, the function is trigger
+      event_type: "google.storage.object.finalize"
+      resource: "inputs-wordcount-cloudtiger"
+
+# mq:
+#   sqs_demo_cloudtiger:
+#     name: "mq_demo_cloudtiger"
+#     delay_seconds: 90
+#     max_message_size: 2048
+#     message_retention_seconds: 86400
+#     receive_wait_time_seconds: 10
+
+# yarn:
+#   cluster_test:
+#     name: "cluster-demo-cloudtiger"
+#     applications: ["Hadoop","Spark"]
+#     subnetworks: ["cloudtiger"]
+#     master_instance_type: "n1-standard-2"
+#     master_instance_number: 1
+#     worker_instance_type: "n1-standard-2"
+#     worker_instance_number: 2
+#     jobs:
+#       - step_id: "wordcount"
+#         main_file_uri: "gs://bucket-demo-cloudtiger/wordcount.py" #put manually the file .py in the bucket
+
+ansible:
+- name: "add users"
+  type: playbook
+  source: configure_users_standard
+  params:
+    hosts: backend
+    users:
+    - name : custom.username
+      key: "ssh-rsa AAAA"
+- name: "role demo"
+  type: role
+  hosts: backend
+  roles:
+  - source: geerlingguy.postgresql
+    params:
+      become: true
