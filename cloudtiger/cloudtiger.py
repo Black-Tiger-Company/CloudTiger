@@ -8,7 +8,7 @@ from logging import Logger
 
 import pkg_resources
 import yaml
-from cloudtiger.common_tools import load_yaml, bash_source, merge_dictionaries
+from .common_tools import load_yaml, bash_source, merge_dictionaries
 from cloudtiger.data import available_infra_services
 
 LIBRARIES_PATH = pkg_resources.resource_filename('cloudtiger', 'libraries')
