@@ -4,7 +4,6 @@ import pytest
 import pkg_resources
 from click.testing import CliRunner
 
-from tests.expected_outputs import expected_outputs
 from cloudtiger.cli import main
 
 @pytest.fixture()
