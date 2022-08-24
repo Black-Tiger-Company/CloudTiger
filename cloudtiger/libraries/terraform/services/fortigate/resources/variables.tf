@@ -1,2 +1,0 @@
-variable fortigate_config {
-}
