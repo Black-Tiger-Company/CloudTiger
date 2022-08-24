@@ -30,8 +30,9 @@ from cloudtiger.data import allowed_actions, available_api_services
 from cloudtiger.service import tf_service_generic, prepare
 from cloudtiger.tf import tf_generic
 
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-@click.group()
+@click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option()
 @click.option('--project-root', '-p', default='.', help="set the gitops project root")
 @click.option('--libraries-path', '-l', default=None,
