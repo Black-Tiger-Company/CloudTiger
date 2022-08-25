@@ -2,20 +2,19 @@ terraform {
   required_providers {
     fortios = {
       source = "fortinetdev/fortios"
-      version = "1.13.2"
+      version = "1.15.0"
     }
   }
 }
 
 resource "fortios_firewall_vip" "trname" {
-  for_each                         = var.firewall_vip
-  name                             = var.firewall_vip[each.key].name
-  color                            = var.firewall_vip[each.key].color
-  extintf                          = var.firewall_vip[each.key].extintf
-  extip                            = var.firewall_vip[each.key].extip
-  extport                          = var.firewall_vip[each.key].extport
-  comment                          = var.firewall_vip[each.key].comment
-  type                             = var.firewall_vip[each.key].type
+  name                             = var.firewall_vip.name
+  color                            = var.firewall_vip.color
+  extintf                          = var.firewall_vip.extintf
+  extip                            = var.firewall_vip.extip
+  extport                          = var.firewall_vip.extport
+  comment                          = var.firewall_vip.comment
+  type                             = var.firewall_vip.type
 #   arp_reply                        = "enable"
 #   dns_mapping_ttl                  = 0
 #   fosid                            = 0
@@ -65,7 +64,6 @@ resource "fortios_firewall_vip" "trname" {
 #   websphere_server                 = "disable"
 
   dynamic "mappedip" {
-    for_each = var.firewall_vip
     content {
         range = mappedip.value["mappedip"]
     }

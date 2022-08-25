@@ -16,7 +16,8 @@ available_infra_services = [
 
 available_api_services = [
     "nexus",
-    "gitlab"
+    "gitlab",
+    "fortigate"
 ]
 
 terraform_vm_resource_name = {

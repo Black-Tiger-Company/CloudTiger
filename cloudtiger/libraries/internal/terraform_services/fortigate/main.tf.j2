@@ -2,7 +2,45 @@ terraform {
   required_providers {
     fortios = {
       source = "fortinetdev/fortios"
-      version = "1.13.1"
+      version = "1.15.0"
     }
   }
+}
+
+variable "fortigate_config" {}
+
+### firewall_addr_group module
+module "firewall_addr_group" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_addr_group"
+
+	for_each = var.fortigate_config.firewall_addr_groups
+      firewall_addr_group = each.value
+
+}
+
+### firewall_addresses module
+module "firewall_addresses" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_addresses"
+
+	for_each = var.fortigate_config.firewall_addresses
+      firewall_address = each.value
+
+}
+
+### firewall_policies module
+module "firewall_policies" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_policies"
+
+	for_each = var.fortigate_config.firewall_policies
+      firewall_policy = each.value
+
+}
+
+### firewall_vip module
+module "firewall_vip" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_vip"
+
+	for_each = var.fortigate_config.firewall_vips
+      firewall_vip = each.value
+
 }

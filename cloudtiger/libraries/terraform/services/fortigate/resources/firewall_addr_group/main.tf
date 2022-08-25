@@ -2,25 +2,24 @@ terraform {
   required_providers {
     fortios = {
       source = "fortinetdev/fortios"
-      version = "1.13.2"
+      version = "1.15.0"
     }
   }
 }
 
 resource "fortios_firewall_addrgrp" "trname" {
-  for_each      = var.firewall_addr_group
-  name          = var.firewall_addr_group[each.key].name
-  allow_routing = var.firewall_addr_group[each.key].allow_routing
-  color         = var.firewall_addr_group[each.key].color
-  exclude       = var.firewall_addr_group[each.key].exclude
-  visibility    = var.firewall_addr_group[each.key].visibility
+  name          = var.firewall_addr_group.name
+  allow_routing = var.firewall_addr_group.allow_routing
+  color         = var.firewall_addr_group.color
+  exclude       = var.firewall_addr_group.exclude
+  visibility    = var.firewall_addr_group.visibility
 
   member {
     name = ""
   }
 
 	dynamic "member" {
-		for_each = var.firewall_addr_group[each.key].members
+		for_each = var.firewall_addr_group.members
 		content {
 			name = member
 		}
