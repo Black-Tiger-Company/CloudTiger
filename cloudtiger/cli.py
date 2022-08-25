@@ -310,10 +310,10 @@ def ans(context, action, consolidated, default_user, restricted_vms,
 @click.pass_context
 def service(context, name, step):
     """ Service configuration through Terraform
-service names:
+\nservice names:
 \n- gitlab                : configure Gitlab
 \n- nexus                 : configure Nexus
-steps :
+\nsteps :
 \n- prepare (0)           : prepare associated Terraform folder and module
 \n- init (1)              : run Terraform init
 \n- apply (2)             : run Terraform apply & output
