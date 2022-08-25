@@ -7,6 +7,18 @@ terraform {
   }
 }
 
+variable "fortigate_hostname" {}
+
+variable "fortigate_token" {}
+
+variable "fortigate_insecure" {}
+
+provider "fortios" {
+  hostname     = var.fortigate_hostname
+  token        = var.fortigate_token
+  insecure     = var.fortigate_insecure
+}
+
 variable "fortigate_config" {}
 
 ### firewall_addr_group module
