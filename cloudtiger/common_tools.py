@@ -48,7 +48,7 @@ def bash_source(logger: Logger, envfile: str):
     logger.debug("Executing a source on dotenv file %s" % envfile)
 
     if os.path.isfile(envfile):
-        command = format('env -i bash -c "source %s && env"' % envfile)
+        command = format('env -i bash -c "source \'%s\' && env"' % envfile)
         for line in subprocess.getoutput(command).split("\n"):
             if "=" in line:
                 key, value = line.split("=", 1)
