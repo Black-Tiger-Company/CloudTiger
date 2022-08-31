@@ -1,15 +1,9 @@
 """pytest fixtures which are globally available throughout the suite."""
-import os
-import shutil
 
 import pytest
-import pkg_resources
 from click.testing import CliRunner
 
 from cloudtiger.cli import main
-
-TEST_DATA_FOLDER = pkg_resources.resource_filename('cloudtiger', '../tests')
-TEST_FOLDER = pkg_resources.resource_filename('cloudtiger', '../tests/run')
 
 @pytest.fixture()
 def cli_runner():
@@ -22,31 +16,10 @@ def cli_runner():
 
     return cli_main
 
-@pytest.fixture()
-def create_gitops_folders():
-    """Fixture that create gitops folders using several pathes"""
-    os.chdir(TEST_FOLDER)
-
-    gitops_test_folder = os.path.join(TEST_DATA_FOLDER, "gitops")
-    for _, root_folder in root_folders:
-        if root_folder[0] == os.path.sep:
-            root_folder = os.path.join(TEST_FOLDER, root_folder[1:])
-        else :
-            root_folder = os.path.join(os.getcwd(), root_folder)
-
-        shutil.copytree(gitops_test_folder, root_folder, dirs_exist_ok=True)
-
-@pytest.fixture()
-def delete_gitops_folders():
-    """Fixture that delete test gitops folders."""
-    for _, root_folder in root_folders:
-        if root_folder[0] == os.path.sep:
-            root_folder = os.path.join(TEST_FOLDER, root_folder[1:])
-        else :
-            root_folder = os.path.join(os.getcwd(), root_folder)
-        root_folder = os.path.join(root_folder, "gitops")
-        if os.path.isdir(root_folder):
-            shutil.rmtree(root_folder)
+@pytest.fixture(params=['--version'])
+def cli_version_flag(request):
+    """Pytest fixture return both version invocation options."""
+    return request.param
 
 # @pytest.fixture()
 # def test_scopes():
@@ -80,13 +53,40 @@ def delete_gitops_folders():
 #     ]
 
 # @pytest.fixture()
-# def run_test_command_all_scopes(command, scenario_name):
+# def run_test_command(root_folder, scope, command):
+#     """Fixture that runs a command on a scope in a root folder"""
+
+#     # if root_folder[0] == os.path.sep :
+#     #     root_folder = os.path.join(TEST_FOLDER, root_folder[1:])
+#     # else :
+#     #     root_folder = os.path.join(os.getcwd(), root_folder)
+
+#     # we use 'WHITESPACE' as a placeholder for whitespaces in the project root
+#     # because we will split the command input afterwards using whitespaces
+#     # too
+#     root_folder = root_folder.replace(' ', "WHITESPACE")
+
+#     # the command must be fed as a list of parameters
+#     command = format("--project-root %s --output-file"
+#                 "%s --error-file %s %s %s" %
+#                 (root_folder, 'cloudtiger_std.log',
+#                 'cloudtiger_stderr.log', scope, command))
+#     command = command.split()
+#     command = [elt.replace("WHITESPACE", " ") for elt in command]
+
+#     result = cli_runner(command)
+#     return result.output
+#     # print(result.output)
+#     # assert result.output == expected_outputs[scenario_name]
+
+# @pytest.fixture()
+# def run_test_command_all_scopes(root_folder, command, scenario_name):
 #     """Fixture that runs a command on all test scopes in a root folder"""
-#     for test_scope in test_scopes :
+#     for test_scope in test_scopes() :
 #         run_test_command(command, scenario_name)
 
 # @pytest.fixture()
 # def run_test_command_all_scopes_all_root(command, scenario_name):
 #     """Fixture that runs a command on all test scopes in a root folder"""
-#     for root_folder in root_folders :
-#         run_test_command_all_scopes(command, scenario_name)
+#     for root_folder in root_folders() :
+#         run_test_command_all_scopes(root_folder, command, scenario_name)
