@@ -128,10 +128,6 @@ class Operation:
         else:
             self.project_root = project_root
 
-        # ensure robustness to whitespaces
-        if "\\ " in self.project_root:
-            self.project_root = "'" + self.project_root + "'"
-
         # if the first folder of scope is 'config', we remove it from the scope path 
         # - this behavior is meant to facilitate autocompletion on scope path"""
         scope_elts = scope.split(os.sep)
