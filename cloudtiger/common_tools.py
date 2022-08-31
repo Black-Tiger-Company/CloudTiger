@@ -12,6 +12,7 @@ from collections import OrderedDict
 import yaml
 from jinja2 import Template
 
+# from cloudtiger.schema_validation_pydantic import Blacktiger
 
 def merge_dictionaries(dict1: dict, dict2: dict) -> dict:
 
@@ -47,7 +48,7 @@ def bash_source(logger: Logger, envfile: str):
     logger.debug("Executing a source on dotenv file %s" % envfile)
 
     if os.path.isfile(envfile):
-        command = format('env -i bash -c "source %s && env"' % envfile)
+        command = format('env -i bash -c "source \'%s\' && env"' % envfile)
         for line in subprocess.getoutput(command).split("\n"):
             if "=" in line:
                 key, value = line.split("=", 1)
@@ -122,7 +123,26 @@ def load_yaml(logger: Logger, yamlfile: str):
 
     if os.path.exists(yamlfile):
         with open(yamlfile, 'r') as f:
-            return yaml.load(f, Loader=yaml.FullLoader)
+            try:
+                content = yaml.load(f, Loader=yaml.FullLoader)
+                return content
+
+            except yaml.YAMLError as exc:
+                logger.error("Error while parsing YAML file")
+                if hasattr(exc, 'problem_mark'):
+                    error_message = '  parser says\n' 
+                    + str(exc.problem_mark) 
+                    + '\n  ' + str(exc.problem)
+
+                    if exc.context != None:
+                        error_message += ' ' + str(exc.context)
+
+                    error_message += '\nPlease correct data and retry.'
+
+                    logger.error(error_message)
+                else:
+                    logger.error("Something went wrong while parsing yaml file")
+                return
 
     else:
         raise Exception("Cannot read %s file : file does not exist" % yamlfile)

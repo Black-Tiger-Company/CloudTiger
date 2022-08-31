@@ -8,7 +8,7 @@ from logging import Logger
 
 import pkg_resources
 import yaml
-from cloudtiger.common_tools import load_yaml, bash_source, merge_dictionaries
+from .common_tools import load_yaml, bash_source, merge_dictionaries
 from cloudtiger.data import available_infra_services
 
 LIBRARIES_PATH = pkg_resources.resource_filename('cloudtiger', 'libraries')
@@ -127,10 +127,6 @@ class Operation:
             self.project_root = os.getcwd()
         else:
             self.project_root = project_root
-
-        # ensure robustness to whitespaces
-        if "\\ " in self.project_root:
-            self.project_root = "'" + self.project_root + "'"
 
         # if the first folder of scope is 'config', we remove it from the scope path 
         # - this behavior is meant to facilitate autocompletion on scope path"""
