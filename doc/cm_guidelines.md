@@ -52,7 +52,7 @@ roles:
   ...
 ```
 
-The roles defined here will be added (or override in case of name collision) to the ones in `cloudtiger/libraries/ansible/requirements`
+The roles defined here will be added (or override in case of name collision) to the ones in `cloudtiger/libraries/ansible/requirements` when running the command `cloudtiger config/<SCOPE> ans D`
 
 You can create a stub for a new Ansible role with the following command :
 
@@ -74,6 +74,8 @@ ansible:
       become: true
       ...
 ```
+
+Notice that you won't need to have the role downloaded by Ansible Galaxy in this case (i.e. no need for the command `cloudtiger config/<SCOPE> ans P`) since it is loading the role from local filesystem
 
 Run `cloudtiger config/<SCOPE> ans 2` to load/reload the parameters
 
