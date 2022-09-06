@@ -1,13 +1,12 @@
 """ Initial operations needed for CloudTiger """
-from genericpath import exists
 import json
 import os
 import shutil
 import subprocess
 import sys
+import base64
 
 import click
-import base64
 import netaddr
 import yaml
 

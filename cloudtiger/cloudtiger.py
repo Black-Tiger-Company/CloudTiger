@@ -155,6 +155,9 @@ class Operation:
         # access with default VM user using SSH
         self.default_user = False
 
+        # use SSH connection with password
+        self.ssh_with_password = False
+
         # force installation of Ansible dependencies
         self.ansible_force_install = False
 
@@ -163,6 +166,9 @@ class Operation:
 
         # default ssh port
         self.ssh_port = "22"
+
+        # no fingerprint check during SSH connection
+        self.ssh_no_check = False
 
         # Terraform state lock
         self.tf_no_lock = False
@@ -178,7 +184,7 @@ class Operation:
 
         # scope configuration file
         self.scope_config = os.path.join(self.project_root, 'config', self.scope, 'config.yml')
-        
+
         # scope Terraform folder
         self.scope_terraform_folder = os.path.join(self.project_root, 'scopes')
 
@@ -331,7 +337,8 @@ class Operation:
                             ansible_force_install=False,
                             restricted_vms=None,
                             ssh_port="22",
-                            no_check=False
+                            no_check=False,
+                            ssh_password=False
                             ):
 
         """ this function set specific attributes for ansible connection
@@ -354,6 +361,9 @@ class Operation:
 
         # proceed to fingerprint check when SSHing ?
         self.ssh_no_check = no_check
+
+        # use password for SSH connection
+        self.ssh_with_password = ssh_password
 
     def set_restricted_vms(self):
 

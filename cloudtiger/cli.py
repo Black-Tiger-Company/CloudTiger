@@ -196,7 +196,7 @@ from declared resources and reimporting them
         # do we apply no-lock flag ?
         if nolock:
             operation.tf_no_lock = True
-            
+
         # do we apply reconfigure flag ?
         if reconfigure:
             operation.tf_reconfigure = True
@@ -238,9 +238,13 @@ from declared resources and reimporting them
               is_flag=True,
               default=False,
               help="disable fingerprint check at SSH connection")
+@click.option('--ssh-password', '-k',
+              is_flag=True,
+              default=False,
+              help="use password for SSH connexion (default False)")
 @click.pass_context
 def ans(context, action, consolidated, default_user, restricted_vms,
-        ansible_force_install, port, no_check):
+        ansible_force_install, port, no_check, ssh_password):
     """ Ansible actions
 \n- securize (Z)         : set defined users, deactivate default user
 \n- playbooks (P)        : install Ansible playbooks catalog
@@ -265,7 +269,8 @@ def ans(context, action, consolidated, default_user, restricted_vms,
             ansible_force_install,
             restricted_vms,
             port,
-            no_check
+            no_check,
+            ssh_password
         )
 
         operation.logger.info("ansible action %s on scope %s" % (action, operation.scope))
