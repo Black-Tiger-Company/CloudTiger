@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ### Prerequisites
 RUN apt update -y
-RUN apt install fping python3-pip python-is-python3 -y
+RUN apt install fping python3-pip python-is-python3 sshpass -y
 
 ### install Ansible
 RUN pip3 install ansible

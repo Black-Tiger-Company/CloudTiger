@@ -8,7 +8,7 @@ from logging import Logger
 
 import pkg_resources
 import yaml
-from cloudtiger.common_tools import load_yaml, bash_source, merge_dictionaries
+from .common_tools import load_yaml, bash_source, merge_dictionaries
 from cloudtiger.data import available_infra_services
 
 LIBRARIES_PATH = pkg_resources.resource_filename('cloudtiger', 'libraries')
@@ -128,10 +128,6 @@ class Operation:
         else:
             self.project_root = project_root
 
-        # ensure robustness to whitespaces
-        if "\\ " in self.project_root:
-            self.project_root = "'" + self.project_root + "'"
-
         # if the first folder of scope is 'config', we remove it from the scope path 
         # - this behavior is meant to facilitate autocompletion on scope path"""
         scope_elts = scope.split(os.sep)
@@ -150,6 +146,9 @@ class Operation:
 
         # set default values for an Operation
 
+        # the scope is empty ?
+        self.empty_scope = False
+
         # consolidated Ansible access"""
         self.consolidated = False
 
@@ -167,6 +166,36 @@ class Operation:
 
         # Terraform state lock
         self.tf_no_lock = False
+
+        # Terraform init reconfigure option
+        self.tf_reconfigure = False
+
+        # scope folder
+        self.scope_folder = os.path.join(self.project_root, 'config')
+
+        # scope configuration folder
+        self.scope_config_folder = os.path.join(self.project_root, 'config')
+
+        # scope configuration file
+        self.scope_config = os.path.join(self.project_root, 'config', self.scope, 'config.yml')
+        
+        # scope Terraform folder
+        self.scope_terraform_folder = os.path.join(self.project_root, 'scopes')
+
+        # meta configuration
+        self.scope_meta_config = os.path.join(self.project_root, 'config', self.scope, 'meta_config.yml')
+
+        # scope configuration content
+        self.scope_config_dict = {}
+
+        # list of used services
+        self.used_services = []
+
+        # Terraform output
+        self.terraform_output = ""
+
+        # Cloud provider
+        self.provider = "admin"
 
     def scope_setup(self):
 
@@ -203,7 +232,7 @@ class Operation:
         except Exception:
             self.logger.error(
                 "Failed to load the data from %s file:\
-                    the file is probably badly formated" % self.scope_config)
+ the file is probably badly formated" % self.scope_config)
             self.scope_config_dict = {}
         self.scope_config_dict["scope"] = self.scope
 
@@ -358,7 +387,12 @@ class Operation:
         terraform_vm_data = {}
         if os.path.isfile(self.terraform_output):
             with open(self.terraform_output, 'r') as f:
-                terraform_output_data = json.load(f)
+                try :
+                    terraform_output_data = json.load(f)
+                except Exception as e :
+                    self.logger.critical("CloudTiger failed to load the Terraform output.\
+\nPlease check the content of the file %s" % self.terraform_output)
+                    sys.exit()
 
             for vm_name, vm_data in terraform_output_data.get("vms", {}).get("value", {}).items():
                 if vm_data["private_ip"] not in ["", "not_learned_yet"]:
@@ -405,8 +439,11 @@ class Operation:
         for network_name, network_subnets in self.scope_config_dict["vm"].items():
             for subnet_name, subnet_vms in network_subnets.items():
                 for vm_name, address in subnet_vms.items():
-                    address = config_ip[network_name][subnet_name]["addresses"][vm_name]
-                    self.scope_config_dict["vm"][network_name][subnet_name][vm_name]["private_ip"] = address
+                    try:
+                        address = config_ip[network_name][subnet_name]["addresses"][vm_name]
+                        self.scope_config_dict["vm"][network_name][subnet_name][vm_name]["private_ip"] = address
+                    except KeyError as ke :
+                        self.logger.error("An entry is missing in the config_ips.yml file.\nCheck error %s" % ke)
 
         unpacked_ips = {
             vm_name: ip_address

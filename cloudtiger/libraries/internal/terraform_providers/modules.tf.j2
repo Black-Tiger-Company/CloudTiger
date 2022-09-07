@@ -88,7 +88,7 @@ module "kubernetes" {
 {%- if provider == "azure" %}
 	client_id = var.client_id
 	client_secret = var.client_secret
-	ssh_public_key_folder = var.ssh_public_key_folder
+	#ssh_public_key_folder = var.ssh_public_key_folder
 {%- endif %}
 
 }

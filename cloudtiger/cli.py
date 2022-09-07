@@ -1,7 +1,6 @@
 """Console script for cloudtiger."""
 import os
 import sys
-
 import click
 
 from cloudtiger.init import (
@@ -31,8 +30,9 @@ from cloudtiger.data import allowed_actions, available_api_services
 from cloudtiger.service import tf_service_generic, prepare
 from cloudtiger.tf import tf_generic
 
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-@click.group()
+@click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option()
 @click.option('--project-root', '-p', default='.', help="set the gitops project root")
 @click.option('--libraries-path', '-l', default=None,
@@ -106,12 +106,14 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
         # if not the case, we should assume that we are using a `init folder` or `init config`
         # command
         root_dotenv = os.path.join(project_root, ".env")
-        config_file = os.path.join(project_root, scope, "config.yml")
-        meta_config_file = os.path.join(project_root, scope, "meta_config.yml")
+        config_file = os.path.join(project_root, scope_elt, "config.yml")
+        meta_config_file = os.path.join(project_root, scope_elt, "meta_config.yml")
         if os.path.exists(root_dotenv) & (os.path.exists(config_file)|os.path.exists(meta_config_file)):
             operation.scope_setup()
             operation.secrets_setup()
             operation.logger.debug("Operations setup")
+        else :
+            operation.empty_scope = True
 
         operations.append(operation)
 
@@ -135,12 +137,18 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
 \n- scope_folder (2)      : prepare scope folder
 \n- meta_aggregate (M1)   : aggregate config.yml files from children scopes
 \n- meta_distribute (M2)  : distribute the meta_config.yml to children scopes
+\n- consolidate (C)       : consolidate addresses and networks from 
     """
 
     for operation_context in context.obj['operations']:
         operation: Operation = operation_context
 
-        operation.logger.info("init action")
+        if operation.empty_scope :
+            operation.logger.info("Empty scope %s, skipping operation"
+                                  % operation.scope)
+            continue
+
+        operation.logger.info("init action on scope %s" % operation.scope)
 
         # check if action is allowed
         if action in allowed_actions["init"].keys():
@@ -161,8 +169,10 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
 @click.argument('action')
 @click.option('--nolock', '-nl', is_flag=True, default=False,
               help="use Terraform with the '-lock=false' flag")
+@click.option('--reconfigure', is_flag=True, default=False,
+              help="use Terraform init with the '-reconfigure' flag")
 @click.pass_context
-def tf(context, action, nolock):
+def tf(context, action, nolock, reconfigure):
     """ Terraform actions
 \n- init (1)             : run Terraform init
 \n- apply (2)            : run Terraform apply & output
@@ -176,11 +186,20 @@ from declared resources and reimporting them
     for operation_context in context.obj['operations']:
         operation: Operation = operation_context
 
-        operation.logger.debug("tf action")
+        if operation.empty_scope :
+            operation.logger.info("Empty scope %s, skipping operation"
+                                  % operation.scope)
+            continue
+
+        operation.logger.debug("tf action on scope %s" % operation.scope)
 
         # do we apply no-lock flag ?
         if nolock:
             operation.tf_no_lock = True
+            
+        # do we apply reconfigure flag ?
+        if reconfigure:
+            operation.tf_reconfigure = True
 
         # check if action is allowed
         if action in allowed_actions["tf"].keys():
@@ -235,6 +254,11 @@ def ans(context, action, consolidated, default_user, restricted_vms,
     for operation_context in context.obj['operations']:
         operation: Operation = operation_context
 
+        if operation.empty_scope :
+            operation.logger.info("Empty scope %s, skipping operation"
+                                  % operation.scope)
+            continue
+
         operation.set_ansible_options(
             consolidated,
             default_user,
@@ -244,7 +268,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
             no_check
         )
 
-        operation.logger.info("ansible action")
+        operation.logger.info("ansible action %s on scope %s" % (action, operation.scope))
 
         if operation.restricted_vms:
             operation.set_restricted_vms()
@@ -268,7 +292,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
                 operation.devops_init()
                 create_inventory(operation)
                 setup_ssh_connection(operation)
-                prepare_ansible(operation)
+                prepare_ansible(operation, securize=True)
                 execute_ansible(operation)
                 return
 
@@ -287,10 +311,10 @@ def ans(context, action, consolidated, default_user, restricted_vms,
 @click.pass_context
 def service(context, name, step):
     """ Service configuration through Terraform
-service names:
+\nservice names:
 \n- gitlab                : configure Gitlab
 \n- nexus                 : configure Nexus
-steps :
+\nsteps :
 \n- prepare (0)           : prepare associated Terraform folder and module
 \n- init (1)              : run Terraform init
 \n- apply (2)             : run Terraform apply & output
@@ -300,6 +324,11 @@ steps :
 
     for operation_context in context.obj['operations']:
         operation: Operation = operation_context
+
+        if operation.empty_scope :
+            operation.logger.info("Empty scope %s, skipping operation"
+                                  % operation.scope)
+            continue
 
         operation.logger.info("service action")
 

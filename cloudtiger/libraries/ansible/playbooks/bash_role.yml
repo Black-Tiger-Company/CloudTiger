@@ -1,0 +1,20 @@
+---
+- name: download and execute bash role
+  hosts: "{{ hosts }}"
+
+  tasks:
+  - name: download bash role
+    get_url:
+      url: "{{ role_url }}"
+      dest: "{{ ansible_env.HOME }}"
+      owner: "{{ ansible_env.USER }}"
+
+  - name: untar bash role
+    shell: tar -xf {{ role_url | basename }}
+    args:
+      chdir: "{{ ansible_env.HOME }}"
+
+  # - name: execute bash role
+  #   shell: bash install.sh
+  #   args:
+  #     chdir: "{{ ansible_env.HOME }}/{{ role_url | basename }}"

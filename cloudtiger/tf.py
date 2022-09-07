@@ -61,6 +61,10 @@ def tf_generic(operation: Operation, tf_action):
             if operation.tf_no_lock:
                 command += " -lock=false"
 
+            if tf_action == "init" :
+                if operation.tf_reconfigure :
+                    command += " -reconfigure"
+
             bash_action(operation.logger, command, operation.scope_terraform_folder,
                         os.environ, operation.stdout_file)
 

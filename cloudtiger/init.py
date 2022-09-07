@@ -65,7 +65,7 @@ If no, you will be prompted to provide your SSH password when executing Ansible 
 
     if store_ssh_password:
         dotenv_ssh_password = """
-Please provide your SSH password"""
+Please provide your sudo password"""
         ssh_password = click.prompt(dotenv_ssh_password, hide_input=True)
         root_dotenv["CLOUDTIGER_SSH_PASSWORD"] = base64.b64encode(bytes(ssh_password, 'utf-8'))
 

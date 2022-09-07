@@ -1,0 +1,8 @@
+---
+- hosts: "{{ hosts }}"
+
+  tasks:
+    - name: update hostname to IP address
+      shell: hostnamectl set-hostname {{ inventory_hostname }}
+      become: yes
+      become_method: sudo

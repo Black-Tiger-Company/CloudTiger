@@ -467,7 +467,7 @@ def install_ansible_playbooks(operation: Operation):
     shutil.copytree(ansible_playbooks, target_folder, dirs_exist_ok=True)
 
 
-def prepare_ansible(operation: Operation):
+def prepare_ansible(operation: Operation, securize=False):
 
     """ this function creates the Ansible meta playbook 'execute_ansible.yml' using inputs
     from the 'ansible' key in config.yml
@@ -479,7 +479,6 @@ def prepare_ansible(operation: Operation):
     """
 
     # prepare Ansible meta playbook
-
     if operation.default_user:
         execute_ansible_template = os.path.join(
             operation.libraries_path, "internal", "inventory", "execute_ansible_no_sudo_pass.yml.j2"
@@ -495,7 +494,7 @@ def prepare_ansible(operation: Operation):
     # if we have an 'ansible_params' key in the config.yml,
     # it means we need to interprete some variables
     # in the 'ansible' dict that are in jinja format
-    if "ansible_params" in operation.scope_config_dict.keys():
+    if (not securize) & ("ansible_params" in operation.scope_config_dict.keys()):
         operation.logger.debug("Interpretating ansible parameters")
         buffer_config_file = os.path.join(operation.scope_folder, "inventory", "buffer_config.yml")
         j2(operation.logger, operation.scope_config,
@@ -578,6 +577,20 @@ def setup_ssh_connection(operation: Operation):
         command = format("ssh-keygen -f \"/home/%s/.ssh/known_hosts\" -R \"%s\""
                          % (os.environ["USER"], vm))
         bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
+
+        # when using a proxy SSH connection, a first direct connection with plain SSH
+        # is necessary in order to have Ansible able to connect afterwards
+        if operation.scope_config_dict.get("use_proxy", False):
+            operation.logger.debug(
+                "Initializing first SSH connection to allow proxy connection")
+            if operation.default_user:
+                ansible_user = operation.scope_config_dict["vm_ssh_params"][vm]["os_user"]
+            else:
+                ansible_user = operation.scope_config_dict["vm_ssh_params"][vm]["standard_user"]
+            command = format(
+                "ssh -o \"StrictHostKeyChecking no\" -F ssh.cfg %s@%s bash -c 'echo \"done\"'" %
+                (ansible_user, vm))
+            bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
 
 
 def meta_aggregate(operation: Operation):
