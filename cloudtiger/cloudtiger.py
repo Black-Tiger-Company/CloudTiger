@@ -1,9 +1,12 @@
 """Main module."""
 
 import copy
+from genericpath import isfile
 import json
 import os
 import sys
+import datetime
+import shutil
 from logging import Logger
 
 import pkg_resources
@@ -202,6 +205,12 @@ class Operation:
 
         # Cloud provider
         self.provider = "admin"
+
+        # Meta network info
+        self.network_info = {}
+
+        # Meta addresses info
+        self.addresses_info = {}
 
     def scope_setup(self):
 
@@ -405,7 +414,7 @@ class Operation:
                     sys.exit()
 
             for vm_name, vm_data in terraform_output_data.get("vms", {}).get("value", {}).items():
-                if vm_data["private_ip"] not in ["", "not_learned_yet"]:
+                if vm_data.get("private_ip", "") not in ["", "not_learned_yet"]:
                     terraform_vm_data[vm_name] = vm_data
 
         self.terraform_vm_data = terraform_vm_data
@@ -417,20 +426,70 @@ class Operation:
         """
 
         datacenter_root_folder = os.path.join(self.project_root, 'config', self.scope.split(os.sep)[0])
+        
+        self.logger.debug(f"Detected datacenter/account root folder : {datacenter_root_folder}")
+        
         datacenter_subroot_folders = os.listdir(datacenter_root_folder)
         self.datacenter_meta_folder = '_meta'
         for folder in datacenter_subroot_folders:
             if '_meta' in folder:
                 self.datacenter_meta_folder = os.path.join(datacenter_root_folder, folder)
                 break
+    
+        self.logger.debug(f"Detected datacenter/account meta folder : {self.datacenter_meta_folder}")
 
         networks_info_file = os.path.join(self.datacenter_meta_folder, 'all_networks.yml')
-        with open(networks_info_file, "r") as f:
-            self.network_info = yaml.load(f, Loader=yaml.FullLoader)
+        if os.path.isfile(networks_info_file):
+            with open(networks_info_file, "r") as f:
+                self.network_info = yaml.load(f, Loader=yaml.FullLoader)
+        # else:
+        #     self.logger.critical(f"Error : file {networks_info_file} not found")
+        #     sys.exit()
 
         addresses_info_file = os.path.join(self.datacenter_meta_folder, 'all_addresses_info.yml')
-        with open(addresses_info_file, "r") as f:
-            self.addresses_info = yaml.load(f, Loader=yaml.FullLoader)
+        if os.path.isfile(addresses_info_file):
+            with open(addresses_info_file, "r") as f:
+                self.addresses_info = yaml.load(f, Loader=yaml.FullLoader)
+        # else:
+        #     self.logger.critical(f"Error : file {addresses_info_file} not found")
+        #     sys.exit()
+
+        # ensure that variables are correctly defined
+        if not isinstance(self.network_info, dict) :
+            self.network_info = {}
+
+        if not isinstance(self.addresses_info, dict) :
+            self.addresses_info = {}
+
+    def dump_meta_info(self, new_addresses_info, new_network_info):
+
+        """ this function writes newly collected meta information into the _meta folder of the
+        cluster/account.
+        If all_networks.yml and all_addresses_info.yml files do not exist, they are created. If
+        they exist, they are updated with new information. In case of conflicts, multiple keys are
+        created inside the new file. The previous version of the data is stored with a timestamp
+        prefix
+        """
+
+        self.logger.info("Dump of newly collected meta information")
+
+        # we create timestamped backups of existing meta info files
+        networks_info_file = os.path.join(self.datacenter_meta_folder, 'all_networks.yml')
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S.%f")
+        if os.path.isfile(networks_info_file):
+            backup_networks_info_file = networks_info_file[:-4] + "_" + timestamp + ".yml"
+            shutil.copyfile(networks_info_file, backup_networks_info_file)
+
+        addresses_info_file = os.path.join(self.datacenter_meta_folder, 'all_addresses_info.yml')
+        if os.path.isfile(addresses_info_file):
+            backup_addresses_info_file = addresses_info_file[:-4] + "_" + timestamp + ".yml"
+            shutil.copyfile(addresses_info_file, backup_addresses_info_file)
+
+        with open(networks_info_file, "w") as f:
+            yaml.dump(new_network_info, f)
+
+        with open(addresses_info_file, "w") as f:
+            yaml.dump(new_addresses_info, f)
 
     def load_ips(self):
 

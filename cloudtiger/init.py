@@ -511,7 +511,7 @@ def init_meta_aggregate(operation: Operation):
                 except Exception as e:
                     operation.logger.error(
                         "Failed to open file % with error %s".format(subconfig_path, e))
-            meta_config['ansible'][subconfig_scope] = subconfig_data.get('ansible')
+            meta_config['infra'][subconfig_scope] = subconfig_data.get('vm')
 
     # we write the meta_config.yml
     meta_config_path = os.path.join(operation.scope_config_folder, "meta_config.yml")
