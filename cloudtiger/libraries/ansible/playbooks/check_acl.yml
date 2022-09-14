@@ -1,0 +1,28 @@
+---
+- name: check ACLs of files and folders
+  hosts: "{{ hosts }}"
+
+  vars:
+    path: "{{ path }}"
+    workdir: "{{ workdir }}"
+    acl_folder: "{{ acl_folder }}"
+
+  tasks:
+  - name: Create dedicated local folder for collecting ACLs
+    local_action: "shell mkdir -p {{ workdir }}/{{ acl_folder }}"
+
+  - name: Clean existing ACL dumps
+    delegate_to: localhost
+    file:
+      state: absent
+      path: "{{ workdir }}/{{ acl_folder }}/acl_{{ hostname }}.txt"
+
+  - name: Obtain the ACL for list of paths
+    acl:
+      path: "{{ item }}"
+    with_items: "{{ path }}"
+    register: acl
+
+  - name: dump the collected ACLs into the local ACL folder
+    shell: echo {{ item }} >> {{ workdir }}/{{ acl_folder }}/acl_{{ hostname }}.txt
+    with_items: "{{ acl.results }}"
