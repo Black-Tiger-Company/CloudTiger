@@ -31,7 +31,7 @@ variable "fortigate_config" {}
 module "firewall_addr_group" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_addr_group"
 
-	for_each = var.fortigate_config.firewall_addr_groups
+	for_each = lookup(var.fortigate_config, "firewall_addr_groups", {})
       firewall_addr_group = each.value
 
 }
@@ -40,7 +40,7 @@ module "firewall_addr_group" {
 module "firewall_addresses" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_addresses"
 
-	for_each = var.fortigate_config.firewall_addresses
+	for_each = lookup(var.fortigate_config, "firewall_addresses", {})
       firewall_address = each.value
 
 }
@@ -49,7 +49,7 @@ module "firewall_addresses" {
 module "firewall_policies" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_policies"
 
-	for_each = var.fortigate_config.firewall_policies
+	for_each = lookup(var.fortigate_config, "firewall_policies", {})
       firewall_policy = each.value
 
 }
@@ -58,7 +58,7 @@ module "firewall_policies" {
 module "firewall_vip" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_vip"
 
-	for_each = var.fortigate_config.firewall_vips
+	for_each = lookup(var.fortigate_config, "firewall_vips", {})
       firewall_vip = each.value
 
 }
@@ -67,7 +67,7 @@ module "firewall_vip" {
 module "firewall_local_in_policy" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_local_in_policy"
 
-	for_each = var.fortigate_config.firewall_local_in_policy
+	for_each = lookup(var.fortigate_config, "firewall_local_in_policy", {})
       firewall_local_in_policy = each.value
 
 }
@@ -76,7 +76,7 @@ module "firewall_local_in_policy" {
 module "firewall_service" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_service"
 
-	for_each = var.fortigate_config.firewall_service
+	for_each = lookup(var.fortigate_config, "firewall_service", {})
       firewall_service = each.value
 
 }
@@ -85,7 +85,7 @@ module "firewall_service" {
 module "firewall_service_group" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/firewall_service_group"
 
-	for_each = var.fortigate_config.firewall_service_group
+	for_each = lookup(var.fortigate_config, "firewall_service_group", {})
       firewall_service_group = each.value
 
 }
@@ -94,7 +94,7 @@ module "firewall_service_group" {
 module "system_interface" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/system_interface"
 
-	for_each = var.fortigate_config.system_interface
+	for_each = lookup(var.fortigate_config, "system_interface", {})
       system_interface = each.value
 
 }
@@ -103,7 +103,7 @@ module "system_interface" {
 module "vpnipsec_phase1" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/vpnipsec_phase1"
 
-	for_each = var.fortigate_config.vpnipsec_phase1
+	for_each = lookup(var.fortigate_config, "vpnipsec_phase1", {})
       vpnipsec_phase1 = each.value
 
 }
@@ -112,7 +112,7 @@ module "vpnipsec_phase1" {
 module "vpnipsec_phase1interface" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/vpnipsec_phase1interface"
 
-	for_each = var.fortigate_config.vpnipsec_phase1interface
+	for_each = lookup(var.fortigate_config, "vpnipsec_phase1interface", {})
       vpnipsec_phase1interface = each.value
 
 }
@@ -121,7 +121,7 @@ module "vpnipsec_phase1interface" {
 module "vpnipsec_phase2" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/vpnipsec_phase2"
 
-	for_each = var.fortigate_config.vpnipsec_phase2
+	for_each = lookup(var.fortigate_config, "vpnipsec_phase2", {})
       vpnipsec_phase2 = each.value
 
 }
@@ -130,7 +130,7 @@ module "vpnipsec_phase2" {
 module "vpnssl_settings" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/vpnssl_settings"
 
-	for_each = var.fortigate_config.vpnssl_settings
+	for_each = lookup(var.fortigate_config, "vpnssl_settings", {})
       vpnssl_settings = each.value
 
 }
@@ -139,7 +139,7 @@ module "vpnssl_settings" {
 module "vpnipsec_phase2interface" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/vpnipsec_phase2interface"
 
-	for_each = var.fortigate_config.vpnipsec_phase2interface
+	for_each = lookup(var.fortigate_config, "vpnipsec_phase2interface", {})
       vpnipsec_phase2interface = each.value
 
 }
@@ -148,7 +148,7 @@ module "vpnipsec_phase2interface" {
 module "user_group" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/user_group"
 
-	for_each = var.fortigate_config.user_group
+	for_each = lookup(var.fortigate_config, "user_group", {})
       user_group = each.value
 
 }
@@ -157,7 +157,7 @@ module "user_group" {
 module "user_ldap" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/user_ldap"
 
-	for_each = var.fortigate_config.user_ldap
+	for_each = lookup(var.fortigate_config, "user_ldap", {})
       user_ldap = each.value
 
 }
@@ -166,7 +166,7 @@ module "user_ldap" {
 module "user_local" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/fortigate/resources/user_local"
 
-	for_each = var.fortigate_config.user_local
+	for_each = lookup(var.fortigate_config, "user_local", {})
       user_local = each.value
 
 }
@@ -181,5 +181,7 @@ output "data" {
   value = {
     #system_interface: module.data.data_system_interfaces
     data_adresses: module.data.data_addresses
+    policy_list: module.data.policy_list
+    service_list: module.data.service_list
   }
 }
