@@ -50,7 +50,8 @@ def infer_group_env(vm_name: str, subnet_name: str) -> Tuple[str, str, str]:
 
     owner = "internal"
     if len(elts) > 1:
-        owner = elts[-1]
+        if elts[-1] not in common_group_names + list(common_environment_tags.keys()):
+            owner = elts[-1]
 
     return group, env, owner
 
