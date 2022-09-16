@@ -1,0 +1,25 @@
+---
+- name: manage Unix group
+  hosts: "{{ hosts }}"
+
+  vars:
+    users: "{{ users }}"
+    sudoer: "{{ sudoer | default(true) }}"
+
+  tasks:
+
+  - getent:
+      database: passwd
+  - set_fact:
+      users_present: "{{ getent_passwd.keys()|list }}"
+
+  - name: "[GROUP] - Add delete user(s) to/from groups"
+    user:
+      name: "{{ item.name }}"
+      append: "{{ item.append | default('yes') }}"         # yes : add user to the specified group, no : delete user from all unspecified group
+      groups: "{{ item.groups | default('') }}"
+    loop: "{{ users }}"
+    become: yes
+    become_method: sudo
+    when:
+      - item.name in users_present                         # only if user exists, otherwise it would be created
