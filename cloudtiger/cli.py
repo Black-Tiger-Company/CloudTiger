@@ -29,6 +29,7 @@ from cloudtiger.common_tools import create_logger
 from cloudtiger.data import allowed_actions, available_api_services
 from cloudtiger.service import tf_service_generic, prepare
 from cloudtiger.tf import tf_generic
+from cloudtiger.admin import gather
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -196,7 +197,7 @@ from declared resources and reimporting them
         # do we apply no-lock flag ?
         if nolock:
             operation.tf_no_lock = True
-            
+
         # do we apply reconfigure flag ?
         if reconfigure:
             operation.tf_reconfigure = True
@@ -238,9 +239,13 @@ from declared resources and reimporting them
               is_flag=True,
               default=False,
               help="disable fingerprint check at SSH connection")
+@click.option('--ssh-password', '-k',
+              is_flag=True,
+              default=False,
+              help="use password for SSH connexion (default False)")
 @click.pass_context
 def ans(context, action, consolidated, default_user, restricted_vms,
-        ansible_force_install, port, no_check):
+        ansible_force_install, port, no_check, ssh_password):
     """ Ansible actions
 \n- securize (Z)         : set defined users, deactivate default user
 \n- playbooks (P)        : install Ansible playbooks catalog
@@ -265,7 +270,8 @@ def ans(context, action, consolidated, default_user, restricted_vms,
             ansible_force_install,
             restricted_vms,
             port,
-            no_check
+            no_check,
+            ssh_password
         )
 
         operation.logger.info("ansible action %s on scope %s" % (action, operation.scope))
@@ -360,10 +366,39 @@ def service(context, name, step):
     operation.logger.info("Finished service action sucessfully")
 
 
+@click.command('admin', short_help='admin actions')
+@click.argument('action')
+@click.pass_context
+def admin(context, action):
+    """ Admin actions for managing a whole cluster or account :
+\n- gather (G)            : gather all config files from subfolders into a meta folder
+    """
+
+    for operation_context in context.obj['operations']:
+        operation: Operation = operation_context
+
+        operation.logger.info("admin action on folder %s" % operation.scope)
+
+        # check if action is allowed
+        if action in allowed_actions["admin"].keys():
+
+            operation.logger.debug("%s command" %
+                                   allowed_actions["admin"][action])
+            operation.scope_setup()
+            globals()[allowed_actions["admin"][action]](operation)
+
+        else:
+            # unallowed action
+            operation.logger.error("Unallowed action %s" % action)
+            sys.exit()
+
+    operation.logger.info("Finished admin action sucessfully")
+
 main.add_command(init)
 main.add_command(tf)
 main.add_command(ans)
 main.add_command(service)
+main.add_command(admin)
 
 if __name__ == "__main__":
     main()

@@ -236,6 +236,9 @@ allowed_actions = {
         "R": "refresh",
         "destroy": "destroy",
         "D": "destroy"
+    },
+    "admin": {
+        "gather": "gather"
     }
 }
 
