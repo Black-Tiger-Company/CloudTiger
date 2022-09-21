@@ -162,8 +162,8 @@ def configure_ip(operation: Operation):
 
     subnets_to_crawl = {}
     for network_name, network_subnets in operation.scope_config_dict.get('vm', {}).items():
+        subnets_to_crawl[network_name] = []
         for subnet_name, subnet_vms in network_subnets.items():
-            subnets_to_crawl[network_name] = []
             for vm_name, vm in subnet_vms.items():
                 has_subnet_managed_ips = operation.scope_config_dict["network"][network_name]\
                     ["subnets"][subnet_name].get("managed_ips", False)
@@ -207,7 +207,7 @@ def configure_ip(operation: Operation):
                 forbiddend_addresses_pool = [str(addr) for addr in forbidden_cidr_block]
             else:
                 forbiddend_addresses_pool = []
-
+       
             available_ips[network_name][subnet_name] = [
                 ip for ip in all_available_ips if ip not in forbiddend_addresses_pool
                 ]
