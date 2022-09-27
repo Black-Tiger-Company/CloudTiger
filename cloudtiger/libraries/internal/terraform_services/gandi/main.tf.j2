@@ -1,0 +1,44 @@
+terraform {
+  required_providers {
+    gandi = {
+      version = "~> 2.0.0"
+      source   = "go-gandi/gandi"
+    }
+  }
+}
+
+provider "gandi" {
+  key = var.api_key
+}
+
+variable "api_key" {}
+
+
+variable "gitlab_config" {}
+
+### gandi resources module
+module "gandi" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/gandi/resources"
+
+	gandi_config = var.gandi_config
+
+}
+
+### gandi data module
+module "gandi_data" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/gandi/data"
+
+	gandi_config = var.gandi_config
+
+}
+
+
+output gandi_domain_detail {
+	value = module.gandi_data.livedns_domain
+}
+
+output "data" {
+  value = {
+    livedns_domain: module.gandi_data.livedns_domain
+  }
+}
