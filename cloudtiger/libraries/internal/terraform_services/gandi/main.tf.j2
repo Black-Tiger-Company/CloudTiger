@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     gandi = {
-      version = "~> 2.0.0"
+      version = "2.1.0"
       source   = "go-gandi/gandi"
     }
   }
@@ -14,7 +14,9 @@ provider "gandi" {
 variable "api_key" {}
 
 
-variable "gitlab_config" {}
+variable "gandi_config" {
+  default = {}
+}
 
 ### gandi resources module
 module "gandi" {
@@ -34,11 +36,11 @@ module "gandi_data" {
 
 
 output gandi_domain_detail {
-	value = module.gandi_data.livedns_domain
+	value = module.gandi_data.gandi_livedns_domain
 }
 
 output "data" {
   value = {
-    livedns_domain: module.gandi_data.livedns_domain
+    livedns_domain: module.gandi_data.gandi_livedns_domain
   }
 }

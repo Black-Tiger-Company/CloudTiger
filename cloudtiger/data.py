@@ -15,6 +15,7 @@ available_infra_services = [
 ]
 
 available_api_services = [
+    "gandi",
     "nexus",
     "gitlab"
 ]

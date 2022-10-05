@@ -320,6 +320,7 @@ def service(context, name, step):
 \nservice names:
 \n- gitlab                : configure Gitlab
 \n- nexus                 : configure Nexus
+\n- gandi                 : configure Gandi
 \nsteps :
 \n- prepare (0)           : prepare associated Terraform folder and module
 \n- init (1)              : run Terraform init

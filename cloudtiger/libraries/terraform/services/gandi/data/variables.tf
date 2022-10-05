@@ -1,0 +1,1 @@
+variable "gandi_config" {}

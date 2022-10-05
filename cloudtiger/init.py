@@ -183,6 +183,7 @@ def configure_ip(operation: Operation):
                                        stderr=subprocess.PIPE, text=True)
             # out, err = process.communicate()
             process.wait()
+            print('end wait')
             out = process.stdout.read()
             ips = out.split('\n')
             all_available_ips = [
@@ -286,6 +287,7 @@ def prepare_scope_folder(operation: Operation):
 
     for service in available_infra_services:
         if service in operation.used_services:
+            print(service + 'service ok')
             j2(operation.logger, os.path.join(operation.scope_folder,
                                               "terraform", "services", service + ".tfvars.j2"),
                operation.scope_config_dict,
