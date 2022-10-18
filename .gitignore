@@ -109,6 +109,7 @@ ENV/
 # .github
 
 # test
+tests/sensitive_resources/*
 tests/run/*
 tests/gitops/scopes/*
 tests/gitops/terraform
