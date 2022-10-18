@@ -235,6 +235,8 @@ allowed_actions = {
         "P": "plan",
         "refresh": "refresh",
         "R": "refresh",
+        "convert": "convert",
+        "C": "convert",
         "destroy": "destroy",
         "D": "destroy"
     }

@@ -27,7 +27,7 @@ from cloudtiger.ans import (
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import create_logger
 from cloudtiger.data import allowed_actions, available_api_services
-from cloudtiger.service import tf_service_generic, prepare
+from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -308,8 +308,11 @@ def ans(context, action, consolidated, default_user, restricted_vms,
 @click.command('service', short_help='service configuration')
 @click.argument('name')
 @click.argument('step')
+@click.option('--src-path', '-src',
+              default='.',
+              help="path to service configuration file")
 @click.pass_context
-def service(context, name, step):
+def service(context, name, step, src_path):
     """ Service configuration through Terraform
 service names:
 \n- gitlab                : configure Gitlab
@@ -319,6 +322,7 @@ steps :
 \n- init (1)              : run Terraform init
 \n- apply (2)             : run Terraform apply & output
 \n- refresh (R)           : run Terraform refresh & output
+\n- convert (C)           : service configuration file to cloudtiger format
 \n- destroy (D)           : run Terraform destroy
     """
 
@@ -350,6 +354,8 @@ steps :
 
             if allowed_actions["service"][step] == "prepare":
                 prepare(operation, name)
+            elif allowed_actions["service"][step] == "convert":
+                convert(operation, name, src_path)
             else:
                 tf_service_generic(operation, allowed_actions["service"][step], name)
 

@@ -1,0 +1,38 @@
+provider: vsphere
+
+services_account:
+  fortigate: dc2
+
+fortigate:
+  firewall_addr_groups: {}
+    # addr_grp_a :
+    #   name: a
+    #   allow_routing: xxx
+    #   color: xxx
+    #   exclude: xxx
+    #   visibility: xxx
+    #   members: [xxx]
+
+  firewall_addresses: {}
+    # fw_addr_a:
+    #   name: xxx
+    #   allow_routing: xxx
+    #   color: xxx
+    #   type: xxx
+    #   subnet: xxx
+    #   fqdn: xxx
+    #   associated_interface: xxx
+    #   end_ip: xxx
+    #   start_ip: xxx
+    #   uuid: xxx
+    #   visibility: xxx
+      
+
+  firewall_policies: {} # firewall policy
+    # fw_policy_a:
+      
+
+  firewall_vip: {}
+    # fw_vip_a:
+
+use_tf_backend: true

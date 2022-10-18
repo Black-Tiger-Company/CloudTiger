@@ -2,9 +2,13 @@
 import json
 import os
 import shutil
+import yaml
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action, j2
+from cloudtiger.specific.forti import ConfigParser
+from cloudtiger.specific.parsing import FortiNetworking
+
 
 
 def prepare(operation: Operation, service):
@@ -75,3 +79,30 @@ def tf_service_generic(operation, tf_action, service):
         os.makedirs(os.path.join(operation.scope_folder, service), exist_ok=True)
         command = "terraform output -json"
         bash_action(operation.logger, command, service_folder, os.environ, terraform_service_output)
+
+
+def convert(operation, service, src):
+    config_parser = ConfigParser()
+    data_json = config_parser.parse_file(os.path.join(src))
+    fortigate_parser = FortiNetworking()
+    result = {}
+    domains = {}
+    data_json = getFortigateDomain(domains, data_json)
+    for vdom_name, vdom in data_json.items():
+        result[vdom_name] = {}
+        # firewall policy
+        for resource_name, resource in  vdom.items():
+            result[vdom_name][resource_name] = fortigate_parser.get_BT_format(resource_name, resource)
+            if result[vdom_name][resource_name] == {}:
+                del result[vdom_name][resource_name]
+    f = open(operation.scope_config, "w")
+    yaml.dump(result, f)
+    f.close()
+
+def getFortigateDomain(domains, data):
+    for vdom_name, vdom in data.items():
+        if vdom_name == 'vdom':
+            getFortigateDomain(domains, vdom)
+        elif vdom_name != "root": 
+            domains[vdom_name] = vdom
+    return domains

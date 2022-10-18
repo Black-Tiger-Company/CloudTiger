@@ -1,20 +1,35 @@
 """Integration tests for CLI commands."""
 
-import json
 import os
-import re
-from pathlib import Path
+import shutil
 
 import pytest
-from click.testing import CliRunner
+import pkg_resources
 
 from tests.expected_outputs import expected_outputs
-from cloudtiger import helper
 
-@pytest.fixture(params=['--version'])
-def cli_version_flag(request):
-    """Pytest fixture return both version invocation options."""
-    return request.param
+TEST_DATA_FOLDER = pkg_resources.resource_filename('cloudtiger', '../tests')
+TEST_FOLDER = pkg_resources.resource_filename('cloudtiger', '../tests/run')
+TEST_CONFIG_FORTIGATE= pkg_resources.resource_filename('cloudtiger', '../tests/sensitive_resources/forti_config.conf')
+GITOPS_PATH = "/mnt/c/Users/emeric.guibert/Documents/Infrastucture/gitops"
+
+root_folders = [
+    ("simple", "."),
+    ("absolute", "/app/absolute_root_folder"),
+    ("relative", "./relative_root_folder"),
+    ("absolute_with_whitespace", '/app/absolute test path'),
+    ("relative_with_whitespace", './app/relative test path')
+    ]
+
+test_scopes = [
+    os.path.join("aws", "single_scope"),
+    os.path.join("vsphere", "single_scope"),
+    os.path.join("nutanix", "single_scope")
+]
+
+test_scopes_service_fortigate = [
+    os.path.join("fortigate")
+]
 
 @pytest.fixture(params=['-h', '--help'])
 def cli_main_helper(request):
@@ -31,82 +46,144 @@ def test_cli_version(cli_runner, cli_version_flag):
     result = cli_runner(cli_version_flag)
     assert result.exit_code == 0
     assert ', version' in result.output
-    # assert result.output.startswith('cloudtiger, version')
 
-test_scopes = [
-        os.path.join("aws", "single_scope"),
-        os.path.join("vsphere", "single_scope"),
-        os.path.join("nutanix", "single_scope")
-    ]
+def create_gitops_folder(root_folder):
+    """Fixture that create gitops folders using several pathes"""
+    os.chdir(TEST_FOLDER)
 
-root_folders = [
-    ("simple", "."),
-    ("absolute", "/app/absolute_root_folder"),
-    ("relative", "./relative_root_folder"),
-    ("absolute_with_whitespace", "/app/absolute\ test\ path"),
-    ("relative_with_whitespace", "./app/relative\ test\ path")
-    ]
+    gitops_test_folder = os.path.join(TEST_DATA_FOLDER, "gitops")
 
-# def test_cli_helper(cli_runner, cli_main_helper):
-#     """Check main helper"""
-#     result = cli_runner(cli_main_helper)
-#     assert result.exit_code == 0
-#     print(result.output)
-#     assert result.output == helper.helpers["basic"]
+    if root_folder[0] == os.path.sep:
+        root_folder = os.path.join(TEST_FOLDER, root_folder[1:])
+    else :
+        root_folder = os.path.join(os.getcwd(), root_folder)
 
-# def run_test_command(root_folder, scope, command, scenario_name):
-#     """Fixture that runs a command on a scope in a root folder"""
+    shutil.copytree(gitops_test_folder, root_folder, dirs_exist_ok=True)
 
-#     # if root_folder[0] == os.path.sep :
-#     #     root_folder = os.path.join(TEST_FOLDER, root_folder[1:])
-#     # else :
-#     #     root_folder = os.path.join(os.getcwd(), root_folder)
+def delete_gitops_folder(root_folder):
+    """Fixture that delete test gitops folders."""
 
-#     # we use 'WHITESPACE' as a placeholder for whitespaces in the project root
-#     # because we will split the command input afterwards using whitespaces
-#     # too
-#     root_folder = root_folder.replace(' ', "WHITESPACE")
+    if os.path.isdir(root_folder):
+        shutil.rmtree(root_folder)
 
-#     # the command must be fed as a list of parameters
-#     command = format("--project-root %s --output-file"
-#                 "%s --error-file %s %s" %
-#                 (root_folder, 'cloudtiger_std.log',
-#                 'cloudtiger_stderr.log', command))
-#     command = command.split()
-#     command = [elt.replace("WHITESPACE", " ") for elt in command]
-
-#     result = cli_runner(command)
-#     print(result.output)
-#     assert result.output == expected_outputs[scenario_name]
-
-# @pytest.mark.usefixtures("run_test_command_all_scopes_all_root")
 @pytest.mark.parametrize("scenario_commands,scenario_name", [
     (["init 0"], "init_0"),
     (["init 1"], "init_1"),
-    (["init 1", "init_2"], "init_2"),
+    (["init 1", "init 2"], "init_2"),
     (["init 2"], "missing_init_ip"),
-    (["tf init"], "tf_init"),
-    (["tf init", "tf apply"], "tf_apply"),
+    (["init 1", "init 2", "tf init"], "tf_init"),
+    (["init 1", "init 2", "tf init", "tf plan"], "tf_plan"),
     (["tf apply"], "missing_tf_init"),
 ])
-def test_cli_test_scenarii(create_gitops_folders, delete_gitops_folders, cli_runner, scenario_commands, scenario_name):
+def test_cli_test_scenarii(cli_runner, scenario_commands, scenario_name):
     """Check CLI commands scenarii"""
-    
-    for root_folder in root_folders:
-        print(root_folders)
-        for scope in test_scopes:
-            create_gitops_folders()
+    results = {}
+    multiple_roots_expected_outputs = {}
+
+    for key_root_folder, root_folder in root_folders:
+        # key_root_folder = root_folder
+        root_folder = root_folder.replace(' ', '\ ')
+        create_gitops_folder(root_folder)
+
+        results[key_root_folder] = {}
+        if root_folder[0] == os.path.sep:
+            root_folder = os.path.join(TEST_FOLDER, root_folder[1:])
+        else :
+            root_folder = os.path.join(os.getcwd(), root_folder)
+
+        for scope in test_scopes_service_fortigate:
+            results[key_root_folder][scope] = ""
             for command in scenario_commands:
                 # output = run_test_command(root_folder, scope, command, scenario_name)
-                command = format("--project-root %s --output-file"
-                            "%s --error-file %s %s" %
-                            (root_folder, 'cloudtiger_std.log',
-                            'cloudtiger_stderr.log', command))
+                ws_root_folder = root_folder.replace(' ', "WHITESPACE")
+                command = (f"--project-root {ws_root_folder} --output-file "
+                           f"cloudtiger_std.log --error-file cloudtiger_stderr.log"
+                           f"{scope} {command}")
                 command = command.split()
                 command = [elt.replace("WHITESPACE", " ") for elt in command]
-                
+
                 result = cli_runner(command)
                 print(result.output)
-                assert result.output == expected_outputs[scenario_name]
-                
-            delete_gitops_folders()
+                results[key_root_folder][scope] += result.output.replace("\\\\", "\\")
+
+        delete_gitops_folder(root_folder)
+
+        multiple_roots_expected_outputs[key_root_folder] = {}
+        multiple_roots_expected_outputs[key_root_folder][scope] = expected_outputs
+        [scenario_name][scope].replace('PROJECT_ROOT', root_folder)
+
+    assert results == multiple_roots_expected_outputs
+
+
+@pytest.mark.parametrize("scenario_commands,scenario_name", [
+    (["service fortigate convert --src-path {path}".format(path=TEST_CONFIG_FORTIGATE)], "service_fortigate_convert")
+])
+def test_cli_service_fortigate(cli_runner, scenario_commands, scenario_name):
+    """Check CLI commands scenarii"""
+    results = {}
+    multiple_roots_expected_outputs = {}
+
+    for key_root_folder, root_folder in root_folders:
+        # key_root_folder = root_folder
+        root_folder = root_folder.replace(' ', '\ ')
+        create_gitops_folder(root_folder)
+
+        results[key_root_folder] = {}
+        if root_folder[0] == os.path.sep:
+            root_folder = os.path.join(TEST_FOLDER, root_folder[1:])
+        else :
+            root_folder = os.path.join(os.getcwd(), root_folder)
+
+        for scope in test_scopes_service_fortigate:
+            results[key_root_folder][scope] = ""
+            for command in scenario_commands:
+                # output = run_test_command(root_folder, scope, command, scenario_name)
+                ws_root_folder = root_folder.replace(' ', "WHITESPACE")
+                command = (f"--project-root {ws_root_folder} --output-file "
+                           f"cloudtiger_std.log --error-file cloudtiger_stderr.log "
+                           f"{scope} {command}")
+                command = command.split()
+                command = [elt.replace("WHITESPACE", " ") for elt in command]
+
+                result = cli_runner(command)
+                print(result.output)
+                results[key_root_folder][scope] += result.output.replace("\\\\", "\\")
+
+        delete_gitops_folder(root_folder)
+
+        multiple_roots_expected_outputs[key_root_folder] = {}
+        multiple_roots_expected_outputs[key_root_folder][scope] = expected_outputs
+        [scenario_name][scope].replace('PROJECT_ROOT', root_folder)
+
+    assert results == multiple_roots_expected_outputs
+
+
+
+@pytest.mark.parametrize("scenario_commands,scenario_name", [
+    # (["init 0"], "init_0"),
+    (["init 1"], "init_1"),
+    # (["init 1", "init 2"], "init_2"),
+    # (["init 2"], "missing_init_ip"),
+    # (["init 1", "init 2", "tf init"], "tf_init"),
+    # (["init 1", "init 2", "tf init", "tf plan"], "tf_plan"),
+    # (["tf apply"], "missing_tf_init"),
+])
+def test_cli_test_my_scenario(cli_runner, scenario_commands, scenario_name):
+    """Check CLI commands scenarii"""
+    results = {}
+    multiple_roots_expected_outputs = {}
+
+
+    ws_root_folder = GITOPS_PATH
+    scope = "config/bnc_datacenter/bnc_2i/bpm_online/service/"
+    for command in scenario_commands:
+        command = (f"--project-root {ws_root_folder} --output-file "
+                    f"cloudtiger_std.log --error-file cloudtiger_stderr.log "
+                    f"{scope} {command}")
+        command = command.split()
+        command = [elt.replace("WHITESPACE", " ") for elt in command]
+
+        result = cli_runner(command)
+        print(result.output)
+
+    assert results == multiple_roots_expected_outputs
