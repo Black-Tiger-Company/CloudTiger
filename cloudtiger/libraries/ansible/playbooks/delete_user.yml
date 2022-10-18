@@ -1,0 +1,20 @@
+---
+- name: manage Unix user
+  hosts: "{{ hosts }}"
+
+  vars:
+    users: "{{ users }}"
+    sudoer: "{{ sudoer | default(true) }}"
+
+  tasks:
+
+  - name: "[USER] - delete user(s), associated directories and removing them from all groups"
+    user:
+      name: "{{ item.name }}"
+      append: 'no'         # yes : add user to the specified group, no : delete user from all unspecified group
+      groups: ''           # with append no, removing user from all groups
+      state: absent
+      remove: yes          # remove user directorie
+    loop: "{{ users }}"
+    become: yes
+    become_method: sudo

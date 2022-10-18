@@ -106,7 +106,7 @@ ENV/
 .idea/
 
 # CI
-.github
+# .github
 
 # test
 tests/sensitive_resources/*

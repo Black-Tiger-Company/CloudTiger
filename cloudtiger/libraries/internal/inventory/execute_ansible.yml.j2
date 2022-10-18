@@ -1,10 +1,10 @@
 ---{% for actions_batch in ansible %}
 - name: {{ actions_batch.name }}
-
 {% if "hosts" in actions_batch.keys() %}  hosts: {{ actions_batch.hosts }}{% endif %}{% if "sudo_prompt" in actions_batch.keys() %}{% if actions_batch.sudo_prompt %}{% endif %}{% endif %}
+
   vars:
-    ansible_sudo_pass: {% raw %}"{{ b64_ansible_ssh_pass | b64decode }}"{% endraw %}{%if "extra_vars" in actions_batch.keys() %}
-    {% for extra_var in actions_batch.extra_vars  %}- {{ extra_var }} : {{ extra_var }}{% endfor  %}{% endif %}{% if actions_batch.type == "role" %}
+    ansible_sudo_pass: {% raw %}"{{ b64_ansible_ssh_pass | b64decode }}"{% endraw %}{% if actions_batch.type == "role" %}{%if "extra_vars" in actions_batch.keys() %}
+    {% for extra_var in actions_batch.extra_vars  %}- {{ extra_var }} : {{ extra_var }}{% endfor  %}{% endif %}
 
   roles:{% for role in actions_batch.roles  %}
     - { role : {{ role.source }}{% if "params" in role.keys() %}{% for param_key, param_value in role.params.items() %}, {{ param_key }}: {{ param_value}} {% endfor  %}{% endif %} }{% endfor  %}{% endif %}

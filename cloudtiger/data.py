@@ -239,6 +239,9 @@ allowed_actions = {
         "C": "convert",
         "destroy": "destroy",
         "D": "destroy"
+    },
+    "admin": {
+        "gather": "gather"
     }
 }
 

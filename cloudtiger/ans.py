@@ -480,7 +480,7 @@ def prepare_ansible(operation: Operation, securize=False):
     """
 
     # prepare Ansible meta playbook
-    if operation.default_user:
+    if operation.default_user | (not operation.ssh_with_password) :
         execute_ansible_template = os.path.join(
             operation.libraries_path, "internal", "inventory", "execute_ansible_no_sudo_pass.yml.j2"
         )
@@ -532,7 +532,7 @@ def execute_ansible(operation: Operation):
     command = 'ansible-playbook -i ./hosts.yml execute_ansible.yml\
         --extra-vars "exec_folder=$(pwd)"'
 
-    if not operation.default_user:
+    if operation.ssh_with_password:
         if "CLOUDTIGER_SSH_PASSWORD" not in ansible_environ.keys():
             query_string = format(
                 "Enter SSH password for %s :" % ansible_environ.get("CLOUDTIGER_SSH_USERNAME"))

@@ -282,7 +282,73 @@ In order to develop/edit a new module, you need to :
 - create the file `cloudtiger/cloudtiger/libraries/internal/terraform_providers/<MODULE>.tfvars.j2` listing the variables for the module
 - edit the file `cloudtiger/cloudtiger/libraries/internal/terraform_providers/outputs.tf.j2` to define the outputs of the module if necessary.
 
-## Important notice
+### Adding a new service
+
+In order to develop/edit a new service, you need to :
+
+- create the service folder in `cloudtiger/libraries/internal/terraform_services`, and create a `main.tf.j2` file in this folder
+
+The `main.tf.j2` file should have a structure close to this one :
+
+```tf
+terraform {
+  required_providers {
+    <PROVIDER_NAME> = {
+      source = <SOURCE>
+      version = <VERSION>
+    }
+  }
+}
+
+provider "<PROVIDER_NAME" {
+  <KEY> = <VALUE>
+  ...
+}
+
+variable "<SERVICE_NAME>_config" {}
+
+variable "<OTHER_VARIABLES>" {}
+
+...
+
+### <SERVICE_NAME> module
+module "<SERVICE_NAME>" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/<SERVICE_NAME>/resources"
+
+	<SERVICE_NAME>_config = var.<SERVICE_NAME>
+}
+
+### another <SERVICE_NAME> module
+module ...
+```
+
+- then, you need to create the modules for your service in a new folder `cloudtiger/libraries/terraform/services/<SERVICE_NAME>`. Follow the instructions above about "Creating a new module"
+- then, you have to declare the new service in the list of available services in `cloudtiger/data.py` :
+
+```python
+...
+available_api_services = [
+    "nexus",
+    "gitlab",
+    "<SERVICE_NAME>" ### <- add your service name in this list
+]
+...
+```
+
+- finally, add the helper for your new service in the helper of the `service` function in `cloudtiger/cli.py` :
+
+```python
+@click.pass_context
+def service(context, name, step):
+    """ Service configuration through Terraform
+\nservice names:
+\n- gitlab                : configure Gitlab
+\n- nexus                 : configure Nexus
+\n- <SERVICE_NAME>        : <SERVICE_DESCRIPTION>
+...
+```
+
+## Important technical points
 
 ### Terminology digression
 
