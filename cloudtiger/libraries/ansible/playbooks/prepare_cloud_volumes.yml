@@ -1,0 +1,48 @@
+---
+- name : prepare cloud volumes
+  hosts : "{{ hosts }}"
+
+  vars:
+    data_disk_marker : "{{ data_disk_marker }}"
+    mount_folder: "{{ mount_folder }}"
+    cloud_provider: "{{ cloud_provider }}"
+
+  tasks : 
+  - name: create filesystem on AWS 
+    shell: if [ ! $(blkid | grep xfs) ]; then sudo mkfs -t xfs /dev/"$(lsblk | grep {{ data_disk_marker }} | cut -d ' ' -f 1)"; fi
+    ignore_errors: yes
+    when : cloud_provider == "aws"
+
+  - name: create filesystem on Azure 
+    shell: if [ ! $(blkid | grep xfs) ]; then sudo mkfs -t xfs /dev/"$(lsblk | grep {{ data_disk_marker }} | cut -d ' ' -f 1)"; fi
+    ignore_errors: yes
+    when : cloud_provider == "azure"
+
+  - name: create filesystem on GCP 
+    shell: if [ ! $(blkid | grep ext4) ]; then sudo mkfs -t ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0 /dev/"$(lsblk | grep {{ data_disk_marker }} | cut -d ' ' -f 1)" ,discard; fi
+    ignore_errors: yes
+    when : cloud_provider == "gcp"
+
+  - name: create data folder
+    shell: sudo mkdir -p {{ mount_folder }}
+  - name: get drive name
+    shell: sudo lsblk | grep {{ data_disk_marker }} | cut -d ' ' -f 1
+    register: drive_name
+  - name: get block ID
+    shell: echo "$(sudo blkid | grep {{ drive_name.stdout }})" | grep -oP 'UUID=[^[:blank:]]*' | sed 's/UUID=//g'
+    register: block_id
+
+  - name: add drive to FS tab - AWS
+    shell: if ! (grep -q UUID= /etc/fstab); then sudo bash -c "echo UUID={{ block_id.stdout }}  {{ mount_folder }}  xfs  defaults,nofail  0  2 >> /etc/fstab"; fi
+    when : cloud_provider == "aws"
+
+  - name: add drive to FS tab - Azure
+    shell: if ! (grep -q UUID= /etc/fstab); then sudo bash -c "echo UUID={{ block_id.stdout }}  {{ mount_folder }}  xfs  defaults,nofail  0  2 >> /etc/fstab"; fi
+    when : cloud_provider == "azure"
+
+  - name: add drive to FS tab - GCP
+    shell: if ! (grep -q UUID= /etc/fstab); then sudo bash -c "echo UUID={{ block_id.stdout }}  {{ mount_folder }}  ext4  discard,defaults,nofail  0  2 >> /etc/fstab"; fi
+    when : cloud_provider == "gcp"
+
+  - name : mount data drive
+    shell: sudo mount -a
