@@ -2,10 +2,24 @@ terraform {
   required_providers {
     nexus = {
       source = "datadrivers/nexus"
-      version = "1.12.0"
+      version = "1.21.0"
     }
   }
 }
+
+{%- if use_tf_backend_for_service|default(false) %}
+
+terraform {
+  backend "pg" {
+  }
+}
+{%- else %}
+
+terraform {
+  backend "local" {
+  }
+}
+{%- endif %}
 
 provider "nexus" {
   insecure = true
@@ -23,14 +37,6 @@ variable "nexus_config" {}
 ### nexus module
 module "nexus" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/nexus/resources"
-
-	nexus_config = var.nexus_config
-
-}
-
-### nexus data module
-module "nexus_data" {
-  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/nexus/data"
 
 	nexus_config = var.nexus_config
 
