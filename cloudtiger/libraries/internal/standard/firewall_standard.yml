@@ -22,6 +22,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "Kafka UI web"
     cidr: ["0.0.0.0/0"]
+    priority   : "102"
 
   "kafka-rest":
     from_port  : 8082
@@ -29,6 +30,8 @@ ingress_rules:
     protocol   : "tcp"
     description: "Kafka REST API"
     cidr: ["0.0.0.0/0"]
+    priority   : "103"
+
 
   "kafka":
     from_port  : 9092
@@ -36,6 +39,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "Kafka Connect API"
     cidr: ["0.0.0.0/0"]
+    priority   : "104"
 
   "zookeeper-ui":
     from_port  : 9021
@@ -43,6 +47,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "Kafka UI web"
     cidr: ["0.0.0.0/0"]
+    priority   : "105"
 
   "zookeeper":
     from_port  : 2181
@@ -50,6 +55,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "Kafka UI web"
     cidr: ["0.0.0.0/0"]
+    priority   : "106"
 
   "ftp_listen":
     from_port  : 21
@@ -57,6 +63,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "FTP listening"
     cidr: ["0.0.0.0/0"]
+    priority   : "100"
 
   "ftps":
     from_port  : 990
@@ -64,6 +71,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "FTPS"
     cidr: ["0.0.0.0/0"]
+    priority   : "107"
 
   "ftp_data":
     from_port  : 20
@@ -71,6 +79,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "FTP data"
     cidr: ["0.0.0.0/0"]
+    priority   : "108"
 
   "ftp_passive":
     from_port  : 10000
@@ -78,6 +87,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "FTP passive"
     cidr: ["0.0.0.0/0"]
+    priority   : "109"
 
   "kafka_schema_registry":
     from_port  : 8081
@@ -85,6 +95,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "Kafka schema registry"
     cidr: ["0.0.0.0/0"]
+    priority   : "110"
 
   "http":
     from_port  : 80
@@ -92,7 +103,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "HTTP"
     cidr: ["0.0.0.0/0"]
-    priority: "103"
+    priority: "111"
 
   "http_bis":
     from_port  : 8080
@@ -100,7 +111,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "HTTP"
     cidr: ["0.0.0.0/0"]
-    priority: "104"
+    priority: "112"
 
   "https":
     from_port  : 443
@@ -108,6 +119,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "HTTPS"
     cidr: ["0.0.0.0/0"]
+    priority   : "113"
 
   "openfaas":
     from_port  : 31112
@@ -115,6 +127,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "OpenFaas"
     cidr: ["0.0.0.0/0"]
+    priority   : "114"
 
   "prometheus":
     from_port  : 9090
@@ -122,6 +135,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "prometheus"
     cidr: ["0.0.0.0/0"]
+    priority   : "115"
 
   "kong_ui":
     from_port  : 32444
@@ -129,6 +143,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "kong_ui"
     cidr: ["0.0.0.0/0"]
+    priority   : "116"
 
   "grafana":
     from_port  : 3000
@@ -136,6 +151,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "grafana"
     cidr: ["0.0.0.0/0"]
+    priority   : "117"
 
   "postgres":
     from_port  : 5432
@@ -143,6 +159,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "port for postgres DB"
     cidr: ["0.0.0.0/0"]
+    priority   : "118"
 
   "docker-registry":
     from_port  : 5000
@@ -150,6 +167,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "port for Docker registry"
     cidr: ["0.0.0.0/0"]
+    priority   : "119"
 
   "gitlab-registry":
     from_port  : 4567
@@ -157,6 +175,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "gitlab-container-registry"
     cidr: ["0.0.0.0/0"]
+    priority   : "120"
 
   "nexus":
     from_port  : 8081
@@ -164,7 +183,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "nexus"
     cidr: ["0.0.0.0/0"]
-    priority   : "102"
+    priority   : "121"
 
   "dns_challenge":
     from_port  : 53
@@ -172,6 +191,7 @@ ingress_rules:
     protocol   : "udp"
     description: "port for allowing LetsEncrypt DNS challenges"
     cidr: ["0.0.0.0/0"]
+    priority   : "122"
 
   "elastic":
     from_port  : 9200
@@ -179,7 +199,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "elastic"
     cidr: ["0.0.0.0/0"]
-    priority: "105"
+    priority: "123"
 
   "elastic_2":
     from_port  : 9300
@@ -187,7 +207,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "elastic"
     cidr: ["0.0.0.0/0"]
-    priority: "106"
+    priority: "124"
 
   "haproxy":
     from_port  : 32700
@@ -195,6 +215,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "haproxy"
     cidr: ["0.0.0.0/0"]
+    priority   : "125"
 
   "mongo":
     from_port  : 27017
@@ -202,7 +223,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "mongo"
     cidr: ["0.0.0.0/0"]
-    priority: "103"
+    priority: "126"
 
   "nginx_k8s":
     from_port  : 30063
@@ -210,6 +231,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "nginx_k8s"
     cidr: ["0.0.0.0/0"]
+    priority   : "127"
 
   "resty_k8s":
     from_port  : 30065
@@ -217,6 +239,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "resty_k8s"
     cidr: ["0.0.0.0/0"]
+    priority   : "128"
 
   "keycloak_k8s":
     from_port  : 30061
@@ -224,6 +247,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "keycloak_k8s"
     cidr: ["0.0.0.0/0"]
+    priority   : "129"
 
   "grpc":
     from_port  : 7087
@@ -231,7 +255,7 @@ ingress_rules:
     protocol   : "tcp"
     description: "grpc port"
     cidr: ["0.0.0.0/0"]
-    priority: "105"
+    priority: "130"
 
 egress_rules:
   "default":
