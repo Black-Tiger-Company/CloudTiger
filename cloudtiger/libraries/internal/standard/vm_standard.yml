@@ -46,6 +46,9 @@ system_images:
     debian10:
       name: "debian-10-genericcloud-amd64.qcow2"
       username: "debian"
+    debian11:
+      name: "debian-11-genericcloud-amd64.qcow2"
+      username: "debian"
     ubuntu_server:
       name: "ubuntu-20.04-server-cloudimg-amd64.img"
       username: "ubuntu"
@@ -76,16 +79,65 @@ vm_types:
         type: "e2-small"
       nonprod:
         type: "e2-small"
-    k8s_worker:
-      prod:
-        type: "e2-standard-4"
-      nonprod:
-        type: "e2-standard-4"
     backend:
       prod:
         type: "e2-standard-2"
       nonprod:
         type: "e2-standard-2"
+    elastic:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
+    k8s_master:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
+    k8s_worker:
+      prod: 
+        type: "e2-standard-4"
+      nonprod: 
+        type: "e2-standard-4"
+        data_volume_size: 125
+    mongo:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
+    keycloak:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
+    sftp:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
+    sparkmaster:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
+    sparknode:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
+    kibana:
+      prod: 
+        type: "e2-standard-2"
+      nonprod: 
+        type: "e2-standard-2"
+        data_volume_size: 125
   aws:
     bastion:
       prod: 
