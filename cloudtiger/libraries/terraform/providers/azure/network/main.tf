@@ -110,3 +110,60 @@ resource "azurerm_subnet_network_security_group_association" "private_network_se
   subnet_id                 = azurerm_subnet.private_subnets[each.key].id
   network_security_group_id = azurerm_network_security_group.private_network_security_group[each.key].id
 }
+
+################
+# Firewall rules
+################
+locals{
+  mapped_firewall_rules_ingress = { for firewall_rule in var.network.firewall_rules_ingress :
+    firewall_rule.rule_name => firewall_rule
+  }
+
+  mapped_firewall_rules_egress = { for firewall_rule in var.network.firewall_rules_egress :
+    firewall_rule.rule_name => firewall_rule
+  }
+
+  protocol_map = {
+    "tcp" = "Tcp"
+    "udp" = "Udp"
+    "icmp" = "Icmp"
+    "ah" = "Ah"
+    "esp" = "Esp"
+  }
+}
+
+resource "azurerm_network_security_rule" "security_rule_ingress" {
+  for_each                   = local.mapped_firewall_rules_ingress
+  name                       = format("%s_%s", each.value.description, each.key)
+
+  priority                   = each.value.priority
+  direction                  = each.value.direction
+  access                     = each.value.access
+  protocol                   = local.protocol_map[each.value.protocol]
+  source_port_range          = each.value.source_port_range
+  # source_port_range          = replace(each.value.from_port, "-1", "*")
+  destination_port_range     = replace(each.value.to_port, "-1", "*")
+  source_address_prefix      = each.value.cidr[0]
+  destination_address_prefix = "*"
+
+  resource_group_name         = azurerm_resource_group.rg.name
+  network_security_group_name = lookup(azurerm_network_security_group.private_network_security_group, each.value.attached_subnet, lookup(azurerm_network_security_group.public_network_security_group, each.value.attached_subnet, {})).name
+}
+
+resource "azurerm_network_security_rule" "security_rule_egress" {
+  for_each                   = local.mapped_firewall_rules_egress
+  name                       = format("%s_%s", each.value.description, each.key)
+
+  priority                   = each.value.priority
+  direction                  = each.value.direction
+  access                     = each.value.access
+  protocol                   = local.protocol_map[each.value.protocol]
+  source_port_range          = each.value.source_port_range
+  # source_port_range          = replace(each.value.from_port, "-1", "*")
+  destination_port_range     = replace(each.value.to_port, "-1", "*")
+  source_address_prefix      = each.value.cidr[0]
+  destination_address_prefix = "*"
+
+  resource_group_name         = azurerm_resource_group.rg.name
+  network_security_group_name = lookup(azurerm_network_security_group.private_network_security_group, each.value.attached_subnet, lookup(azurerm_network_security_group.public_network_security_group, each.value.attached_subnet, {})).name
+}

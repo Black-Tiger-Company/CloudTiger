@@ -97,42 +97,6 @@ resource "azurerm_public_ip" "public_ip" {
   allocation_method   = "Static"
 }
 
-# resource "azurerm_network_security_group" "vm_security_group" {
-#   name                = format("%s_%s_network_sg", var.vm.module_prefix, var.vm.vm_name)
-#   location            = var.vm.location
-#   resource_group_name = azurerm_resource_group.rg.name
-# }
-
-data "azurerm_resource_group" "rg" {
-  name = format("%s%s_network_rg", var.vm.module_prefix, var.vm.network_name)
-}
-
-data "azurerm_network_security_group" "vm_security_group" {
-  name                = format("%s%s_%s_subnet_sg", var.vm.module_prefix, var.vm.network_name, var.vm.subnet_name)
-  resource_group_name = data.azurerm_resource_group.rg.name
-}
-
-resource "azurerm_network_security_rule" "security_rule_ingress" {
-  for_each                   = var.vm.ingress_rules
-  name                       = format("%s_%s", each.value.description, var.vm.vm_name)
-  ### HUGE WARNING : priority must be UNIQUE for each rule of each subnetwork
-  ### right now we make the assumption that there will be maximum 100 different default rules,
-  ### and we add 100 * index(vm_name) to make them different by VM (so no more than 40 VMs allowed
-  ### per subnet)
-  priority                   = each.value.priority + 100 * index(keys(var.vm.ingress_rules) , each.key)
-  direction                  = "Inbound"
-  access                     = "Allow"
-  protocol                   = "Tcp"
-  source_port_range          = "*"
-  # source_port_range          = replace(each.value.from_port, "-1", "*")
-  destination_port_range     = replace(each.value.to_port, "-1", "*")
-  source_address_prefix      = each.value.cidr[0]
-  destination_address_prefix = "*"
-
-  resource_group_name         = data.azurerm_resource_group.rg.name
-  network_security_group_name = data.azurerm_network_security_group.vm_security_group.name
-}
-
 ############
 # Data Volumes
 ############

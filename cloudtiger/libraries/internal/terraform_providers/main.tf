@@ -43,6 +43,48 @@ locals {
 
 			### used by vsphere and nutanix
 			datacenter_name = lookup(network, "datacenter", "no_datacenter_set")
+
+			### VLAN - level firewall rules
+			### injection of ingress rules
+			firewall_rules_ingress = flatten([
+				for subnet_name, subnet in lookup(network, "subnets", {}) : [
+					for rule in lookup(subnet, "ingress_rules", {}) : {
+						rule_name = format("%s_%s", rule, subnet_name)
+						attached_subnet = subnet_name
+						description = var.ingress_rules[rule].description
+						from_port   = var.ingress_rules[rule].from_port
+						to_port     = var.ingress_rules[rule].to_port
+						protocol    = var.ingress_rules[rule].protocol
+						access      = lookup(var.ingress_rules[rule], "access", "Allow")
+						cidr        = lookup(lookup(network, "ingress_cidr", {}), rule, ["0.0.0.0/0"])
+						direction   = "Inbound"
+						protocol    = lookup(var.ingress_rules[rule], "protocol", "Tcp")
+						source_port_range        = lookup(var.ingress_rules[rule], "source_port_range", "*")
+						destination_port_range   = lookup(var.ingress_rules[rule], "destination_port_range", "*")
+						priority    = var.ingress_rules[rule].priority
+					}
+				]
+			])
+
+			firewall_rules_egress = flatten([
+				for subnet_name, subnet in lookup(network, "subnets", {}) : [
+					for rule in lookup(subnet, "egress_rules", {}) : {
+						rule_name = format("%s_%s", rule, subnet_name)
+						attached_subnet = subnet_name
+						description = var.egress_rules[rule].description
+						from_port   = var.egress_rules[rule].from_port
+						to_port     = var.egress_rules[rule].to_port
+						protocol    = var.egress_rules[rule].protocol
+						access      = lookup(var.egress_rules[rule], "access", "Allow")
+						cidr        = lookup(lookup(network, "egress_cidr", {}), rule, ["0.0.0.0/0"])
+						direction   = "Outbound"
+						protocol    = lookup(var.egress_rules[rule], "protocol", "Tcp")
+						source_port_range        = lookup(var.egress_rules[rule], "source_port_range", "*")
+						destination_port_range   = lookup(var.egress_rules[rule], "destination_port_range", "*")
+						priority    = var.ingress_rules[rule].priority
+					}
+				]
+			])
 		}
 	}
 
