@@ -16,6 +16,7 @@ locals {
 
   cloud_init_templates = {
     "debian-10-genericcloud-amd64.qcow2"     = "cloudinit_debian.cfg.tpl"
+    "debian-11-genericcloud-amd64.qcow2"     = "cloudinit_debian.cfg.tpl"
     "ubuntu-20.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
   }
 
