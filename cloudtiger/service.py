@@ -5,6 +5,7 @@ import shutil
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action, j2
+from cloudtiger.data import services_resources_mapping
 
 
 def prepare(operation: Operation, service):
@@ -69,9 +70,32 @@ def tf_service_generic(operation, tf_action, service):
     if tf_action not in ["output", "list", "import"]:
         command = format("terraform %s" % tf_action)
 
+        # if tf action is init, we need to set the environment variables for reaching the backend if
+        # backend is used
+        if (tf_action == "init") & (operation.scope_config_dict.get("use_tf_backend_for_service", False)):
+            command += format(' -backend-config="conn_str=postgres://%s:%s@%s/%s"' %
+                              (
+                                  os.environ['CLOUDTIGER_BACKEND_USERNAME'],
+                                  os.environ['CLOUDTIGER_BACKEND_PASSWORD'],
+                                  os.environ['CLOUDTIGER_BACKEND_ADDRESS'],
+                                  os.environ['CLOUDTIGER_BACKEND_DB']
+                              ))
+            command += format(' -backend-config="schema_name=%s/%s"' % (operation.scope, service))
+
         bash_action(operation.logger, command, service_folder, os.environ, operation.stdout_file)
 
     if tf_action in ["apply", "refresh", "output", "plan"]:
         os.makedirs(os.path.join(operation.scope_folder, service), exist_ok=True)
         command = "terraform output -json"
         bash_action(operation.logger, command, service_folder, os.environ, terraform_service_output)
+
+    if tf_action == "import":
+        # creating the list of import commands for all resources
+        list_import_data = [(service, resource_elt, tf_prefix, terraform_resource) for resource_type, resource_elts in operation.scope_config_dict[service].items() for (tf_prefix, terraform_resource) in services_resources_mapping[service][resource_type] for resource_elt in resource_elts.keys()]
+        list_import_command = [f"terraform import module.{service}.{terraform_resource}[\\\"{resource_name}\\\"] {tf_prefix}{resource_name}" for service, resource_name, tf_prefix, terraform_resource in list_import_data]
+        
+        operation.logger.info(f"List of imports : {list_import_command}")
+
+        # importing vms
+        for command in list_import_command:
+            bash_action(operation.logger, command, service_folder, os.environ, operation.stdout_file)

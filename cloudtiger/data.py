@@ -235,7 +235,8 @@ allowed_actions = {
         "refresh": "refresh",
         "R": "refresh",
         "destroy": "destroy",
-        "D": "destroy"
+        "D": "destroy",
+        "import": "import"
     },
     "admin": {
         "gather": "gather"
@@ -270,4 +271,22 @@ common_environment_tags = {
     "admin": "admin",
     "sandbox": "sandbox",
     "sdbx": "sandbox"
+}
+
+services_resources_mapping = {
+    "nexus": {
+        "repositories": [
+            ("", "nexus_repository.repositories"),
+            ("blob-store-", "nexus_blobstore_file.blobstore")
+        ],
+        "privileges": [
+            ("", "nexus_privilege.privileges")
+        ],
+        "roles": [
+            ("", "nexus_role.roles"),
+        ],
+        "users": [
+            ("", "nexus_security_user.users"),
+        ],
+    }
 }
