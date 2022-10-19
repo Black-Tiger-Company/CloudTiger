@@ -348,6 +348,8 @@ def service(context, name, step):
 ...
 ```
 
+- you can also add a template for declaring a secret in the "gitops" template `cloudtiger/libraries/internal/gitops/secrets`
+
 ## Important technical points
 
 ### Terminology digression
