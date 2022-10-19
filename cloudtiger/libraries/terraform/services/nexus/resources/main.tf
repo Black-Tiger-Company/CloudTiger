@@ -2,7 +2,7 @@ terraform {
   required_providers {
     nexus = {
       source  = "datadrivers/nexus"
-      version = "1.12.0"
+      version = "1.21.0"
     }
   }
 }
@@ -39,6 +39,11 @@ resource "nexus_role" "roles" {
 # Nexus users
 resource "nexus_security_user" "users" {
   for_each  = var.nexus_config.users
+
+  lifecycle {
+    ignore_changes = [password]
+  }
+
   userid    = each.key
   firstname = each.value.firstname
   lastname  = each.value.lastname
@@ -63,11 +68,23 @@ locals {
     if v["type"] != "proxy"
   }
 }
+# # Blob store for repositories by format
+# resource "nexus_blobstore" "blobstore" {
+#   for_each = local.filtered_repositories
+#   name     = format("blob-store-%s", each.key)
+#   type     = "File"
+#   path     = format("%s/blob-store-%s", lookup(each.value, "path", "/data"), each.key)
+
+#   soft_quota {
+#     limit = 100000000
+#     type  = "spaceRemainingQuota"
+#   }
+# }
+
 # Blob store for repositories by format
-resource "nexus_blobstore" "blobstore" {
+resource "nexus_blobstore_file" "blobstore" {
   for_each = local.filtered_repositories
   name     = format("blob-store-%s", each.key)
-  type     = "File"
   path     = format("%s/blob-store-%s", lookup(each.value, "path", "/data"), each.key)
 
   soft_quota {
@@ -87,7 +104,7 @@ resource "nexus_repository" "repositories" {
     ignore_changes = [storage[0].write_policy]
   }
 
-  depends_on = ["nexus_blobstore.blobstore"]
+  depends_on = ["nexus_blobstore_file.blobstore"]
 
   storage {
     blob_store_name                = format("blob-store-%s", each.key)
