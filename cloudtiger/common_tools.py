@@ -182,7 +182,7 @@ def bash_action(logger: Logger,
         logger.debug("Standard output sent to %s" % output)
         if single_output is False:
             stdout = open(output, "a")
-        else: 
+        else:
             logger.debug("Single output")
             stdout = open(output, "w")
 

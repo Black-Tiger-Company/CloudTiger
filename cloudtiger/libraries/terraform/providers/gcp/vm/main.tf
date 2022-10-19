@@ -190,7 +190,7 @@ resource "google_compute_attached_disk" "default" {
   # count = (var.vm.data_volume.size > 0 ? 1 : 0)
   for_each = local.non_empty_data_volumes
 
-  disk     = each.value.id
+  disk     = google_compute_disk.vm_data_volume[each.key].id
   instance = google_compute_instance.virtual_machine.id
 }
 
