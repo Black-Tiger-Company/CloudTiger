@@ -1,5 +1,7 @@
 """Ansible operations for CloudTiger."""
 import os
+import string
+import sys
 import shutil
 import getpass
 import base64
@@ -48,9 +50,10 @@ def infer_group_env(vm_name: str, subnet_name: str) -> Tuple[str, str, str]:
             env = content
             break
 
+    elts2 = vm_name.split(".")[-1].split("-")[-1]
     owner = "internal"
-    if len(elts) > 1:
-        owner = elts[-1]
+    if elts2 != "":
+        owner = elts2
 
     return group, env, owner
 
@@ -332,6 +335,7 @@ def group_hosts(operation: Operation) -> dict:
 
         all_owners = list(set(
             {vm["owner"] for vm in operation.scope_config_dict["vm_ssh_params"].values()}))
+        print(all_owners)
 
         owner_children = {
             owner: {
@@ -431,6 +435,9 @@ def install_ansible_dependencies(operation: Operation):
     ansible_dest_requirement = os.path.join(
         operation.project_root, "ansible", "requirements.yml"
     )
+    ansible_role_list = os.path.join(
+        operation.project_root, "ansible", "roles.txt"
+    )
     os.makedirs(ansible_folder, exist_ok=True)
 
     ansible_requirement_content = load_yaml(operation.logger, ansible_generic_requirement)
@@ -442,12 +449,39 @@ def install_ansible_dependencies(operation: Operation):
     with open(ansible_dest_requirement, "w") as f:
         yaml.dump(ansible_requirement_content, f)
 
-    command = "ansible-galaxy install -r ansible/requirements.yml"
-
-    if operation.ansible_force_install:
-        command += " --force"
-
+    # dump the list of ansible roles with their version
+    command = "ansible-galaxy role list"
+    if os.path.exists(ansible_role_list):
+        os.remove(ansible_role_list)
     bash_action(operation.logger, command, operation.project_root,
+                os.environ, ansible_role_list)
+
+    installed_ansible_roles = dict()
+
+    try :
+        with open(ansible_role_list, "r") as f:
+            ansible_roles = f.read().split('\n')
+            ansible_roles = [x for x in ansible_roles if len(x) > 1 ]
+            ansible_roles = [x[2:].split(',') for x in ansible_roles if x[:2] == "- "]
+            ansible_roles = [(x[0], x[1].strip()) for x in ansible_roles]
+            installed_ansible_roles = dict(ansible_roles)
+    except Exception as exc:
+        operation.logger.error(F"Error raised when trying to read the list of Ansible roles : {exc}")
+        sys.exit()
+
+    role_update_list = []
+    for required_role in ansible_requirement_content['roles']:
+        if isinstance(required_role, dict):
+            if 'name' not in required_role.keys():
+                raise Exception("Role name not specified in Ansible requirements file")
+            required_role_name = required_role['name']
+            if required_role.get('version', 'latest') != installed_ansible_roles.get(required_role_name, "unknown"):
+                role_update_list.append(required_role_name)
+
+    role_update_commands = [f"ansible-galaxy install -r ansible/requirements.yml {role_name} --force --ignore-errors" for role_name in role_update_list]
+
+    for role_update_command in role_update_commands:
+        bash_action(operation.logger, role_update_command, operation.project_root,
                 os.environ, operation.stdout_file)
 
 
