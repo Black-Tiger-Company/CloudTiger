@@ -26,6 +26,10 @@ test_scopes = [
     # os.path.join("nutanix", "single_scope")
 ]
 
+test_scopes_service_fortigate = [
+    os.path.join("fortigate")
+]
+
 @pytest.fixture(params=['-h', '--help'])
 def cli_main_helper(request):
     """Pytest fixture return both helper options."""
@@ -100,7 +104,7 @@ def test_cli_test_scenarii(cli_runner, scenario_commands, scenario_name):
         else :
             root_folder = os.path.join(os.getcwd(), root_folder)
 
-        for scope in test_scopes:
+        for scope in test_scopes_service_fortigate:
             results[key_root_folder][scope] = ""
             for command in scenario_commands:
                 # output = run_test_command(root_folder, scope, command, scenario_name)
