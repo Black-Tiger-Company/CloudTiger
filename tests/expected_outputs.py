@@ -4,7 +4,7 @@ This file stores the expected outputs for CLI tests
 
 expected_outputs = {
     "init_0" : {
-        "aws/single_scope" : 'Starting Cloud Tiger\nStarting Cloud Tiger action on simple scope config/aws/single_scope\ninit action on scope aws/single_scope\nThe private SSH key ./secrets/ssh/id_rsa does exist, going forward\nFinished init action sucessfully\n'
+        "aws/single_scope" : 'Starting Cloud Tiger\nStarting Cloud Tiger action on simple scope config/aws/single_scope\ninit action on scope aws/single_scope\nThe private SSH key PROJECT_ROOT/secrets/ssh/id_rsa does exist, going forward\nFinished init action sucessfully\n'
     },
     "init_1" : {
         "aws/single_scope" : 'Starting Cloud Tiger\nStarting Cloud Tiger action on simple scope config/aws/single_scope\ninit action on scope aws/single_scope\nFinished init action sucessfully\n'

@@ -20,9 +20,9 @@ root_folders = [
     ]
 
 test_scopes = [
-    os.path.join("aws", "single_scope"),
-    os.path.join("vsphere", "single_scope"),
-    os.path.join("nutanix", "single_scope")
+    os.path.join("aws", "single_scope")#,
+    # os.path.join("vsphere", "single_scope"),
+    # os.path.join("nutanix", "single_scope")
 ]
 
 @pytest.fixture(params=['-h', '--help'])
@@ -56,6 +56,14 @@ def create_gitops_folder(root_folder):
         shutil.copytree(gitops_test_folder, root_folder, dirs_exist_ok=True)
     except :
         print("Error in the test gitops folder creation")
+
+    test_env_file = os.path.join(root_folder, ".env")
+    test_env_file_content = f"""export CLOUDTIGER_PRIVATE_SSH_KEY_PATH={root_folder}/secrets/ssh/id_rsa
+export CLOUDTIGER_SSH_USERNAME=...
+export CLOUDTIGER_SSH_PASSWORD=..."""
+
+    with open(test_env_file, "w") as f:
+        f.write(test_env_file_content)
 
 def delete_gitops_folder(root_folder):
     """Fixture that delete test gitops folders."""
@@ -109,7 +117,6 @@ def test_cli_test_scenarii(cli_runner, scenario_commands, scenario_name):
         delete_gitops_folder(root_folder)
 
         multiple_roots_expected_outputs[key_root_folder] = {}
-        multiple_roots_expected_outputs[key_root_folder][scope] = expected_outputs
-        [scenario_name][scope].replace('PROJECT_ROOT', root_folder)
+        multiple_roots_expected_outputs[key_root_folder][scope] = expected_outputs[scenario_name][scope].replace('PROJECT_ROOT', root_folder)
 
     assert results == multiple_roots_expected_outputs

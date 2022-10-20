@@ -140,6 +140,7 @@ def set_ssh_keys(operation: Operation):
             sys.exit("The environment variable CLOUDTIGER_PRIVATE_SSH_KEY_PATH is not set, exiting")
         private_ssh_key_path = os.environ.get("CLOUDTIGER_PRIVATE_SSH_KEY_PATH")
         private_ssh_key_path = os.path.expanduser(private_ssh_key_path)
+        private_ssh_key_path = private_ssh_key_path.replace(" ", "\ ")
 
         if not os.path.exists(private_ssh_key_path):
             sys.exit("The provided private SSH key does not exist in this path, exiting")
