@@ -52,13 +52,19 @@ def create_gitops_folder(root_folder):
     else :
         root_folder = os.path.join(os.getcwd(), root_folder)
 
-    shutil.copytree(gitops_test_folder, root_folder, dirs_exist_ok=True)
+    try :
+        shutil.copytree(gitops_test_folder, root_folder, dirs_exist_ok=True)
+    except :
+        print("Error in the test gitops folder creation")
 
 def delete_gitops_folder(root_folder):
     """Fixture that delete test gitops folders."""
 
     if os.path.isdir(root_folder):
-        shutil.rmtree(root_folder)
+        try :
+            shutil.rmtree(root_folder)
+        except :
+            print("Failed to delete the test gitops folder creation")
 
 @pytest.mark.parametrize("scenario_commands,scenario_name", [
     (["init 0"], "init_0"),
@@ -91,7 +97,7 @@ def test_cli_test_scenarii(cli_runner, scenario_commands, scenario_name):
                 # output = run_test_command(root_folder, scope, command, scenario_name)
                 ws_root_folder = root_folder.replace(' ', "WHITESPACE")
                 command = (f"--project-root {ws_root_folder} --output-file "
-                           f"cloudtiger_std.log --error-file cloudtiger_stderr.log"
+                           f"cloudtiger_std.log --error-file cloudtiger_stderr.log "
                            f"{scope} {command}")
                 command = command.split()
                 command = [elt.replace("WHITESPACE", " ") for elt in command]
