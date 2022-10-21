@@ -6,9 +6,24 @@ FORTI_PARAMS_ARRAY = {
     'firewall policy': ['srcaddr', 'dstaddr', 'srcintf', 'dstintf', 'service'],
     'firewall service group': ['member']
 }
-class FortiNetworking():
 
-    def get_BT_format(self, resource_name, resource):
+class FortiNetworking():
+    """
+    A class to extract data from a Fortinet configuration.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    get_cloudtiger_format(self, resource_name, resource)
+        extract data at CloudTiger format
+    clean_data(key, data, array_params = [])
+        reformat data if needed
+    """
+
+    def get_cloudtiger_format(self, resource_name, resource):
         resourceBTFormat = {}
         if resource_name in [
                             'firewall addrgrp',
@@ -56,7 +71,3 @@ def clean_data(key, data, array_params = []):
             return None
     except Exception as e:
         print('Error in clean_data')
-
-        
-
- 
