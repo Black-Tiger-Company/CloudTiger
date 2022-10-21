@@ -1,8 +1,15 @@
 ---
 - hosts: "{{ hosts }}"
-
+  gather_facts: yes
+  become: yes
+  become_method: sudo
   tasks:
     - name: update hostname to IP address
       shell: hostnamectl set-hostname {{ inventory_hostname }}
-      become: yes
-      become_method: sudo
+    - name: make sure the hostname change is permanent
+      replace:
+        path: '/etc/cloud/cloud.cfg'
+        regexp: 'preserve_hostname: false'
+        replace: 'preserve_hostname: true'
+      ignores_errors: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
