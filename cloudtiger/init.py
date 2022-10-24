@@ -12,7 +12,7 @@ import yaml
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, read_user_choice, get_credentials
-from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper
+from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, blacktiger_name_mapping
 
 def config(operation: Operation):
 
@@ -317,6 +317,19 @@ def prepare_scope_folder(operation: Operation):
     operation.logger.info("Successfully created and set scope folder")
 
 
+def prepare_vm_name(vm: dict, subfolder_values: dict, platform_parent_folder: str, style="blacktiger"):
+    """ this function generates the VM name in the config.yml file from the data in 
+    the meta_config.yml file """
+
+    vm_name = ""
+    scope = os.path.basename(platform_parent_folder)
+    if style == "blacktiger" :
+        vm_name = vm.get("vm_prefix", subfolder_values["vm_prefix"]) + blacktiger_name_mapping.get(scope, scope + "-") + vm.get("name", vm["type"]) + vm.get("suffix", "") + str(vm.get("indice", "")) + "-" + subfolder_values["client_name"]
+    else:
+        vm_name = vm.get("vm_prefix", subfolder_values["vm_prefix"]) + scope + vm["type"] + vm.get("suffix", "") + vm.get("indice", "") + "." + subfolder_values["client_name"]
+
+    return vm_name
+
 def prepare_platform_action(
         operation: Operation,
         platform: dict,
@@ -372,9 +385,7 @@ def prepare_platform_action(
         "vm": {
             subfolder_network_name: {
                 subfolder_subnet_name: {
-                    vm.get("vm_prefix", subfolder_values["vm_prefix"]) + environment
-                    + vm["type"] + vm.get("suffix", "") + vm.get("indice", "") + "."
-                    + subfolder_values["client_name"]: {
+                    prepare_vm_name(vm, subfolder_values, platform_parent_folder, style="blacktiger"): {
                         "availability_zone": vm.get("availability_zone",
                                                     subfolder_subnet["availability_zone"]),
                         "data_volume_size": vm.get("data_volume_size", 
@@ -393,6 +404,7 @@ def prepare_platform_action(
                             [operation.vm_type_provider][vm["type"]][subfolder_values["vm_class"]]\
                                 .get("system_image", subfolder_values["default_os_images"]\
                                     [operation.vm_type_provider])),
+                        "extra_parameters" : vm.get("extra_parameters", {}),
                         "size": {
                             "memory": vm.get("memory", operation.standard_config["vm_types"]\
                                 [operation.vm_type_provider][vm["type"]]\

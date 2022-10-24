@@ -290,3 +290,9 @@ services_resources_mapping = {
         ],
     }
 }
+
+blacktiger_name_mapping = {
+    "preprod": "pp-",
+    "prod" : "",
+    "service": ""
+}
