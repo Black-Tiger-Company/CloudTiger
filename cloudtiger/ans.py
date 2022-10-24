@@ -702,6 +702,11 @@ def meta_distribute(operation: Operation):
             if subconfig_scope not in meta_defined_scopes:
                 meta_config['ansible'][subconfig_scope] = {}
 
+    # load common ansible tasks
+    common_content = {}
+    if 'common' in meta_config['ansible'].keys():
+        common_content = meta_config['ansible']['common'].pop()
+
     for scope, scope_content in meta_config['ansible'].items():
         subconfig_path = os.path.join(operation.scope_config_folder, scope, 'config.yml')
         if os.path.isfile(subconfig_path):
@@ -715,11 +720,13 @@ def meta_distribute(operation: Operation):
                     operation.logger.error("Failed to open file %s with error %s"
                                           % (subconfig_path, e))
             # updating config with ansible data for considered scope
-            subconfig_data['ansible'] = scope_content.get('tasks', {})
+            subconfig_data['ansible'] = common_content.get("tasks", []) + scope_content.get('tasks', [])
 
             # adding ansible_params if necessary
+            if "params" in common_content.keys():
+                subconfig_data['ansible_params'] = common_content["params"]
             if "params" in scope_content.keys():
-                subconfig_data['ansible_params'] = scope_content["params"]
+                subconfig_data['ansible_params'] = subconfig_data.get("ansible_params", {}).update(scope_content["params"])
             with open(subconfig_path, 'w') as f:
                 try:
                     yaml.dump(subconfig_data, f)
