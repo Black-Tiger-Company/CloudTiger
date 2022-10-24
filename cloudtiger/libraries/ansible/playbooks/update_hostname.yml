@@ -12,5 +12,5 @@
         path: '/etc/cloud/cloud.cfg'
         regexp: 'preserve_hostname: false'
         replace: 'preserve_hostname: true'
-      ignores_errors: yes
+      ignore_errors: yes
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
