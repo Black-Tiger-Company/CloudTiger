@@ -293,3 +293,8 @@ services_resources_mapping = {
         ],
     }
 }
+
+environment_name_mapping = {
+    "preprod" : "pp",
+    "prod" : ""
+}

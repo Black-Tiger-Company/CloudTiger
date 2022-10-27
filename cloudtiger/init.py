@@ -12,7 +12,7 @@ import yaml
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, read_user_choice, get_credentials
-from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper
+from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping
 
 def config(operation: Operation):
 
@@ -317,6 +317,39 @@ def prepare_scope_folder(operation: Operation):
     operation.logger.info("Successfully created and set scope folder")
 
 
+def set_vm_name(vm, subfolder_values, platform_parent_folder):
+
+    scope_name = os.path.basename(platform_parent_folder)
+    if scope_name in environment_name_mapping.keys():
+        scope_name = environment_name_mapping[scope_name]
+
+    if scope_name != "" :
+        scope_name = scope_name + "-"
+
+    vm_name = vm.get("vm_prefix", subfolder_values["vm_prefix"]) + scope_name + vm["type"] + vm.get("suffix", "") + str(vm.get("indice", "")) + "-" + subfolder_values["client_name"]
+
+    return vm_name
+
+def get_nb_cpu_per_socket(operation, vm, subfolder_values):
+
+    if "cpu" in vm.keys():
+        nb_cpu = int(vm["cpu"])%4
+        if nb_cpu == 0 :
+            nb_cpu = 4
+        return nb_cpu
+    else:
+        return int(operation.standard_config["vm_types"][operation.vm_type_provider][vm["type"]][subfolder_values["vm_class"]]["nb_vcpu_per_socket"])
+
+def get_nb_sockets(operation, vm, subfolder_values):
+
+    if "cpu" in vm.keys():
+        nb_socket = int(float(vm["cpu"])/4)
+        if nb_socket == 0:
+            nb_socket = 1
+        return nb_socket
+    else:
+        return int(operation.standard_config["vm_types"][operation.vm_type_provider][vm["type"]][subfolder_values["vm_class"]]["nb_sockets"])
+
 def prepare_platform_action(
         operation: Operation,
         platform: dict,
@@ -372,9 +405,7 @@ def prepare_platform_action(
         "vm": {
             subfolder_network_name: {
                 subfolder_subnet_name: {
-                    vm.get("vm_prefix", subfolder_values["vm_prefix"]) + environment
-                    + vm["type"] + vm.get("suffix", "") + vm.get("indice", "") + "."
-                    + subfolder_values["client_name"]: {
+                    set_vm_name(vm, subfolder_values, platform_parent_folder): {
                         "availability_zone": vm.get("availability_zone",
                                                     subfolder_subnet["availability_zone"]),
                         "data_volume_size": vm.get("data_volume_size", 
@@ -397,16 +428,8 @@ def prepare_platform_action(
                             "memory": vm.get("memory", operation.standard_config["vm_types"]\
                                 [operation.vm_type_provider][vm["type"]]\
                                     [subfolder_values["vm_class"]]["memory"]),
-                            "nb_sockets": vm.get("nb_sockets",
-                                                 operation.standard_config["vm_types"]\
-                                [operation.vm_type_provider][vm["type"]]\
-                                    [subfolder_values["vm_class"]]["nb_sockets"]),
-                            "nb_vcpu_per_socket": vm.get("nb_sockets",
-                                                         operation.standard_config["vm_types"]\
-                                                             [operation.vm_type_provider]\
-                                                                 [vm["type"]]\
-                                                                     [subfolder_values["vm_class"]]\
-                                                                     ["nb_vcpu_per_socket"])
+                            "nb_sockets": get_nb_sockets(operation, vm, subfolder_values),
+                            "nb_vcpu_per_socket": get_nb_cpu_per_socket(operation, vm, subfolder_values)
                         }
                     } for vm in subfolder_values.get("vms", [])
                 }
