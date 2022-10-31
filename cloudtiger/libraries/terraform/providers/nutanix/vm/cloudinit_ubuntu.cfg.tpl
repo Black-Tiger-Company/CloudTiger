@@ -28,3 +28,7 @@ write_files:
 
 runcmd:
 - netplan apply
+%{ if vm_type == "sftp" }
+- sudo sed "s/#Port 22/Port ${custom_ssh_port}/g" -i /etc/ssh/sshd_config
+- sudo service ssh restart
+%{ endif }
