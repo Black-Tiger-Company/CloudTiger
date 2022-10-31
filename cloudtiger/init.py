@@ -12,7 +12,7 @@ import yaml
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, read_user_choice, get_credentials
-from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping
+from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping, custom_ssh_port_per_vm_type
 
 def config(operation: Operation):
 
@@ -350,6 +350,15 @@ def get_nb_sockets(operation, vm, subfolder_values):
     else:
         return int(operation.standard_config["vm_types"][operation.vm_type_provider][vm["type"]][subfolder_values["vm_class"]]["nb_sockets"])
 
+def set_custom_ssh_port(extra_parameters, vm_type):
+
+    if "custom_ssh_port" in extra_parameters.keys():
+        return extra_parameters
+
+    if vm_type in custom_ssh_port_per_vm_type.keys():
+        extra_parameters["custom_ssh_port"] = custom_ssh_port_per_vm_type[vm_type]
+        return extra_parameters
+
 def prepare_platform_action(
         operation: Operation,
         platform: dict,
@@ -430,7 +439,8 @@ def prepare_platform_action(
                                     [subfolder_values["vm_class"]]["memory"]),
                             "nb_sockets": get_nb_sockets(operation, vm, subfolder_values),
                             "nb_vcpu_per_socket": get_nb_cpu_per_socket(operation, vm, subfolder_values)
-                        }
+                        },
+                        "extra_parameters" : set_custom_ssh_port(vm.get("extra_parameters", {}), vm["type"])
                     } for vm in subfolder_values.get("vms", [])
                 }
             }

@@ -298,3 +298,7 @@ environment_name_mapping = {
     "preprod" : "pp",
     "prod" : ""
 }
+
+custom_ssh_port_per_vm_type = {
+    "sftp" : "8022"
+}
