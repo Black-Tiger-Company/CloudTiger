@@ -398,6 +398,7 @@ def prepare_platform_action(
         environment += "_"
 
     operation.logger.info("Creating subscope %s" % platform_parent_folder)
+    operation.logger.debug("Choosing %s VMs in IP pool : %s" % (len(subfolder_values.get("vms", [])), subfolder_values["addresses_pool"][addresses_pool_offset:]))
 
     subfolder_network_name = list(subfolder_values["network"].keys())[0]
     subfolder_network = subfolder_values["network"][subfolder_network_name]
@@ -508,9 +509,10 @@ def init_meta_distribute(operation: Operation):
     else:
         if ("addresses_pool_start" in meta_config.keys()) &\
         ("addresses_pool_end" in meta_config.keys()):
+            operation.logger.debug("Addresses range : from %s to %s" % (meta_config["addresses_pool_start"], meta_config["addresses_pool_end"]))
             cidr_block = netaddr.iter_iprange(meta_config["addresses_pool_start"],
                                               meta_config["addresses_pool_end"])
-            addresses_pool = [str(addr) for addr in cidr_block]
+            addresses_pool = list(str(addr) for addr in cidr_block)
         else:
             operation.logger.error("Addresses pool not provided or badly formatted, exiting")
             sys.exit()
