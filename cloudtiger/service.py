@@ -2,10 +2,14 @@
 import json
 import os
 import shutil
+import yaml
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action, j2
 from cloudtiger.data import services_resources_mapping
+from cloudtiger.specific.forti import ConfigParser
+from cloudtiger.specific.parsing import FortiNetworking
+
 
 
 def prepare(operation: Operation, service):
@@ -99,3 +103,48 @@ def tf_service_generic(operation, tf_action, service):
         # importing vms
         for command in list_import_command:
             bash_action(operation.logger, command, service_folder, os.environ, operation.stdout_file)
+
+def convert(operation, service, src):
+    """ This function executes the wrapped Terraform command for the chosen provider
+
+    :param operation: Operation, the current Operation
+    :param service: str, the service invoked
+    :param src: str, path to the file to convert
+    """
+
+    if service == "fortigate":
+        config_parser = ConfigParser()
+        data_json = config_parser.parse_file(os.path.join(src))
+        fortigate_parser = FortiNetworking()
+        result = {}
+        domains = {}
+        data_json = getFortigateDomain(domains, data_json)
+        for vdom_name, vdom in data_json.items():
+            result[vdom_name] = {}
+            # firewall policy
+            for resource_name, resource in  vdom.items():
+                result[vdom_name][resource_name] = fortigate_parser.get_cloudtiger_format(resource_name, resource)
+                if result[vdom_name][resource_name] == {}:
+                    del result[vdom_name][resource_name]
+        f = open(operation.scope_config, "w")
+        yaml.dump(result, f)
+        f.close()
+
+        return
+
+    else :
+        operation.logger.warning("Warning : convert command not implemented yet for this service")
+        return
+
+def getFortigateDomain(domains, data):
+    """ This function extracts the domain from a Fortigate configuration
+
+    :param domains: dict, the dict of domains to extract (starts empty)
+    :param data: dict, the dict of data to parse
+    """
+    for vdom_name, vdom in data.items():
+        if vdom_name == 'vdom':
+            getFortigateDomain(domains, vdom)
+        elif vdom_name != "root": 
+            domains[vdom_name] = vdom
+    return domains

@@ -6,6 +6,7 @@ import shutil
 import getpass
 import base64
 from typing import Tuple
+import ruamel.yaml
 
 import yaml
 from ansible.inventory.manager import InventoryManager
@@ -495,10 +496,20 @@ def install_ansible_playbooks(operation: Operation):
     """
 
     ansible_playbooks = os.path.join(operation.libraries_path, "ansible", "playbooks")
+    local_ansible_playbooks = os.path.join(operation.project_root, "standard", "playbooks")
     target_folder = os.path.join(operation.project_root, "ansible", "playbooks")
     operation.logger.info("Creating Ansible folder from libraries folder : %s" % target_folder)
     os.makedirs(target_folder, exist_ok=True)
     shutil.copytree(ansible_playbooks, target_folder, dirs_exist_ok=True)
+
+    if os.path.isdir(local_ansible_playbooks):
+        local_files = os.listdir(local_ansible_playbooks)
+        for file in local_files:
+            src_playbook = os.path.join(local_ansible_playbooks, file)
+            if os.path.isfile(src_playbook):
+                if file.split('.')[-1] in ["yaml", "yml"]:
+                    dest_playbook = os.path.join(target_folder, file)
+                    shutil.copyfile(src_playbook, dest_playbook)
 
 
 def prepare_ansible(operation: Operation, securize=False):
@@ -667,6 +678,8 @@ def meta_aggregate(operation: Operation):
     with open(meta_config_path, "w") as f:
         yaml.dump(meta_config, f)
 
+def my_represent_none(self, data):
+    return self.represent_scalar(u'tag:yaml.org,2002:null', u'null')
 
 def meta_distribute(operation: Operation):
 
@@ -678,15 +691,24 @@ def meta_distribute(operation: Operation):
     :return: empty return
     """
 
+    # create a ruamel yaml reader/writer to preserve comment in yaml files
+    ru_yaml = ruamel.yaml.YAML()
+    ru_yaml.preserve_quotes = True
+    # ru_yaml.default_flow_style = False
+    ru_yaml.representer.add_representer(type(None), my_represent_none)
+
     # we load the meta_config data
     meta_config_path = os.path.join(operation.scope_config_folder, "meta_config.yml")
     with open(meta_config_path, "r") as f:
-        meta_config = yaml.load(f, Loader=yaml.FullLoader)
+        meta_config = ru_yaml.load(f)
+        # meta_config = yaml.load(f, Loader=yaml.FullLoader)
 
     # ensure the ansible entry is well defined
-    meta_config['ansible'] = meta_config.get('ansible', {})
+    meta_config_ansible = meta_config.get('ansible', {})
 
-    meta_defined_scopes = meta_config.get('ansible', {}).keys()
+    meta_defined_scopes = list(meta_config.get('infra', {}).keys())
+
+    operation.logger.info(f"Adding Ansible entries to list of scopes : {meta_defined_scopes}")
 
     # set empty ansible entries for scopes in the folder tree but without meta_config data
     for (root, _, files) in os.walk(operation.scope_config_folder):
@@ -702,34 +724,39 @@ def meta_distribute(operation: Operation):
             if subconfig_scope not in meta_defined_scopes:
                 meta_config['ansible'][subconfig_scope] = {}
 
-    # load common ansible tasks
-    common_content = {}
-    if 'common' in meta_config['ansible'].keys():
-        common_content = meta_config['ansible']['common'].pop()
+    # add common Ansible tasks to all subscopes
+    common_content = meta_config_ansible.get("common", {})
+    common_params = common_content.get("params", {})
+    meta_config_ansible.pop("common", None)
 
-    for scope, scope_content in meta_config['ansible'].items():
+    for scope in meta_defined_scopes:
+        scope_content = meta_config_ansible.get(scope, {})
         subconfig_path = os.path.join(operation.scope_config_folder, scope, 'config.yml')
         if os.path.isfile(subconfig_path):
-            operation.logger.debug("Updating ansible config for scope %s" % scope)
+            operation.logger.info("Updating ansible config for scope %s" % scope)
             subconfig_data = {}
             # loading pre-existing config
             with open(subconfig_path, 'r') as f:
                 try:
-                    subconfig_data = yaml.load(f, Loader=yaml.FullLoader)
+                    # subconfig_data = yaml.load(f, Loader=yaml.FullLoader)
+                    subconfig_data = ru_yaml.load(f)
                 except Exception as e:
                     operation.logger.error("Failed to open file %s with error %s"
                                           % (subconfig_path, e))
             # updating config with ansible data for considered scope
-            subconfig_data['ansible'] = common_content.get("tasks", []) + scope_content.get('tasks', [])
+            subconfig_data['ansible'] = common_content.get('tasks', [])
+            subconfig_data['ansible'] += scope_content.get('tasks', [])
 
             # adding ansible_params if necessary
-            if "params" in common_content.keys():
-                subconfig_data['ansible_params'] = common_content["params"]
+            environment = os.path.basename(scope)
+            subconfig_data['ansible_params'] = {'environment': environment}
+            subconfig_data['ansible_params'].update(common_params)
             if "params" in scope_content.keys():
-                subconfig_data['ansible_params'] = subconfig_data.get("ansible_params", {}).update(scope_content["params"])
+                subconfig_data['ansible_params'].update(scope_content["params"])
             with open(subconfig_path, 'w') as f:
                 try:
-                    yaml.dump(subconfig_data, f)
+                    # yaml.dump(subconfig_data, f)
+                    ru_yaml.dump(subconfig_data, f)
                 except Exception as e:
                     operation.logger.error("Failed to open file %s with error %s"
                                           % (subconfig_path, e))

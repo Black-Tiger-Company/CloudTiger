@@ -1,0 +1,3 @@
+variable "vpnssl_settings" {
+
+}

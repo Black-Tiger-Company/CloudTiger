@@ -16,7 +16,8 @@ available_infra_services = [
 
 available_api_services = [
     "nexus",
-    "gitlab"
+    "gitlab",
+    "fortigate"
 ]
 
 terraform_vm_resource_name = {
@@ -234,6 +235,8 @@ allowed_actions = {
         "P": "plan",
         "refresh": "refresh",
         "R": "refresh",
+        "convert": "convert",
+        "C": "convert",
         "destroy": "destroy",
         "D": "destroy",
         "import": "import"
@@ -291,8 +294,11 @@ services_resources_mapping = {
     }
 }
 
-blacktiger_name_mapping = {
-    "preprod": "pp-",
-    "prod" : "",
-    "service": ""
+environment_name_mapping = {
+    "preprod" : "pp",
+    "prod" : ""
+}
+
+custom_ssh_port_per_vm_type = {
+    "sftp" : "8022"
 }

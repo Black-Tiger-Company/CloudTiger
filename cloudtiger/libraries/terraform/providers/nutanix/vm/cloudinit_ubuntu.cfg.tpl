@@ -14,7 +14,7 @@ write_files:
         ${interface}:
           dhcp4: no
           addresses:
-          - ${vm_address}/24
+          - ${vm_address}/26
           gateway4: ${vm_gateway}
           nameservers:
             addresses: 

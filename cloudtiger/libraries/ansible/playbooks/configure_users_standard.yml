@@ -11,6 +11,7 @@
     user:
       name: "{{ item.name }}"
       update_password: always
+      # password: "{{ item.password|default(item.name)|password_hash('sha512') }}"
       state: present
       shell: /bin/bash
       createhome: yes
