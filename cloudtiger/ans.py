@@ -125,8 +125,19 @@ def load_ssh_parameters_meta(operation: Operation):
 
     operation.scope_unpacked_ips = unpacked_ips
 
+def set_ssh_port(operation, vm_name, network_name, subnet_name, keep_default_ssh):
 
-def load_ssh_parameters(operation: Operation):
+    if keep_default_ssh:
+        return "22"
+
+    ssh_port = operation.scope_config_dict.get("custom_ssh_parameters", {})\
+        .get("ssh_ports", {})\
+            .get(vm_name, operation.scope_config_dict["vm"][network_name][subnet_name][vm_name]\
+                .get("extra_parameters", {}).get("custom_ssh_port", DEFAULT_SSH_PORT))
+
+    return ssh_port
+
+def load_ssh_parameters(operation: Operation, keep_default_ssh=False):
 
     """ this function modify the operation.scope_config_dict in order
     to load it with necessary parameters to setup the ssh.cfg file
@@ -171,15 +182,7 @@ def load_ssh_parameters(operation: Operation):
                 # - operation.scope_config_dict["vm"][vm_name]
                 # ["extra_parameters"]["custom_ssh_port"]
 
-                operation.scope_config_dict["vm_ssh_params"][vm_name]["ssh_port"] = \
-                    operation.scope_config_dict.get(
-                        "custom_ssh_parameters", {}).get(
-                            "ssh_ports", {}).get(
-                                vm_name,
-                                operation.scope_config_dict\
-                                    ["vm"][network_name][subnet_name][vm_name].get(
-                                        "extra_parameters", {}).get(
-                                            "custom_ssh_port", DEFAULT_SSH_PORT))
+                operation.scope_config_dict["vm_ssh_params"][vm_name]["ssh_port"] = set_ssh_port(operation, vm_name, network_name, subnet_name, keep_default_ssh)
 
                 # we set the standard SSH username
                 # by order of priority, the standard username for a VM should be :
