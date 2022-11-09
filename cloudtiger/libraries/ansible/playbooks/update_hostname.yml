@@ -1,9 +1,16 @@
 ---
 - name: update hostname according to inventory file
   hosts: "{{ hosts }}"
-
+  gather_facts: yes
+  become: yes
+  become_method: sudo
   tasks:
     - name: update hostname to inventory hostname
       shell: hostnamectl set-hostname {{ vm_names[inventory_hostname] | default(inventory_hostname)}}
-      become: yes
-      become_method: sudo
+    - name: make sure the hostname change is permanent
+      replace:
+        path: '/etc/cloud/cloud.cfg'
+        regexp: 'preserve_hostname: false'
+        replace: 'preserve_hostname: true'
+      ignore_errors: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
