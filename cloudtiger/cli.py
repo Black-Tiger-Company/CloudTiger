@@ -235,6 +235,10 @@ from declared resources and reimporting them
 @click.option('--port', '-P',
               default='22',
               help="set a different port for SSH connexion than the default one (22)")
+@click.option('--default-ssh-port', '-dsp',
+              is_flag=True,
+              default=False,
+              help="keep default SSH port (22) for current operation")
 @click.option('--no-check', '-n',
               is_flag=True,
               default=False,
@@ -245,7 +249,7 @@ from declared resources and reimporting them
               help="use password for SSH connexion (default False)")
 @click.pass_context
 def ans(context, action, consolidated, default_user, restricted_vms,
-        ansible_force_install, port, no_check, ssh_password):
+        ansible_force_install, port, default_ssh_port, no_check, ssh_password):
     """ Ansible actions
 \n- securize (Z)         : set defined users, deactivate default user
 \n- playbooks (P)        : install Ansible playbooks catalog
@@ -287,7 +291,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
             if allowed_actions["ans"][action] != "meta_distribute":
                 operation.set_terraform_output_info()
                 if not operation.consolidated:
-                    load_ssh_parameters(operation)
+                    load_ssh_parameters(operation, keep_default_ssh=default_ssh_port)
                 else:
                     load_ssh_parameters_meta(operation)
 
