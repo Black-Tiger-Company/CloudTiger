@@ -1,0 +1,12 @@
+---
+- name: edit /etc/hosts file to add all hosts from current scope
+  hosts: "{{ hosts }}"
+
+  tasks:
+  - name: add extra hosts
+    lineinfile:
+      search_string: "{{ hostvars[item]['ansible_facts']['default_ipv4']['address'] }}"
+      line: "{{ hostvars[item]['ansible_facts']['default_ipv4']['address'] }} {{ hostvars[item]['ansible_hostname'] }}{{ suffix }}"
+      path: "/etc/hosts"
+    with_items: "{{ groups['all'] }}"
+    become: True

@@ -1,0 +1,19 @@
+---
+- name: change username
+  hosts: "{{ hosts }}"
+
+  vars:
+    users: "{{ users }}"
+
+  tasks:
+  - name: change username
+    shell: usermod -l {{ item.new }} {{ item.old }}
+    become: true
+    become_method: sudo
+    with_items: "{{ users }}"
+
+  - name: change user home folder
+    shell: usermod -d /home/{{ item.new }} {{ item.new }}
+    become: true
+    become_method: sudo
+    with_items: "{{ users }}"
