@@ -11,7 +11,7 @@ import netaddr
 import yaml
 
 from cloudtiger.cloudtiger import Operation
-from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, read_user_choice, get_credentials
+from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, merge_dictionaries, read_user_choice, get_credentials
 from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping, custom_ssh_port_per_vm_type
 
 def config(operation: Operation):
@@ -174,6 +174,7 @@ def configure_ip(operation: Operation):
 
     # we 'fping' the subnets to find available IPs
     available_ips = {}
+    all_available_ips = []
     for network_name, network_subnets in subnets_to_crawl.items():
         available_ips[network_name] = {}
         for subnet_name in network_subnets:
@@ -194,7 +195,9 @@ def configure_ip(operation: Operation):
             # in order to avoid broadcast IPs
             all_available_ips.reverse()
 
-            # in order to avoid gateway IP
+            # in order to avoid gateway IP and other technical IPs
+            all_available_ips.pop()
+            all_available_ips.pop()
             all_available_ips.pop()
 
             # we get the list of forbidden IPs
@@ -212,6 +215,8 @@ def configure_ip(operation: Operation):
             available_ips[network_name][subnet_name] = [
                 ip for ip in all_available_ips if ip not in forbiddend_addresses_pool
                 ]
+
+    operation.logger.debug("The list of available addresses:\n%s" % all_available_ips)
 
     # we load the IPs already set for the current scope
     operation.set_terraform_output_info()
@@ -326,6 +331,10 @@ def set_vm_name(vm, subfolder_values, platform_parent_folder):
     if scope_name != "" :
         scope_name = scope_name + "-"
 
+    if "name" in vm.keys():
+        vm_name = vm.get("vm_prefix", subfolder_values["vm_prefix"]) + scope_name + vm["name"] + vm.get("suffix", "") + str(vm.get("indice", "")) + "-" + subfolder_values["client_name"]
+        return vm_name
+
     vm_name = vm.get("vm_prefix", subfolder_values["vm_prefix"]) + scope_name + vm["type"] + vm.get("suffix", "") + str(vm.get("indice", "")) + "-" + subfolder_values["client_name"]
 
     return vm_name
@@ -359,12 +368,60 @@ def set_custom_ssh_port(extra_parameters, vm_type):
         extra_parameters["custom_ssh_port"] = custom_ssh_port_per_vm_type[vm_type]
         return extra_parameters
 
+def set_vm(operation, vm, subfolder_subnet, subfolder_values, config_ip, subfolder_network_name, subfolder_subnet_name, platform_common_values, platform_parent_folder):
+
+    private_ip = "0.0.0.0"
+    if subfolder_network_name in config_ip.keys():
+        if subfolder_subnet_name in config_ip[subfolder_network_name].keys():
+            vm_name = set_vm_name(vm, subfolder_values, platform_parent_folder)
+            if vm_name in config_ip[subfolder_network_name][subfolder_subnet_name]["addresses"]:
+                private_ip = config_ip[subfolder_network_name][subfolder_subnet_name]["addresses"][vm_name]
+                # if private_ip in platform_common_values["addresses_pool"]:
+                #     platform_common_values["addresses_pool"].remove(private_ip)
+
+    if private_ip == "0.0.0.0" :
+        private_ip = subfolder_values["addresses_pool"][0]
+        subfolder_values["addresses_pool"] = subfolder_values["addresses_pool"][1:]
+
+    config_vm = {
+        "availability_zone": vm.get("availability_zone",
+                                    subfolder_subnet["availability_zone"]),
+        "data_volume_size": vm.get("data_volume_size", 
+                                    operation.standard_config["vm_types"]\
+                                        [operation.vm_type_provider]\
+                                            [vm["type"]]\
+                                                [subfolder_values["vm_class"]]\
+                                                    ["data_volume_size"]),
+        "group": vm["type"],
+        "private_ip": private_ip,
+        "root_volume_size": subfolder_values["root_volume_size"]\
+            .get(subfolder_values["provider"], 32),
+        "system_image": vm.get("system_image",
+                                operation.standard_config["vm_types"]\
+            [operation.vm_type_provider][vm["type"]][subfolder_values["vm_class"]]\
+                .get("system_image", subfolder_values["default_os_images"]\
+                    [operation.vm_type_provider])),
+        "size": {
+            "memory": vm.get("memory", operation.standard_config["vm_types"]\
+                [operation.vm_type_provider][vm["type"]]\
+                    [subfolder_values["vm_class"]]["memory"]),
+            "nb_sockets": get_nb_sockets(operation, vm, subfolder_values),
+            "nb_vcpu_per_socket": get_nb_cpu_per_socket(operation, vm, subfolder_values)
+        },
+        "extra_parameters" : set_custom_ssh_port(vm.get("extra_parameters", {}), vm["type"])
+    }
+
+    if config_vm["extra_parameters"] is None:
+        config_vm.pop("extra_parameters")
+
+    return config_vm
+
 def prepare_platform_action(
         operation: Operation,
         platform: dict,
         platform_parent_folder: str,
         platform_common_values: dict,
-        addresses_pool_offset: int
+        all_config_ips: dict
         ):
 
     """ this function executes the action needed by a level of a platform description
@@ -373,7 +430,6 @@ def prepare_platform_action(
     :param platform: dict, the dictionary of parameters for the current scope and subscopes
     :param platform_parent_folder: str, the parent folder of the current scope
     :param platform_common_values: dict, the dictionary of parameters shared by all subscopes
-    :param addresses_pool_offset: int, the offset in the list of available IPs
     (below the offset = used IPs)
     """
 
@@ -382,9 +438,6 @@ def prepare_platform_action(
     # addresses from the pool
 
     os.makedirs(platform_parent_folder, exist_ok=True)
-
-    # we set the offset in the addresses pool
-    platform_common_values["addresses_pool_offset"] = addresses_pool_offset
 
     # we prepare a config.yaml from jinja template
     subfolder_values = dict(platform_common_values, **platform)
@@ -398,7 +451,7 @@ def prepare_platform_action(
         environment += "_"
 
     operation.logger.info("Creating subscope %s" % platform_parent_folder)
-    operation.logger.debug("Choosing %s VMs in IP pool : %s" % (len(subfolder_values.get("vms", [])), subfolder_values["addresses_pool"][addresses_pool_offset:]))
+    operation.logger.debug("Choosing %s VMs in IP pool : %s" % (len(subfolder_values.get("vms", [])), subfolder_values["addresses_pool"]))
 
     subfolder_network_name = list(subfolder_values["network"].keys())[0]
     subfolder_network = subfolder_values["network"][subfolder_network_name]
@@ -415,39 +468,12 @@ def prepare_platform_action(
         "vm": {
             subfolder_network_name: {
                 subfolder_subnet_name: {
-                    set_vm_name(vm, subfolder_values, platform_parent_folder): {
-                        "availability_zone": vm.get("availability_zone",
-                                                    subfolder_subnet["availability_zone"]),
-                        "data_volume_size": vm.get("data_volume_size", 
-                                                   operation.standard_config["vm_types"]\
-                                                       [operation.vm_type_provider]\
-                                                           [vm["type"]]\
-                                                               [subfolder_values["vm_class"]]\
-                                                                   ["data_volume_size"]),
-                        "group": vm["type"],
-                        "private_ip": subfolder_values["addresses_pool"]\
-                            [addresses_pool_offset + subfolder_values.get("vms", []).index(vm)],
-                        "root_volume_size": subfolder_values["root_volume_size"]\
-                            .get(subfolder_values["provider"], 32),
-                        "system_image": vm.get("system_image",
-                                               operation.standard_config["vm_types"]\
-                            [operation.vm_type_provider][vm["type"]][subfolder_values["vm_class"]]\
-                                .get("system_image", subfolder_values["default_os_images"]\
-                                    [operation.vm_type_provider])),
-                        "extra_parameters" : vm.get("extra_parameters", {}),
-                        "size": {
-                            "memory": vm.get("memory", operation.standard_config["vm_types"]\
-                                [operation.vm_type_provider][vm["type"]]\
-                                    [subfolder_values["vm_class"]]["memory"]),
-                            "nb_sockets": get_nb_sockets(operation, vm, subfolder_values),
-                            "nb_vcpu_per_socket": get_nb_cpu_per_socket(operation, vm, subfolder_values)
-                        },
-                        "extra_parameters" : set_custom_ssh_port(vm.get("extra_parameters", {}), vm["type"])
-                    } for vm in subfolder_values.get("vms", [])
+                    set_vm_name(vm, subfolder_values, platform_parent_folder) : set_vm(operation, vm, subfolder_subnet, subfolder_values, all_config_ips, subfolder_network_name, subfolder_subnet_name, platform_common_values, platform_parent_folder) for vm in subfolder_values.get("vms", [])
                 }
             }
         }
     }
+
 
     if platform_common_values.get("use_tf_backend", False):
         subconfig["use_tf_backend"] = True
@@ -457,26 +483,46 @@ def prepare_platform_action(
 
     # we update the offset in the addresses pool
     nb_vms_in_subfolder = len(subfolder_values.get("vms", []))
-    addresses_pool_offset += nb_vms_in_subfolder
 
     # we do the same for subscopes
     for key, val in platform.items():
         if key not in ['kubernetes', "spark_cluster", "environments", "vms"]:
             if isinstance(val, dict):
                 new_platform_folder = os.path.join(platform_parent_folder, key)
-                # print(key)
                 if key in ["preprod", "pprod", "prod", "production"]:
                     platform_common_values["environment"] = key
-                    # print(val["environment"])
-                addresses_pool_offset = prepare_platform_action(
+                prepare_platform_action(
                     operation,
                     val,
                     new_platform_folder,
                     platform_common_values,
-                    addresses_pool_offset
+                    all_config_ips
                     )
 
-    return addresses_pool_offset
+    return
+
+def collect_set_ips(platform, platform_parent_folder, all_config_ips):
+
+    """ this function collect all data from all subscopes config_ips.yml """
+
+    for key, val in platform.items():
+        if key not in ['kubernetes', "spark_cluster", "environments", "vms"]:
+            if isinstance(val, dict):
+                new_platform_folder = os.path.join(platform_parent_folder, key)
+                config_ip = {}
+                # if subscope already exists and IP are already sets, we must edit the IP pool
+                config_ip_files = os.path.join(new_platform_folder, "config_ips.yml")
+                if os.path.isfile(config_ip_files):
+                    with open(config_ip_files, "r") as f:
+                        config_ip = yaml.load(f, Loader=yaml.FullLoader)
+                all_config_ips = merge_dictionaries(all_config_ips, config_ip)
+                collect_set_ips(
+                    val,
+                    new_platform_folder,
+                    all_config_ips
+                    )
+
+    return all_config_ips
 
 
 def init_meta_distribute(operation: Operation):
@@ -519,11 +565,17 @@ def init_meta_distribute(operation: Operation):
 
     operation.logger.debug("Working with addresses pool : %s" % addresses_pool)
     meta_config["addresses_pool"] = addresses_pool
-    addresses_pool_offset = 0
+
+    all_config_ips = collect_set_ips(meta_config['infra'], operation.scope_config_folder, {})
+    for network, network_content in all_config_ips.items():
+        for subnetwork, subnetwork_content in network_content.items():
+            for vm, address in subnetwork_content.get("addresses", {}).items():
+                if address in meta_config["addresses_pool"]:
+                    meta_config["addresses_pool"].remove(address)
 
     # we loop through the folders requested by the meta_config to create subscopes
     prepare_platform_action(operation, meta_config['infra'], operation.scope_config_folder,
-                            meta_config, addresses_pool_offset)
+                            meta_config, all_config_ips)
 
 
 def init_meta_aggregate(operation: Operation):
