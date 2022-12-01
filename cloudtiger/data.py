@@ -217,6 +217,7 @@ allowed_actions = {
         "P": "install_ansible_playbooks",
         "run_ansible": "execute_ansible",
         "3": "execute_ansible",
+        "4": "execute_ansible_parallel",
         "Z": "securize",
         "securize": "securize",
         "meta_aggregate": "meta_aggregate",

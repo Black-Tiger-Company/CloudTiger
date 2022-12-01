@@ -558,6 +558,40 @@ def prepare_ansible(operation: Operation, securize=False):
     j2(operation.logger, execute_ansible_template, ansible_config_dict, execute_ansible_output)
 
 
+def execute_ansible_parallel(operation: Operation):
+    """ this function executes Ansible on the Ansible playbooks set in the orchestration collection
+    in the orchestration folder
+    :param operation: Operation, the current Operation
+    :return: empty return
+    """
+
+    # execute Ansible meta playbook
+    ansible_cfg_file = os.path.join(operation.scope_inventory_folder, 'ansible.cfg')
+    ansible_environ = dict(
+        os.environ,
+        **{'ANSIBLE_CONFIG': ansible_cfg_file, 'ANSIBLE_TIMEOUT': "120"}
+    )
+    if operation.ssh_with_password:
+        if "CLOUDTIGER_SSH_PASSWORD" not in ansible_environ.keys():
+            query_string = format(
+                "Enter SSH password for %s :" % ansible_environ.get("CLOUDTIGER_SSH_USERNAME"))
+            cloudtiger_ssh_password = getpass.getpass(query_string)
+            ansible_environ["CLOUDTIGER_SSH_PASSWORD"] = base64.b64encode(
+                bytes(cloudtiger_ssh_password, 'utf-8'))
+        ansible_command_extra = ' --extra-vars "b64_ansible_ssh_pass=$(echo $CLOUDTIGER_SSH_PASSWORD)"'
+
+    orchestration_file = os.path.join(self.project_root, "orchestration", "orchestration.yml")
+    orchestrations = load_yaml(self.logger, orchestration_file)
+
+    for k, v in orchestrations['orchestrations'].items():
+        play_book = v["playbook_name"]
+        ansible_command = 'ansible-playbook -i ./hosts.yml ' + play_book + ' --extra-vars "exec_folder=$(pwd)"'
+        ansible_command = ansible_command + ansible_command_extra
+        print("ansible_command:" + ansible_command)
+        bash_action(operation.logger, ansible_command, operation.scope_inventory_folder, ansible_environ, operation.stdout_file, operation.stderr_file)
+
+
+
 def execute_ansible(operation: Operation):
 
     """ this function executes Ansible on the Ansible meta playbook 'execute_ansible.yml'

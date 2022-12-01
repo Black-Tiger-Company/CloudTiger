@@ -67,7 +67,9 @@ class Operation:
     terraform_output: str
         the absolute path to the 'terraform_output.json' file associated with the current scope
     scope_inventory_folder: str
-        the absolute path to the folder '<PROJECT_ROOT>/scopes/<SCOPE>/inventory
+         the absolute path to the folder '<PROJECT_ROOT>/scopes/<SCOPE>/inventory
+    orchestration_file: str
+         the absolute path to the orchestration file '<PROJECT_ROOT>/orchestration
     scope_terraform_folder: str
         the absolute path to the folder '<PROJECT_ROOT>/scopes/<SCOPE>/terraform'
     standard_config: dict
@@ -277,10 +279,12 @@ class Operation:
         self.terraform_output = os.path.join(
             self.project_root, "scopes", self.scope, "inventory", "terraform_output.json")
         self.scope_inventory_folder = os.path.join(self.scope_folder, "inventory")
+
+        self.orchestration_file = os.path.join(self.project_root, "orchestration", "orchestration.yml")
+
         self.scope_terraform_folder = os.path.join(self.scope_folder, "terraform")
         # self.scope_data_folder = os.path.join(self.scope_folder, "data")
         # self.scope_dedicated_config_folder = os.path.join(self.scope_folder, "config")
-
         # set standard VM spec values
         cloudtiger_standard_file = os.path.join(
             self.libraries_path, "internal", "standard", "vm_standard.yml")

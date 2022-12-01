@@ -21,6 +21,7 @@ from cloudtiger.ans import (
     setup_ssh_connection,
     prepare_ansible,
     execute_ansible,
+    execute_ansible_parallel,
     meta_distribute,
     meta_aggregate
 )
