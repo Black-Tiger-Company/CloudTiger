@@ -571,6 +571,7 @@ def execute_ansible_parallel(operation: Operation):
         os.environ,
         **{'ANSIBLE_CONFIG': ansible_cfg_file, 'ANSIBLE_TIMEOUT': "120"}
     )
+    ansible_command_extra = ''
     if operation.ssh_with_password:
         if "CLOUDTIGER_SSH_PASSWORD" not in ansible_environ.keys():
             query_string = format(
@@ -580,12 +581,19 @@ def execute_ansible_parallel(operation: Operation):
                 bytes(cloudtiger_ssh_password, 'utf-8'))
         ansible_command_extra = ' --extra-vars "b64_ansible_ssh_pass=$(echo $CLOUDTIGER_SSH_PASSWORD)"'
 
-    orchestration_file = os.path.join(self.project_root, "orchestration", "orchestration.yml")
-    orchestrations = load_yaml(self.logger, orchestration_file)
+
+
+    orchestration_file = os.path.join("./", "orchestration", "orchestration.yml")
+    orchestrations = load_yaml(operation.logger, orchestration_file)
 
     for k, v in orchestrations['orchestrations'].items():
-        play_book = v["playbook_name"]
-        ansible_command = 'ansible-playbook -i ./hosts.yml ' + play_book + ' --extra-vars "exec_folder=$(pwd)"'
+        play_book_name = v["playbook_name"]
+        #play_book = os.getcwd() + "/orchestration/playbooks/" + play_book_name
+
+        play_book = os.path.join(operation.scope_inventory_folder, '../orchestration/playbooks/' , play_book_name)
+
+        print('play_book :'+ play_book)
+        ansible_command = 'ansible-playbook -i ./hosts.yml ' + play_book + ' --extra-vars "exec_folder=$(pwd)" &'
         ansible_command = ansible_command + ansible_command_extra
         print("ansible_command:" + ansible_command)
         bash_action(operation.logger, ansible_command, operation.scope_inventory_folder, ansible_environ, operation.stdout_file, operation.stderr_file)
