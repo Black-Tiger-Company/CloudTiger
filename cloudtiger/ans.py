@@ -404,7 +404,11 @@ def create_inventory(operation: Operation):
 
     # set ansible.cfg
     # if we are using the default OS user, we disable host fingerprint checking
-    if operation.default_user or operation.ssh_no_check:
+    if operation.obsolete_ssh:
+        ansible_cfg = os.path.join(
+            operation.libraries_path, "internal", "inventory", "ansible_nocheck.cfg"
+        )
+    elif operation.default_user or operation.ssh_no_check:
         ansible_cfg = os.path.join(
             operation.libraries_path, "internal", "inventory", "ansible_nocheck.cfg"
         )
@@ -587,6 +591,17 @@ def execute_ansible(operation: Operation):
             ansible_environ["CLOUDTIGER_SSH_PASSWORD"] = base64.b64encode(
                 bytes(cloudtiger_ssh_password, 'utf-8'))
         command += ' --extra-vars "b64_ansible_ssh_pass=$(echo $CLOUDTIGER_SSH_PASSWORD)"'
+
+    if operation.encrypted_file is not None:
+        ansible_vault_password_file = os.path.join(operation.project_root, 'secrets', 'ansible-vault', 'ansible-vault-secret.txt')
+        ansible_vault_encrypted_file = os.path.join(operation.project_root, 'secrets', 'ansible-vault', operation.encrypted_file)
+        if not os.path.isfile(ansible_vault_password_file):
+            operation.logger.error("The file %s. Terminating" % ansible_vault_password_file)
+            sys.exit()
+        if not os.path.isfile(ansible_vault_encrypted_file):
+            operation.logger.error("The file %s is not set. Terminating" % ansible_vault_encrypted_file)
+            sys.exit()
+        command += f" --vault-password-file {ansible_vault_password_file} {ansible_vault_encrypted_file}"
 
     bash_action(operation.logger, command, operation.scope_inventory_folder,
                 ansible_environ, operation.stdout_file, operation.stderr_file)
