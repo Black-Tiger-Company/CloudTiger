@@ -212,6 +212,9 @@ class Operation:
         # Meta addresses info
         self.addresses_info = {}
 
+        # Provider secret content
+        self.provider_secret = {}
+
     def scope_setup(self):
 
         """ this function set intermediate internal parameters for the current scope
@@ -321,6 +324,13 @@ class Operation:
             self.project_root, "secrets", self.provider, provider_account + '.env')
         if os.path.exists(provider_secret):
             bash_source(self.logger, provider_secret)
+            with open(provider_secret, 'r') as f:
+                secret_content = f.read().split('\n')
+                secret_content = [x.replace('export ', '').split('=') for x in secret_content]
+                secret_content = {
+                    x[0] : x[1] for x in secret_content
+                }
+            self.provider_secret =  secret_content
 
         else:
             err = format("Cannot read %s file at project root folder: "
@@ -347,7 +357,9 @@ class Operation:
                             restricted_vms=None,
                             ssh_port="22",
                             no_check=False,
-                            ssh_password=False
+                            ssh_password=False,
+                            obsolete_ssh=False,
+                            encrypted_file=None
                             ):
 
         """ this function set specific attributes for ansible connection
@@ -373,6 +385,12 @@ class Operation:
 
         # use password for SSH connection
         self.ssh_with_password = ssh_password
+
+        # allow insecure SSH encryption algorithm for obsolete remote hosts (warning : security issue)
+        self.obsolete_ssh = obsolete_ssh
+
+        # use an encrypted variable file
+        self.encrypted_file = encrypted_file
 
     def set_restricted_vms(self):
 

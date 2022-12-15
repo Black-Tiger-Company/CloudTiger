@@ -541,7 +541,7 @@ def init_meta_distribute(operation: Operation):
             try:
                 meta_config = yaml.load(f, Loader=yaml.FullLoader)
             except Exception as e:
-                operation.logger.error("Failed to open meta_config file % with error %s".format(meta_config_path, e))
+                operation.logger.error("Failed to open meta_config file %s with error %s" % (meta_config_path, e))
 
     # we set the addresses pool
     # cidr_block = ipaddress.summarize_address_range(
