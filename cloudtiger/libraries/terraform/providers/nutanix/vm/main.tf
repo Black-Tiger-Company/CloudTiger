@@ -48,7 +48,9 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       guest_customization_cloud_init_user_data,
       nic_list,
       owner_reference,
-      project_reference
+      project_reference,
+      disk_list
+      # disk_list[1].data_source_reference.uuid
     ]
   }
 
