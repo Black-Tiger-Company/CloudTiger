@@ -1,5 +1,6 @@
 import base64
 import json
+import sys
 
 import requests
 
@@ -28,6 +29,10 @@ def get_vm_nutanix_uuid(operation: Operation, vm_name):
     content = json.loads(r.content)
 
     # operation.logger.info(content)
+
+    if len(content['entities']) == 0 :
+        operation.logger.error("Warning : the VM %s has not been found on the Nutanix cluster" % vm_name)
+        sys.exit()
 
     uuid = content["entities"][0]["metadata"]["uuid"]
 

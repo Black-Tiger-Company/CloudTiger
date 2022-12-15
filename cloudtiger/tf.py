@@ -88,8 +88,8 @@ def tf_generic(operation: Operation, tf_action):
                     res = res.replace('"', '\\"')
                     command = "terraform state rm " + res  # + ' -lock=false'
                     operation.logger.info('Purging VM %s from tfstate' % res)
-                    bash_action(operation.logger, command, operation.scope_terraform_folder,
-                                os.environ, output=operation.stdout_file)
+                    # bash_action(operation.logger, command, operation.scope_terraform_folder,
+                                # os.environ, output=operation.stdout_file)
 
         if os.path.exists(temp_vm_list_file):
             os.remove(temp_vm_list_file)
