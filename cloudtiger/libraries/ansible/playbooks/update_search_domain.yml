@@ -1,0 +1,25 @@
+---
+- name: Update search domain
+  hosts: "{{ hosts }}"
+
+  tasks:
+    - block: # ansible_distribution == 'Ubuntu'
+        - name: Update /etc/netplan/00-installer-config.yaml (only ubuntu)
+          replace:
+            path: /etc/netplan/00-installer-config.yaml
+            regexp: '(?<=search:\n)((.|\n[ ]*-)*)' # ?<= select group 1
+            replace: ""
+          become: True
+
+        - name: Update /etc/netplan/00-installer-config.yaml (only ubuntu)
+          lineinfile:
+            path: /etc/netplan/00-installer-config.yaml
+            insertafter: "search:"
+            line: "            - {{ item }}"
+          become: True
+          loop: "{{ search_domains }}"
+
+        - name: Netplan apply
+          shell: sudo netplan apply
+          
+      when: ansible_distribution == 'Ubuntu'

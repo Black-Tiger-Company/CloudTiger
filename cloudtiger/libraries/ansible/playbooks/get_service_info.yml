@@ -1,0 +1,51 @@
+---
+- name: Get service info (if exists, path, user who launched the service)
+  hosts: "{{ hosts }}"
+  tasks:
+  # - name: get service facts
+  #   service_facts:
+  # - name: try to work out how to access the service
+  #   debug:
+  #     var: ansible_facts.services["{{ service }}.service"]
+
+  # check service path in systemd
+  - name: get service status (systemd)
+    stat: path=/lib/systemd/system/{{item}}.service
+    register: "service_status"
+    loop: "{{ service }}"
+
+  # check if service exists
+  - name: retrieve service status
+    ansible.builtin.set_fact:
+        has_service:  "{{ true in service_status.results|map(attribute='stat')|map(attribute='exists')|list }}"
+  # display if service exists
+  - name: display service launched with systemd
+    debug:
+      msg: "{{ has_service }}"
+    when: has_service
+
+
+  # get process linked to the service
+  - name: check if a process running
+    shell: "ps aux | grep {{ item }} | grep -v 'grep'"
+    register: "process_status"
+    ignore_errors: true
+    failed_when: false
+    no_log: True
+    loop: "{{ service }}"
+
+  # get process stdout
+  - name: retrieve service stdout
+    ansible.builtin.set_fact:
+        list_process:  "{{ process_status.results|map(attribute='stdout')|list|select()}}"
+  # check if process exists
+  - name: retrieve service status
+    ansible.builtin.set_fact:
+        has_process:  "{{ list_process|length > 0 }}"
+ 
+  - name: display process without systemd launch
+    debug:
+      var: list_process
+    when: has_process and not has_service
+
+  #- name: Check if a service ex
