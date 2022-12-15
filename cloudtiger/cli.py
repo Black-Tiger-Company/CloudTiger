@@ -247,9 +247,17 @@ from declared resources and reimporting them
               is_flag=True,
               default=False,
               help="use password for SSH connexion (default False)")
+@click.option('--obsolete-ssh', '-o',
+              is_flag=True,
+              default=False,
+              help="allow insecure SSH encryption algorithm for obsolete remote hosts (warning : security issue)")
+@click.option('--encrypted-file', '-e',
+              default=None,
+              help="name of encrypted file in 'secrets/ansible-vault' to load at execution time")
 @click.pass_context
 def ans(context, action, consolidated, default_user, restricted_vms,
-        ansible_force_install, port, default_ssh_port, no_check, ssh_password):
+        ansible_force_install, port, default_ssh_port, no_check, ssh_password, obsolete_ssh,
+        encrypted_file):
     """ Ansible actions
 \n- securize (Z)         : set defined users, deactivate default user
 \n- playbooks (P)        : install Ansible playbooks catalog
@@ -275,7 +283,9 @@ def ans(context, action, consolidated, default_user, restricted_vms,
             restricted_vms,
             port,
             no_check,
-            ssh_password
+            ssh_password,
+            obsolete_ssh,
+            encrypted_file
         )
 
         operation.logger.info("ansible action %s on scope %s" % (action, operation.scope))
