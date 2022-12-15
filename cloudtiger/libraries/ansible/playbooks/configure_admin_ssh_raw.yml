@@ -1,0 +1,44 @@
+---
+- name: create and configure an administrator SSH account
+  hosts: "{{ hosts }}"
+  gather_facts: False
+
+  vars:
+    users: "{{ users }}"
+
+  tasks:
+  - name: "[USER] - create required users"
+    raw: useradd -G wheel -m -s /bin/bash {{ item.name }} || echo "User already exists."
+    loop: "{{ users }}"
+    # become: yes
+    # become_method: sudo
+
+  - name: "[USER] - create required users"
+    raw: useradd -G sudo -m -s /bin/bash {{ item.name }} || echo "User already exists."
+    loop: "{{ users }}"
+    # become: yes
+    # become_method: sudo
+
+  - name: "[USER] - create ssh keys folder"
+    raw: mkdir -p /home/{{ item.name }}/.ssh
+    loop: "{{ users }}"
+    # become: yes
+    # become_method: sudo
+
+  - name: "[USER] - add ssh public key"
+    raw: echo "{{ item.key }}" > /home/{{ item.name }}/.ssh/authorized_keys
+    loop: "{{ users }}"
+    # become: yes
+    # become_method: sudo
+
+  - name: "[USER] - set ssh key ownership"
+    raw: chown -R {{ item.name }}:{{ item.name }} /home/{{ item.name }}/.ssh
+    loop: "{{ users }}"
+    # become: yes
+    # become_method: sudo
+
+  - name: "[USER] - set password"
+    raw: echo {{ item.password }} | passwd --stdin {{ item.name }}
+    loop: "{{ users }}"
+    # become: yes
+    # become_method: sudo
