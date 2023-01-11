@@ -242,7 +242,8 @@ allowed_actions = {
         "import": "import"
     },
     "admin": {
-        "gather": "gather"
+        "gather": "gather",
+        "dns": "dns"
     }
 }
 

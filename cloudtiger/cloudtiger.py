@@ -90,6 +90,8 @@ class Operation:
     addresses_info: dict
         dictionary storing the content of the 'all_addresses.yml' file (used in combination
         with the 'consolidated' option)
+    domain: str
+        DNS domain for the VMs
 
     Methods
     -------
@@ -214,6 +216,16 @@ class Operation:
 
         # Provider secret content
         self.provider_secret = {}
+
+        # DNS domain
+        self.domain = "internal"
+
+    def set_domain(self, domain: str):
+
+        """ this function set the DNS domain
+        """
+
+        self.domain = domain
 
     def scope_setup(self):
 

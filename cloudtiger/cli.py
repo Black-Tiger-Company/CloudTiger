@@ -29,7 +29,7 @@ from cloudtiger.common_tools import create_logger
 from cloudtiger.data import allowed_actions, available_api_services
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
-from cloudtiger.admin import gather
+from cloudtiger.admin import gather, dns
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -388,8 +388,11 @@ def service(context, name, step, src_path):
 
 @click.command('admin', short_help='admin actions')
 @click.argument('action')
+@click.option('--domain',
+              default='internal',
+              help="domain for DNS check")
 @click.pass_context
-def admin(context, action):
+def admin(context, action, domain):
     """ Admin actions for managing a whole cluster or account :
 \n- gather (G)            : gather all config files from subfolders into a meta folder
     """
@@ -405,6 +408,7 @@ def admin(context, action):
             operation.logger.debug("%s command" %
                                    allowed_actions["admin"][action])
             operation.scope_setup()
+            operation.set_domain(domain)
             globals()[allowed_actions["admin"][action]](operation)
 
         else:

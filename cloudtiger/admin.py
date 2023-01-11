@@ -1,8 +1,15 @@
 """ Admin operations for CloudTiger """
+from audioop import add
+from copy import copy
+from xml.dom.domreg import registered
 import yaml
 import os
-
+import copy
+import dns
+from dns.resolver import Resolver
+from dns.resolver import NXDOMAIN
 from cloudtiger.cloudtiger import Operation
+from cloudtiger.common_tools import bash_action
 
 def gather(operation: Operation):
 
@@ -102,3 +109,66 @@ def gather(operation: Operation):
                             meta_addresses['vm_ips'][network_name]['addresses'][vm_name] = vm_full_address
                             
     operation.dump_meta_info(meta_addresses, meta_networks)
+
+def dns(operation: Operation):
+
+    """ this function check if all VMs listed in the meta folder have a
+    DNS record
+
+    :param operation: Operation, the current Operation
+    """
+
+    operation.logger.info("Loading current meta information")
+    operation.load_meta_info()
+
+    valid_dns = copy.deepcopy(operation.addresses_info)
+    invalid_address = copy.deepcopy(operation.addresses_info)
+    no_address = copy.deepcopy(operation.addresses_info)
+
+    resolver = Resolver()
+
+    for subnet_name, subnet_vms in operation.addresses_info['vm_ips'].items():
+        for vm_name, vm_ip in subnet_vms["addresses"].items():
+            operation.logger.info("Checking VM DNS %s.%s" % (vm_name, operation.domain))
+
+            try:
+                addresses = resolver.query(qname=f"{vm_name}.{operation.domain}", raise_on_no_answer=False).rrset
+            except NXDOMAIN as no_dns_entry:
+                addresses = []
+
+            if len(addresses) == 0:
+                # the VM has no DNS record
+                valid_dns['vm_ips'][subnet_name]["addresses"].pop(vm_name)
+                invalid_address['vm_ips'][subnet_name]["addresses"].pop(vm_name)
+            else:
+                # the VM has at least one DNS record
+                address = addresses[0].to_text().split(' ')[-1]
+                operation.logger.info("Found address %s" % address)
+                if address == vm_ip:
+                    # correct address
+                    invalid_address['vm_ips'][subnet_name]["addresses"].pop(vm_name)
+                    no_address['vm_ips'][subnet_name]["addresses"].pop(vm_name)
+                else:
+                    # different address than registered
+                    valid_dns['vm_ips'][subnet_name]["addresses"].pop(vm_name)
+                    no_address['vm_ips'][subnet_name]["addresses"].pop(vm_name)
+
+        if len(valid_dns['vm_ips'][subnet_name]["addresses"].keys()) == 0:
+            valid_dns['vm_ips'][subnet_name].pop("addresses")
+        if len(invalid_address['vm_ips'][subnet_name]["addresses"].keys()) == 0:
+            invalid_address['vm_ips'][subnet_name].pop("addresses")
+        if len(no_address['vm_ips'][subnet_name]["addresses"].keys()) == 0:
+            no_address['vm_ips'][subnet_name].pop("addresses")
+        # break
+
+    # dumping results
+    valid_dns_file = os.path.join(operation.scope_config_folder, "valid_dns.yml")
+    invalid_address_file = os.path.join(operation.scope_config_folder, "invalid_address.yml")
+    no_address_file = os.path.join(operation.scope_config_folder, "no_address.yml")
+
+    with open(valid_dns_file, "w") as f:
+        yaml.dump(valid_dns, f)
+    with open(invalid_address_file, "w") as f:
+        yaml.dump(invalid_address, f)
+    with open(no_address_file, "w") as f:
+        yaml.dump(no_address, f)
