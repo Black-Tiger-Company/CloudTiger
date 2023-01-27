@@ -50,7 +50,7 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       nic_list,
       owner_reference,
       project_reference,
-      disk_list
+      #disk_list
       # disk_list[1].data_source_reference.uuid
     ]
   }
@@ -108,7 +108,7 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       kind = "image"
       uuid = data.nutanix_image.image.metadata.uuid
     }
-    disk_size_mib = lookup(var.vm.root_volume, "size", var.vm.default_root_volume_size) * 1024
+    disk_size_mib = var.vm.root_volume_size
   }
 
   dynamic "disk_list" {
