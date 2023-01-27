@@ -18,6 +18,7 @@ locals {
     "debian-10-genericcloud-amd64.qcow2"     = "cloudinit_debian.cfg.tpl"
     "debian-11-genericcloud-amd64.qcow2"     = "cloudinit_debian.cfg.tpl"
     "ubuntu-20.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
+    "ubuntu-22.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
   }
 
   subnet_has_managed_ips = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "managed_ips", false)

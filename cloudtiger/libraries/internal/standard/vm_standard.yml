@@ -52,6 +52,9 @@ system_images:
     ubuntu_server:
       name: "ubuntu-20.04-server-cloudimg-amd64.img"
       username: "ubuntu"
+    ubuntu22_server:
+      name: "ubuntu-22.04-server-cloudimg-amd64.img"
+      username: "ubuntu"
     karbon_nutanix:
       name: "ntnx-1.0"
       username: "karbon"
