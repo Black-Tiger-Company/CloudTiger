@@ -57,10 +57,11 @@ resource "nutanix_virtual_machine" "virtual_machine" {
   guest_customization_cloud_init_user_data = (lookup(var.vm.extra_parameters, "cloud_init_set", false) == true) ? null : base64encode(templatefile(format("%s/%s", path.module, local.cloud_init_templates[var.vm.system_image]),
     {
       # vm_address = nutanix_virtual_machine.virtual_machine.nic_list[0].ip_endpoint_list[0].ip
+      vm_name    = var.vm.vm_name
       vm_address = lookup(var.vm, "private_ip", "learned")
       # vm_address = !lookup(var.vm.extra_parameters, "post_assigned", true) ? "vm_address" : var.vm.private_ip
       vm_gateway  = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["gateway_ip_address"]
-      netmask     = cidrnetmask(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["cidr_block"])
+      netmask     = split("/", var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["cidr_block"])[1]
       nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
       search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
       interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
@@ -74,28 +75,34 @@ resource "nutanix_virtual_machine" "virtual_machine" {
   # - if the private IP is provided (!= "not_learned_yet") : we do not use a dynamic nic, the address is set using cloudinit
   # - if the private IP is not provided (== "not_learned_yet") : we use a dynamic nic of type "LEARNED"
 
-  dynamic "nic_list" {
-    for_each = (local.subnet_has_managed_ips) ? [1] : []
-    content {
-      subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
-      ip_endpoint_list {
-        type = "ASSIGNED"
-        ip   = var.vm.private_ip
-      }
-      nic_type = "NORMAL_NIC"
-    }
-  }
+  # dynamic "nic_list" {
+  #   for_each = (local.subnet_has_managed_ips) ? [1] : []
+  #   content {
+  #     subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
+  #     ip_endpoint_list {
+  #       type = "ASSIGNED"
+  #       ip   = var.vm.private_ip
+  #     }
+  #     nic_type = "NORMAL_NIC"
+  #   }
+  # }
 
-  dynamic "nic_list" {
-    for_each = (!(local.subnet_has_managed_ips)) ? [1] : []
-    content {
-      subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
-      ip_endpoint_list {
-        type = "LEARNED"
-        ip   = lookup(var.vm.extra_parameters, "assigned_ip", "192.168.0.0")
-      }
-      nic_type = "NORMAL_NIC"
-    }
+  # dynamic "nic_list" {
+  #   for_each = (!(local.subnet_has_managed_ips)) ? [1] : []
+  #   content {
+  #     subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
+  #     ip_endpoint_list {
+  #       type = "LEARNED"
+  #       ip   = lookup(var.vm.extra_parameters, "assigned_ip", "192.168.0.0")
+  #     }
+  #     nic_type = "NORMAL_NIC"
+  #   }
+  # }
+
+  nic_list {
+    subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
+    # ip_endpoint_list {}
+    nic_type = "NORMAL_NIC"
   }
 
   num_vcpus_per_socket = var.vm.instance_type.nb_vcpu_per_socket
