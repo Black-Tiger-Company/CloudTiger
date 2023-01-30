@@ -8,6 +8,7 @@ import copy
 import dns
 from dns.resolver import Resolver
 from dns.resolver import NXDOMAIN
+from cloudtiger.specific.nutanix import get_vms_list_per_vlan
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action
 
@@ -19,14 +20,11 @@ def gather(operation: Operation):
     :param operation: Operation, the current Operation
     """
 
-    operation.logger.info("Loading current meta information")
-    operation.load_meta_info()
-
     # we loop through the config folder
     operation.logger.info("Collecting all information from configs")
     meta_addresses = operation.addresses_info
     meta_networks = operation.network_info
-    for (root, _, files) in os.walk(operation.scope_config_folder):
+    for (root, _, files) in os.walk(os.path.join(operation.scope_config_folder, "..")):
         
         operation.logger.info(f"Checking folder {root}")
 
@@ -118,16 +116,19 @@ def dns(operation: Operation):
     :param operation: Operation, the current Operation
     """
 
-    operation.logger.info("Loading current meta information")
-    operation.load_meta_info()
+    if operation.meta_scope:
+        scope_addresses_info = operation.addresses_info
+    else:
+        operation.load_ips()
+        scope_addresses_info = operation.scope_config_ips
 
-    valid_dns = copy.deepcopy(operation.addresses_info)
-    invalid_address = copy.deepcopy(operation.addresses_info)
-    no_address = copy.deepcopy(operation.addresses_info)
+    valid_dns = copy.deepcopy(scope_addresses_info)
+    invalid_address = copy.deepcopy(scope_addresses_info)
+    no_address = copy.deepcopy(scope_addresses_info)
 
     resolver = Resolver()
 
-    for subnet_name, subnet_vms in operation.addresses_info['vm_ips'].items():
+    for subnet_name, subnet_vms in scope_addresses_info['vm_ips'].items():
         for vm_name, vm_ip in subnet_vms["addresses"].items():
             operation.logger.info("Checking VM DNS %s.%s" % (vm_name, operation.domain))
 
@@ -172,3 +173,14 @@ def dns(operation: Operation):
         yaml.dump(invalid_address, f)
     with open(no_address_file, "w") as f:
         yaml.dump(no_address, f)
+
+def vms(operation: Operation):
+
+    """ this function list all VMs from virtualizer and compare with 
+    meta folder
+
+    :param operation: Operation, the current Operation
+    """
+
+    if operation.provider == "nutanix":
+        get_vms_list_per_vlan(operation)

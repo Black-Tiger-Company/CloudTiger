@@ -196,6 +196,9 @@ class Operation:
         # meta configuration
         self.scope_meta_config = os.path.join(self.project_root, 'config', self.scope, 'meta_config.yml')
 
+        # scope config IPs
+        self.scope_config_ips = {}
+
         # scope configuration content
         self.scope_config_dict = {}
 
@@ -207,6 +210,9 @@ class Operation:
 
         # Cloud provider
         self.provider = "admin"
+
+        # Is scope a meta scope ?
+        self.meta_scope = False
 
         # Meta network info
         self.network_info = {}
@@ -322,6 +328,10 @@ class Operation:
             ]
 
         self.scope_config_dict["unpacked_vms"] = unpacked_vms
+
+        # check if the scope is a 'meta' scope
+        if 'meta' in self.scope:
+            self.meta_scope = True
 
     def secrets_setup(self):
 
@@ -530,7 +540,7 @@ class Operation:
         scope_ips = os.path.join(self.scope_config_folder, 'config_ips.yml')
         if os.path.exists(scope_ips):
             with open(scope_ips, 'r') as f:
-                config_ip = yaml.load(f, Loader=yaml.FullLoader)
+                self.scope_config_ips = yaml.load(f, Loader=yaml.FullLoader)
         else:
             self.logger.critical("Missing config_ips.yml file, please run cloudtiger <SCOPE> init 1")
             sys.exit()
@@ -539,14 +549,14 @@ class Operation:
             for subnet_name, subnet_vms in network_subnets.items():
                 for vm_name, address in subnet_vms.items():
                     try:
-                        address = config_ip[network_name][subnet_name]["addresses"][vm_name]
+                        address = self.scope_config_ips[network_name][subnet_name]["addresses"][vm_name]
                         self.scope_config_dict["vm"][network_name][subnet_name][vm_name]["private_ip"] = address
                     except KeyError as ke :
                         self.logger.error("An entry is missing in the config_ips.yml file.\nCheck error %s" % ke)
 
         unpacked_ips = {
             vm_name: ip_address
-            for network_name, network_subnets in config_ip.items()
+            for network_name, network_subnets in self.scope_config_ips.items()
             for subnet_name, subnet_vms in network_subnets.items()
             for vm_name, ip_address in subnet_vms["addresses"].items()
         }

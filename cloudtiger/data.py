@@ -243,7 +243,11 @@ allowed_actions = {
     },
     "admin": {
         "gather": "gather",
-        "dns": "dns"
+        "G": "gather",
+        "dns": "dns",
+        "D": "dns",
+        "vms": "vms",
+        "V": "vms"
     }
 }
 

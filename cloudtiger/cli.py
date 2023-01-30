@@ -29,7 +29,7 @@ from cloudtiger.common_tools import create_logger
 from cloudtiger.data import allowed_actions, available_api_services
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
-from cloudtiger.admin import gather, dns
+from cloudtiger.admin import gather, dns, vms
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -239,7 +239,7 @@ from declared resources and reimporting them
               is_flag=True,
               default=False,
               help="keep default SSH port (22) for current operation")
-@click.option('--no-check', '-n',
+@click.option('--no-check', '-nc',
               is_flag=True,
               default=False,
               help="disable fingerprint check at SSH connection")
@@ -296,6 +296,9 @@ def ans(context, action, consolidated, default_user, restricted_vms,
         if action in allowed_actions["ans"].keys():
             operation.logger.debug("%s command" %
                                    allowed_actions["ans"][action])
+            # if the action chosen is 'securize', we keep default ssh port
+            if allowed_actions["ans"][action] == "securize":
+                default_ssh_port = True
 
             # we load the SSH config parameters
             if allowed_actions["ans"][action] != "meta_distribute":
@@ -303,7 +306,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
                 if not operation.consolidated:
                     load_ssh_parameters(operation, keep_default_ssh=default_ssh_port)
                 else:
-                    load_ssh_parameters_meta(operation)
+                    load_ssh_parameters_meta(operation, keep_default_ssh=default_ssh_port)
 
             # if the action chosen is 'securize', it means we roll
             # 'devops init' role after ans 1 --d, ans 2 --d
@@ -395,6 +398,8 @@ def service(context, name, step, src_path):
 def admin(context, action, domain):
     """ Admin actions for managing a whole cluster or account :
 \n- gather (G)            : gather all config files from subfolders into a meta folder
+\n- dns (D)               : check DNS associated with all VMs from meta folder
+\n- vms (V)               : list all VMs from virtualizer and compare with meta folder
     """
 
     for operation_context in context.obj['operations']:
@@ -409,6 +414,12 @@ def admin(context, action, domain):
                                    allowed_actions["admin"][action])
             operation.scope_setup()
             operation.set_domain(domain)
+
+            # if we are working with a meta scope, we load meta information
+            if operation.meta_scope:
+                operation.logger.info("Loading current meta information")
+                operation.load_meta_info()
+
             globals()[allowed_actions["admin"][action]](operation)
 
         else:
