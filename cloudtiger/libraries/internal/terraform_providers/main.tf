@@ -100,6 +100,7 @@ locals {
 					### for the mapping VMs/IPs
 					vm_full_name = format("%s%s_vm", lookup(vm, "prefix", ""), vm_name)
 
+					vm_tf_name = vm_name
 					vm_name = lookup(vm, "vm_name", vm_name)
 					
 					### network/subnetwork information
@@ -175,7 +176,7 @@ locals {
 						"root", 
 						{"type": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"type":"no_type_set"})["type"]}
 					)
-					default_root_volume_size = lookup(var.root_volume_size, var.cloud_provider, "16")
+					root_volume_size = lookup(vm, "root_volume_size", 16) * 1024
 
 					data_volumes = {
 						for volume_name, volume in lookup(
@@ -262,7 +263,7 @@ locals {
 
 	### flattening the formatted_vm_list
 	formatted_vm = { for vm in local.formatted_vm_list :
-		vm.vm_name => vm
+		vm.vm_tf_name => vm
 	}
 
 	### formatting kubernetes clusters

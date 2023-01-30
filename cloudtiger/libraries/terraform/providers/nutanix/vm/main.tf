@@ -18,6 +18,7 @@ locals {
     "debian-10-genericcloud-amd64.qcow2"     = "cloudinit_debian.cfg.tpl"
     "debian-11-genericcloud-amd64.qcow2"     = "cloudinit_debian.cfg.tpl"
     "ubuntu-20.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
+    "ubuntu-22.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
   }
 
   subnet_has_managed_ips = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "managed_ips", false)
@@ -49,7 +50,7 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       nic_list,
       owner_reference,
       project_reference,
-      disk_list
+      #disk_list
       # disk_list[1].data_source_reference.uuid
     ]
   }
@@ -114,7 +115,7 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       kind = "image"
       uuid = data.nutanix_image.image.metadata.uuid
     }
-    disk_size_mib = lookup(var.vm.root_volume, "size", var.vm.default_root_volume_size) * 1024
+    disk_size_mib = var.vm.root_volume_size
   }
 
   dynamic "disk_list" {
