@@ -18,7 +18,8 @@ from cloudtiger.data import (
     DEFAULT_ANSIBLE_PYTHON_INTERPRETER,
     DEFAULT_SSH_PORT,
     common_group_names,
-    common_environment_tags
+    common_environment_tags,
+    custom_ssh_port_per_vm_type
 )
 
 
@@ -59,7 +60,7 @@ def infer_group_env(vm_name: str, subnet_name: str) -> Tuple[str, str, str]:
     return group, env, owner
 
 
-def extract_ssh_port(vm_address: str) -> str:
+def extract_ssh_port(vm_address: str, vm_name: str, keep_default_ssh: bool) -> str:
 
     """ this function extracts a SSH port from the VM address as provided in the
     all_addresses_info.yml file
@@ -69,16 +70,24 @@ def extract_ssh_port(vm_address: str) -> str:
     :return str, the SSH port for the VM
     """
 
-    elts = vm_address.split(':')
+    if not keep_default_ssh:
+        # we check if a custom SSH port is provided
+        elts = vm_address.split(':')
 
-    if len(elts) > 1:
-        if elts[-1].isdigit():
-            return elts[-1]
+        if len(elts) > 1:
+            # a custom SSH port has been provided using semicolon
+            if elts[-1].isdigit():
+                return elts[-1]
+        else:
+            # let us check the name of the vm
+            for vm_type, custom_port in custom_ssh_port_per_vm_type.items():
+                if vm_type in vm_name:
+                    return custom_port
 
     return DEFAULT_SSH_PORT
 
 
-def load_ssh_parameters_meta(operation: Operation):
+def load_ssh_parameters_meta(operation: Operation, keep_default_ssh=False):
 
     """ this function computes the parameters for the ssh.cfg file when CloudTiger
     is called with the '--consolidated' option. In this case, information is
@@ -100,7 +109,7 @@ def load_ssh_parameters_meta(operation: Operation):
                 "group": group,
                 "os_user": default_os_user,
                 "standard_user": os.environ["CLOUDTIGER_SSH_USERNAME"],
-                "ssh_port": extract_ssh_port(vm_ip),
+                "ssh_port": extract_ssh_port(vm_ip, vm_name, keep_default_ssh),
                 "env": env,
                 "ansible_python_interpreter": DEFAULT_ANSIBLE_PYTHON_INTERPRETER,
                 "owner": owner
@@ -339,7 +348,6 @@ def group_hosts(operation: Operation) -> dict:
 
         all_owners = list(set(
             {vm["owner"] for vm in operation.scope_config_dict["vm_ssh_params"].values()}))
-        print(all_owners)
 
         owner_children = {
             owner: {
