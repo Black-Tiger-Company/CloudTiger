@@ -1,5 +1,5 @@
 #cloud-config
-hostname: ubuntu
+hostname: ${vm_name}
 password: ubuntu
 chpasswd: { expire: False }
 ssh_pwauth: True
@@ -14,7 +14,7 @@ write_files:
         ${interface}:
           dhcp4: no
           addresses:
-          - ${vm_address}/26
+          - ${vm_address}/${netmask}
           gateway4: ${vm_gateway}
           nameservers:
             addresses: 
