@@ -347,7 +347,7 @@ class Operation:
         if os.path.exists(provider_secret):
             bash_source(self.logger, provider_secret)
             with open(provider_secret, 'r') as f:
-                secret_content = f.read().split('\n')
+                secret_content = f.read().rstrip().split('\n')
                 secret_content = [x.replace('export ', '').split('=') for x in secret_content]
                 secret_content = {
                     x[0] : x[1] for x in secret_content
