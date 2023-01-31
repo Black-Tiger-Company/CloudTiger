@@ -47,7 +47,7 @@ resource "nutanix_virtual_machine" "virtual_machine" {
   lifecycle {
     ignore_changes = [
       guest_customization_cloud_init_user_data,
-      nic_list,
+      # nic_list,
       owner_reference,
       project_reference,
       #disk_list
@@ -76,17 +76,17 @@ resource "nutanix_virtual_machine" "virtual_machine" {
   # - if the private IP is provided (!= "not_learned_yet") : we do not use a dynamic nic, the address is set using cloudinit
   # - if the private IP is not provided (== "not_learned_yet") : we use a dynamic nic of type "LEARNED"
 
-  # dynamic "nic_list" {
-  #   for_each = (local.subnet_has_managed_ips) ? [1] : []
-  #   content {
-  #     subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
-  #     ip_endpoint_list {
-  #       type = "ASSIGNED"
-  #       ip   = var.vm.private_ip
-  #     }
-  #     nic_type = "NORMAL_NIC"
-  #   }
-  # }
+  dynamic "nic_list" {
+    for_each = (local.subnet_has_managed_ips) ? [1] : []
+    content {
+      subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
+      ip_endpoint_list {
+        type = "ASSIGNED"
+        ip   = var.vm.private_ip
+      }
+      nic_type = "NORMAL_NIC"
+    }
+  }
 
   # dynamic "nic_list" {
   #   for_each = (!(local.subnet_has_managed_ips)) ? [1] : []
@@ -100,11 +100,19 @@ resource "nutanix_virtual_machine" "virtual_machine" {
   #   }
   # }
 
-  nic_list {
-    subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
-    # ip_endpoint_list {}
-    nic_type = "NORMAL_NIC"
+  dynamic "nic_list" {
+    for_each = (!(local.subnet_has_managed_ips)) ? [1] : []
+    content {
+      subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
+      nic_type = "NORMAL_NIC"
+    }
   }
+
+  # nic_list {
+  #   subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
+  #   # ip_endpoint_list {}
+  #   nic_type = "NORMAL_NIC"
+  # }
 
   num_vcpus_per_socket = var.vm.instance_type.nb_vcpu_per_socket
   num_sockets          = var.vm.instance_type.nb_sockets

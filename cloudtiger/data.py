@@ -28,6 +28,25 @@ terraform_vm_resource_name = {
     "nutanix": "nutanix_virtual_machine"
 }
 
+provider_secrets_requirements = {
+    "nutanix": {
+        "required": [
+            "TF_VAR_nutanix_timeout",
+            "TF_VAR_nutanix_port",
+            "TF_VAR_nutanix_insecure",
+            "TF_VAR_nutanix_user",
+            "TF_VAR_nutanix_password",
+            "TF_VAR_nutanix_endpoint"
+        ],
+        "optional": [
+            "CLOUDTIGER_BACKEND_USERNAME",
+            "CLOUDTIGER_BACKEND_PASSWORD",
+            "CLOUDTIGER_BACKEND_ADDRESS",
+            "CLOUDTIGER_BACKEND_DB"
+        ]
+    }
+}
+
 provider_secrets_helper = {
     "tf_backend": {
         "keys" : [

@@ -12,7 +12,7 @@ from logging import Logger
 import pkg_resources
 import yaml
 from .common_tools import load_yaml, bash_source, merge_dictionaries
-from cloudtiger.data import available_infra_services
+from cloudtiger.data import available_infra_services, provider_secrets_requirements
 
 LIBRARIES_PATH = pkg_resources.resource_filename('cloudtiger', 'libraries')
 
@@ -340,7 +340,16 @@ class Operation:
 
         self.logger.debug("Loading secrets from various providers/services")
 
-        # load credentials for provider
+        # load credentials for provider from the environment
+        provider_vars = provider_secrets_requirements.get(self.provider, {})
+        required_vars = provider_vars.get('required', [])
+        optional_vars = provider_vars.get('optional', [])
+        for env_var in required_vars + optional_vars:
+            if env_var in list(os.environ.keys()):
+                self.logger.debug("Using CloudTiger variable %s from environment" % env_var)
+                self.provider_secret[env_var] = os.environ[env_var]
+
+        # load credentials for provider from .env secrets file
         provider_account = self.scope_config_dict.get('provider_account', "")
         provider_secret = os.path.join(
             self.project_root, "secrets", self.provider, provider_account + '.env')
@@ -352,12 +361,19 @@ class Operation:
                 secret_content = {
                     x[0] : x[1] for x in secret_content
                 }
-            self.provider_secret =  secret_content
+            self.provider_secret.update(secret_content)
 
         else:
             err = format("Cannot read %s file at project root folder: "
                          "file does not exist" % provider_secret)
-            self.logger.error(err)
+            self.logger.warning(err)
+
+        # check if all credentials are provided
+        for env_var in required_vars:
+            if env_var not in list(self.provider_secret.keys()):
+                err = format("Missing required environment variable %s, not found in neither secrets/%s/.env file, nor in current environment" % (env_var, self.provider))
+                self.logger.error(err)
+                sys.exit()
 
         # load credentials for services
         services_account = self.scope_config_dict.get("services_account", {})
