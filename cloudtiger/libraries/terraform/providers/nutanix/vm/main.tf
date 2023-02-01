@@ -66,6 +66,8 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
       search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
       interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
+      vm_type     = lookup(var.vm, "group", "custom")
+      custom_ssh_port = lookup(var.vm.extra_parameters, "custom_ssh_port", "22")
     }
   ))
 
