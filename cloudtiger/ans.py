@@ -303,7 +303,7 @@ def group_hosts(operation: Operation) -> dict:
         ]))
 
     group_children = {
-        scope_group: {
+        scope_group.replace(' ','-'): {
             "hosts": {
                 vm_name: set_vm_ansible_parameters(operation, vm_name)
                 for vm_name, _, _, vm_groups
@@ -313,7 +313,7 @@ def group_hosts(operation: Operation) -> dict:
     }
 
     subnet_children = {
-        subnet: {
+        subnet.replace(' ','-'): {
             "hosts": {
                 vm_name: set_vm_ansible_parameters(operation, vm_name)
                 for vm_name, _, subnet_name, _
