@@ -238,6 +238,8 @@ allowed_actions = {
         "3": "execute_ansible",
         "Z": "securize",
         "securize": "securize",
+        "S": "setup",
+        "setup": "setup",
         "meta_aggregate": "meta_aggregate",
         "M1": "meta_aggregate",
         "meta_distribute": "meta_distribute",
