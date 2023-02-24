@@ -260,6 +260,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
         encrypted_file):
     """ Ansible actions
 \n- securize (Z)         : set defined users, deactivate default user
+\n- setup (S)            : configure basic sysadmin features
 \n- playbooks (P)        : install Ansible playbooks catalog
 \n- dependencies (D)     : install Ansible dependencies (roles)
 \n- inventory (1)        : prepare Ansible inventory
@@ -313,6 +314,28 @@ def ans(context, action, consolidated, default_user, restricted_vms,
             if allowed_actions["ans"][action] == "securize":
                 operation.default_user = True
                 operation.devops_init()
+                create_inventory(operation)
+                setup_ssh_connection(operation)
+                prepare_ansible(operation, securize=True)
+                execute_ansible(operation)
+                return
+
+            # if the action chosen is 'setup', it means we roll
+            # 'devops-securize' role after ans 1, ans 2
+            if allowed_actions["ans"][action] == "setup":
+                operation.ssh_no_check = True
+                operation.devops_setup()
+                create_inventory(operation)
+                setup_ssh_connection(operation)
+                prepare_ansible(operation, securize=True)
+                execute_ansible(operation)
+                return
+
+            # if the action chosen is 'firewall', it means we roll
+            # a specifically generated playbook after ans 1, ans 2
+            if allowed_actions["ans"][action] == "setup":
+                operation.ssh_no_check = True
+                operation.devops_firewall_check()
                 create_inventory(operation)
                 setup_ssh_connection(operation)
                 prepare_ansible(operation, securize=True)
@@ -394,8 +417,12 @@ def service(context, name, step, src_path):
 @click.option('--domain',
               default='internal',
               help="domain for DNS check")
+@click.option('--all-vms', '-a',
+              is_flag=True,
+              default=False,
+              help="run admin commands on all available VMs")
 @click.pass_context
-def admin(context, action, domain):
+def admin(context, action, domain, all_vms):
     """ Admin actions for managing a whole cluster or account :
 \n- gather (G)            : gather all config files from subfolders into a meta folder
 \n- dns (D)               : check DNS associated with all VMs from meta folder
@@ -414,6 +441,7 @@ def admin(context, action, domain):
                                    allowed_actions["admin"][action])
             operation.scope_setup()
             operation.set_domain(domain)
+            operation.set_vms(all_vms)
 
             # if we are working with a meta scope, we load meta information
             if operation.meta_scope:
