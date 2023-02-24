@@ -226,12 +226,22 @@ class Operation:
         # DNS domain
         self.domain = "internal"
 
+        # meta - use all vms
+        self.all_vms = False
+
     def set_domain(self, domain: str):
 
         """ this function set the DNS domain
         """
 
         self.domain = domain
+
+    def set_vms(self, all_vms: bool):
+
+        """ this function activate/deactivate the use of all available VMs for admin tasks
+        """
+
+        self.all_vms = all_vms
 
     def scope_setup(self):
 
@@ -502,7 +512,10 @@ class Operation:
         #     self.logger.critical(f"Error : file {networks_info_file} not found")
         #     sys.exit()
 
-        addresses_info_file = os.path.join(self.datacenter_meta_folder, 'all_addresses_info.yml')
+        if self.all_vms:
+            addresses_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_vms.yml')
+        else:
+            addresses_info_file = os.path.join(self.datacenter_meta_folder, 'all_addresses_info.yml')
         if os.path.isfile(addresses_info_file):
             with open(addresses_info_file, "r") as f:
                 self.addresses_info = yaml.load(f, Loader=yaml.FullLoader)
@@ -609,3 +622,34 @@ class Operation:
                 ]
             }
         ]
+
+    def devops_setup(self):
+
+        """ this function overrides the ansible action defined in the config.yml to enforce
+        the devops securize role
+        """
+
+        self.scope_config_dict["ansible"] = [
+            {
+                "name": "devops setup",
+                "type": "role",
+                "sudo_prompt": "true",
+                "hosts": "all",
+                "roles": [
+                    {
+                        "source": "devops-securise",
+                        "params": {
+                            "become": "true",
+                            "reboot": "true",
+                            "format_disks": "true"
+                        }
+                    }
+                ]
+            }
+        ]
+
+    # def devops_firewall_check(self):
+
+    #     """ this function overrides the ansible action defined in the config.yml to enforce
+    #     the devops securize role
+    #     """
