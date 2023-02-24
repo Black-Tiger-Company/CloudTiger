@@ -1,5 +1,5 @@
 #cloud-config
-hostname: debian
+hostname: ${vm_name}
 password: debian
 chpasswd: { expire: False }
 ssh_pwauth: True
