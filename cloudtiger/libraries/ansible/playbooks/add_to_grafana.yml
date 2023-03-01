@@ -1,0 +1,116 @@
+---
+# ansible-playbook add_to_grafana.yml -i hosts.yaml --extra-vars "ansible_user=eguibert"
+# params: vm_name / client / domain  / node_exporter_port  / prometheus_workdir
+
+- hosts: grafana
+
+  vars:
+    grafana_workdir: /etc/grafana
+    prometheus_workdir: /etc/prometheus
+    domain: btgroup.io
+    node_exporter_port: 9100
+    new_vm: "{{ vm_name }}.{{ domain }}:{{ node_exporter_port }}"
+
+  tasks:
+
+  - name: Install dependencies
+    become: true
+    ansible.builtin.apt:
+      pkg:
+        - jq
+
+  - name: Test
+    ansible.builtin.debug:
+      msg: "client {{ client }}"
+
+  # retrieve list of existing client
+  - name: List of existing client
+    ansible.builtin.shell: ls | cut -d '.' -f 1
+    register: client_list
+    args:
+      chdir: "{{ prometheus_workdir }}/targets.conf.d"
+    become: true
+
+  ###
+  ## block if client doesn't exist
+  - name: Display client_list
+    ansible.builtin.debug:
+      msg: "{{ client_list }}"
+    when: client not in client_list.stdout_lines
+
+  - name: Create client conf
+    become: true
+    copy:
+      dest: "{{ prometheus_workdir }}/targets.conf.d/{{ client }}.node.json"
+      content: |-
+
+        [
+          {
+              "targets": [
+                  "{{ vm_name }}.{{ domain }}:{{ node_exporter_port }}"
+              ],
+              "labels": {
+                  "client": "{{ client }}",
+                  "env": "{{ env }}",
+                  "job": "node"
+              }
+          }
+        ]
+    when: client not in client_list.stdout_lines
+
+  # retrieve env list existing of the client
+  - name: "Get list of env for {{ client }}"
+    become: true
+    ansible.builtin.shell: 'grep env {{ client }}.node.json | cut -d \" -f 4'
+    args:
+      chdir: "{{ prometheus_workdir }}/targets.conf.d/"
+    register: env_list
+
+  - name: Display env_list
+    ansible.builtin.debug:
+      var: env_list.stdout_lines
+
+  - name: "Add {{ env }} env in {{ client }}.node.json"
+    become: true
+    ansible.builtin.replace:
+      path: "{{ prometheus_workdir }}/targets.conf.d/{{ client }}.node.json"
+      regexp: '^(\[)$'
+      replace: |-
+        [
+          {
+          "targets": [
+                "{{ vm_name }}.{{ domain }}:{{ node_exporter_port }}"
+            ],
+          "labels": {
+                "client": "{{ client }}",
+                "env": "{{ env }}",
+                "job": "node"
+            }
+          },\n
+    when:
+      - client in client_list.stdout_lines
+      - env not in env_list.stdout_lines
+
+  - name: "Get conf from file raw"
+    become: true
+    ansible.builtin.shell: "cat {{ prometheus_workdir }}'/targets.conf.d/{{ client }}'.node.json"
+    register: prometheus_conf
+
+  - name: "Display conf from file in json"
+    ansible.builtin.set_fact:
+      target_list: "{{ prometheus_conf.stdout  | from_json | selectattr('labels.env','==', env) | map(attribute='targets') | first }}"
+
+  - name: Display client conf
+    ansible.builtin.debug:
+      var: target_list
+
+  # block if client exist and env also
+  - name: "Add {{ vm_name }} in {{ client }}.node.json"
+    become: true
+    ansible.builtin.shell: echo "$(cat {{ client }}.node.json | jq '.[map(.labels.env=="{{ env }}") | index(true)].targets += ["{{ new_vm }}"]')" > {{ client }}.node.json
+    args:
+      chdir: "{{ prometheus_workdir }}/targets.conf.d/"
+    when:
+      - client in client_list.stdout_lines
+      - env in env_list.stdout_lines
+      - new_vm not in target_list
