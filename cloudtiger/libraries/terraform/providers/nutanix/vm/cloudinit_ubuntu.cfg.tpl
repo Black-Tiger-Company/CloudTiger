@@ -3,6 +3,9 @@ hostname: ${vm_name}
 password: ubuntu
 chpasswd: { expire: False }
 ssh_pwauth: True
+locale: fr_FR
+keyboard:
+  layout: fr
 
 write_files:
 - path: /etc/netplan/00-installer-config.yaml
