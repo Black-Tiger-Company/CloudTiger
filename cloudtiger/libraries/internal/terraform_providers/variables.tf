@@ -133,3 +133,48 @@ variable root_volume_size {
 variable managed_identity {
 	default = {}
 }
+
+### List of vm types
+variable list_vm_types {
+	default = []
+}
+
+### Map of VM types aliases
+variable vm_types_aliases {
+	default = {}
+}
+
+### Map of services
+variable services {
+	default = {}
+}
+
+### Map of firewall
+variable firewall {
+	default = {}
+}
+
+### List of customers
+variable customers {
+	default = []
+}
+
+### Map of customers_aliases
+variable customers_aliases {
+	default = {}
+}
+
+### Map of color_aliases
+variable color_aliases {
+	default = {}
+}
+
+### Map of environment_status
+variable environment_status {
+	default = {}
+}
+
+### Map of vm_metadata
+variable vm_metadata {
+	default = {}
+}
