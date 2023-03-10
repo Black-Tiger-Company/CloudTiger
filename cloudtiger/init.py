@@ -178,7 +178,7 @@ def configure_ip(operation: Operation):
     for network_name, network_subnets in subnets_to_crawl.items():
         available_ips[network_name] = {}
         for subnet_name in network_subnets:
-            command = format("fping -g %s" % (operation.scope_config_dict["network"][network_name]\
+            command = format("fping -ugq %s" % (operation.scope_config_dict["network"][network_name]\
                 ["subnets"][subnet_name]["cidr_block"]))
             operation.logger.info("Executing command %s" % command)
             process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
@@ -186,11 +186,7 @@ def configure_ip(operation: Operation):
             # out, err = process.communicate()
             process.wait()
             out = process.stdout.read()
-            ips = out.split('\n')
-            all_available_ips = [
-                x.split(' ')[0]
-                for x in ips if x.split(' ')[-1] == "unreachable"
-            ]
+            all_available_ips = out.split('\n')
 
             # in order to avoid broadcast IPs
             all_available_ips.reverse()
