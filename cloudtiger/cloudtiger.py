@@ -220,14 +220,29 @@ class Operation:
         # Meta addresses info
         self.addresses_info = {}
 
+        # Meta VMs info
+        self.vms_info = {}
+
+        # Meta metadata info
+        self.metadata_info = {}
+
+        # All existing VMs info
+        self.existing_vms_info = {}
+
         # Provider secret content
         self.provider_secret = {}
 
         # DNS domain
         self.domain = "internal"
 
+         # metadata timestamp
+        self.timestamp = ""
+
         # meta - use all vms
         self.all_vms = False
+
+        # meta - consider only VMs that exists in all_existing_vms.yml
+        self.check_existence = False
 
     def set_domain(self, domain: str):
 
@@ -236,12 +251,26 @@ class Operation:
 
         self.domain = domain
 
+    def set_timestamp(self, timestamp: str):
+
+        """ this function set the timestamp for the metadata file
+        """
+
+        self.timestamp = timestamp
+
     def set_vms(self, all_vms: bool):
 
         """ this function activate/deactivate the use of all available VMs for admin tasks
         """
 
         self.all_vms = all_vms
+
+    def set_check_existence(self, check_existence: bool):
+
+        """ this function activate/deactivate checking the existence of the VM
+        """
+
+        self.check_existence = check_existence
 
     def scope_setup(self):
 
@@ -523,6 +552,16 @@ class Operation:
         #     self.logger.critical(f"Error : file {addresses_info_file} not found")
         #     sys.exit()
 
+        existing_vms_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_vms.yml')
+        if os.path.isfile(existing_vms_info_file):
+            with open(existing_vms_info_file, "r") as f:
+                self.existing_vms_info = yaml.load(f, Loader=yaml.FullLoader)
+
+        metadata_info_file = os.path.join(self.datacenter_meta_folder, "all_metadata.yml")
+        if os.path.isfile(metadata_info_file):
+            with open(metadata_info_file, "r") as f:
+                self.metadata_info = yaml.load(f, Loader=yaml.FullLoader)
+
         # ensure that variables are correctly defined
         if not isinstance(self.network_info, dict) :
             self.network_info = {}
@@ -530,7 +569,10 @@ class Operation:
         if not isinstance(self.addresses_info, dict) :
             self.addresses_info = {}
 
-    def dump_meta_info(self, new_addresses_info, new_network_info):
+        if not isinstance(self.metadata_info, dict) :
+            self.metadata_info = {}
+
+    def dump_meta_info(self, new_addresses_info, new_network_info, new_metadata_info):
 
         """ this function writes newly collected meta information into the _meta folder of the
         cluster/account.
@@ -554,11 +596,63 @@ class Operation:
             backup_addresses_info_file = addresses_info_file[:-4] + "_" + timestamp + ".yml"
             shutil.copyfile(addresses_info_file, backup_addresses_info_file)
 
+        metadata_info_file = os.path.join(self.datacenter_meta_folder, 'all_metadata.yml')
+        if os.path.isfile(metadata_info_file):
+            backup_metadata_info_file = metadata_info_file[:-4] + "_" + timestamp + ".yml"
+            shutil.copyfile(metadata_info_file, backup_metadata_info_file)
+
         with open(networks_info_file, "w") as f:
             yaml.dump(new_network_info, f)
 
         with open(addresses_info_file, "w") as f:
             yaml.dump(new_addresses_info, f)
+
+        with open(metadata_info_file, "w") as f:
+            yaml.dump(new_metadata_info, f)
+
+    def dump_monitoring_info(self, current_metadata_info):
+
+        # we extract a custom list of VMs specifically for monitoring
+        customers_list = [
+                vm_metadata["customer"]
+                for _, network in current_metadata_info.get('vm_metadata', {}).items() 
+                for vm, vm_metadata in network.items()
+        ]
+        customers_list = list(set(customers_list))
+
+        envts_list = [
+                vm_metadata["environment"]
+                for _, network in current_metadata_info.get('vm_metadata', {}).items() 
+                for vm, vm_metadata in network.items()
+        ]
+        envts_list = list(set(envts_list))
+
+        monitoring_info_folder = os.path.join(self.datacenter_meta_folder, 'all_monitoring_info')
+        os.makedirs(monitoring_info_folder, exist_ok=True)
+        for customer in customers_list:
+            monitoring_info_file = os.path.join(monitoring_info_folder, customer + '.json')
+            addresses_monitoring = []
+            
+            for environment in envts_list:
+                addresses_monitoring_per_env = {
+                        "targets": [
+                            vm + "." + self.domain
+                            for _, network in current_metadata_info.get('vm_metadata', {}).items()
+                            for vm, vm_metadata in network.items()
+                            if (vm_metadata["customer"] == customer)
+                            and (vm_metadata["environment"] == environment)
+                        ],
+                        "labels": {
+                            "client": customer,
+                            "env": environment,
+                            "job": "node"
+                        }
+                }
+                if len(addresses_monitoring_per_env["targets"]) > 0:
+                    addresses_monitoring.append(addresses_monitoring_per_env)
+
+            with open(monitoring_info_file, "w") as f:
+                json.dump(addresses_monitoring, f, indent=4)
 
     def load_ips(self):
 

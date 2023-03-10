@@ -268,7 +268,9 @@ allowed_actions = {
         "dns": "dns",
         "D": "dns",
         "vms": "vms",
-        "V": "vms"
+        "V": "vms",
+        "M": "monitoring",
+        "monitoring": "monitoring"
     }
 }
 

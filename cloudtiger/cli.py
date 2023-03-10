@@ -29,7 +29,7 @@ from cloudtiger.common_tools import create_logger
 from cloudtiger.data import allowed_actions, available_api_services
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
-from cloudtiger.admin import gather, dns, vms
+from cloudtiger.admin import gather, dns, vms, monitoring
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -417,16 +417,24 @@ def service(context, name, step, src_path):
 @click.option('--domain',
               default='internal',
               help="domain for DNS check")
+@click.option('--timestamp',
+              default='',
+              help="timestamp of metadata file")
 @click.option('--all-vms', '-a',
               is_flag=True,
               default=False,
               help="run admin commands on all available VMs")
+@click.option('--check-existence',
+              is_flag=True,
+              default=False,
+              help="consider only VMs that exists in 'all_existing_vms.yml'")
 @click.pass_context
-def admin(context, action, domain, all_vms):
+def admin(context, action, domain, timestamp, all_vms, check_existence):
     """ Admin actions for managing a whole cluster or account :
 \n- gather (G)            : gather all config files from subfolders into a meta folder
 \n- dns (D)               : check DNS associated with all VMs from meta folder
 \n- vms (V)               : list all VMs from virtualizer and compare with meta folder
+\n- monitoring (M)        : prepare Grafana configuration files from metadata file
     """
 
     for operation_context in context.obj['operations']:
@@ -441,7 +449,9 @@ def admin(context, action, domain, all_vms):
                                    allowed_actions["admin"][action])
             operation.scope_setup()
             operation.set_domain(domain)
+            operation.set_timestamp(timestamp)
             operation.set_vms(all_vms)
+            operation.set_check_existence(check_existence)
 
             # if we are working with a meta scope, we load meta information
             if operation.meta_scope:
