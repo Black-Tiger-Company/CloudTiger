@@ -1,0 +1,30 @@
+# add_to_grafana_list.yml
+---
+- name: a loop on the list of all VMs
+  hosts: "{{ hosts }}"
+
+  vars: 
+    monitoring_file: "{{ monitoring_file }}"
+    grafana_workdir: /etc/grafana
+    prometheus_workdir: /etc/prometheus
+    default_domain: btgroup.io
+    default_node_exporter_port: 9100
+
+  tasks:
+  - include_vars:
+      file: "{{ monitoring_file }}"
+      name: new_vms
+    delegate_to: localhost
+
+  - name: set new vms variable
+    set_fact:
+      new_vms: "{{ new_vms.monitoring }}"
+
+  - name: list VMs
+    debug:
+      msg: "{{ item }}"
+    loop: "{{ new_vms }}"
+
+  - name: add VM to grafana config
+    include_tasks: add_to_grafana_task.yml
+    loop: "{{ new_vms }}"

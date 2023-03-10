@@ -1,0 +1,32 @@
+# add_to_grafana_list.yml
+---
+- name: a loop on the list of all VMs
+  hosts: "{{ hosts }}"
+
+  vars: 
+    monitoring_folder: "{{ monitoring_folder }}"
+    prometheus_workdir: /etc/prometheus
+    customers:
+    - dev
+    - dmo
+    - xpo
+    - ci
+    - sys
+    - internal
+    - honda
+    - lne
+    - gbg
+    - kbf
+    - delhaize
+    - globthermic
+    - ids
+    - donatis
+    - audika
+    - none
+
+  tasks:
+  - name: upload customer prometheus file
+    copy:
+      src: "{{ monitoring_folder }}/{{ item }}.json"
+      dest: "{{ prometheus_workdir }}/targets.conf.d.test/{{ item }}.node.json"
+    loop: "{{ customers }}"
