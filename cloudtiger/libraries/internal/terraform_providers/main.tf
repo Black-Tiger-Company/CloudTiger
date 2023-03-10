@@ -134,23 +134,29 @@ locals {
 							lookup(var.default_os_user, var.cloud_provider, var.default_os_user["default"])
 						)
 					)
-					
+
 					### instance technical specs
 					### order of checking :
+					### vm[size]
 					### vm_types[provider][vm[type][vm[caliber]]
-					### vm[size] (vm_type is "custom")
+					### (if no vm type provided, "custom" type by default)
+					### (if no caliber provided, "nonprod" type by default)
 					instance_type = lookup(
+						vm,
+						"size",
 						lookup(
 							lookup(
-								var.vm_types, 
-								var.cloud_provider, 
-								var.vm_types["default"]
+								lookup(
+									var.vm_types, 
+									var.cloud_provider, 
+									var.vm_types["default"]
+								),
+								lookup(vm, "type", "custom"),
+								{}
 							),
-							lookup(vm, "type", "custom"),
+							lookup(vm, "caliber", "nonprod"),
 							{}
-						),
-						lookup(vm, "caliber", "nonprod"),
-						lookup(vm, "size", {})
+						)
 					)
 
 					### instance profile
