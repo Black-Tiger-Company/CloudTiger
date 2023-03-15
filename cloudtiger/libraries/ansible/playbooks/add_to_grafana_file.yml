@@ -1,6 +1,6 @@
-# add_to_grafana_list.yml
+# add_to_grafana_file.yml
 ---
-- name: a loop on the list of all VMs
+- name: upload of config files for Prometheus/Grafana monitoring
   hosts: "{{ hosts }}"
 
   vars: 
@@ -12,7 +12,6 @@
     - xpo
     - ci
     - sys
-    - internal
     - honda
     - lne
     - gbg
@@ -30,3 +29,5 @@
       src: "{{ monitoring_folder }}/{{ item }}.json"
       dest: "{{ prometheus_workdir }}/targets.conf.d.test/{{ item }}.node.json"
     loop: "{{ customers }}"
+    become: true
+    become_method: sudo

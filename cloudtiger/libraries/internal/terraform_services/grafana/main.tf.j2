@@ -1,0 +1,69 @@
+terraform {
+  required_providers {
+    grafana = {
+      source = "grafana/grafana"
+      version = "1.36.1"
+    }
+  }
+}
+
+{%- if use_tf_backend_for_service|default(false) %}
+
+terraform {
+  backend "pg" {
+  }
+}
+{%- else %}
+
+terraform {
+  backend "local" {
+  }
+}
+{%- endif %}
+
+provider "grafana" {
+  auth     = var.grafana_auth
+  url      = var.grafana_address
+}
+
+variable "grafana_address" {}
+
+variable "grafana_auth" {}
+
+### grafana modules
+module "dump" {
+
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/data"
+
+}
+
+module "data_source" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/resources/data_source"
+
+  for_each = var.grafana_data_sources
+	  data_source_config = each.value
+
+}
+
+module "dashboard" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/resources/dashboard"
+
+	  dashboard_config = var.grafana_dashboards
+
+}
+
+module "alerting" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/resources/alerting"
+
+  for_each = var.grafana_alerts
+	  alerting_config = each.value
+
+}
+
+output grafana_dashboard {
+	value = module.grafana.dashboard.grafana_dashboard
+}
+
+output grafana_alerting {
+	value = module.grafana.dashboard.grafana_alerting
+}
