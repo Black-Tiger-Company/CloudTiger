@@ -30,40 +30,74 @@ variable "grafana_address" {}
 
 variable "grafana_auth" {}
 
+variable "grafana_config" {}
+
 ### grafana modules
+{%- if grafana.dump|default(False) %}
 module "dump" {
 
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/data"
 
-}
+  grafana_config = lookup(var.grafana_config, "dump", {})
 
+}
+{%- endif %}
+
+{%- if grafana.data_sources|default(False) %}
 module "data_source" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/resources/data_source"
 
-  for_each = var.grafana_data_sources
-	  data_source_config = each.value
-
+  for_each = {
+    for data_source in lookup(var.grafana_config, "data_sources", {}) :
+      data_source.name => data_source
+  } 
+	data_source_config = each.value
 }
+{%- endif %}
 
+{%- if grafana.dashboards|default(False) %}
 module "dashboard" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/resources/dashboard"
 
-	  dashboard_config = var.grafana_dashboards
-
+  for_each = {
+    for index, dashboard in lookup(var.grafana_config, "dashboards", {}):
+    index => dashboard
+  } 
+   dashboard_config = each.value
 }
+{%- endif %}
 
+{%- if grafana.alerts|default(False) %}
 module "alerting" {
   source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/grafana/resources/alerting"
 
-  for_each = var.grafana_alerts
-	  alerting_config = each.value
+  for_each = {
+    for index, alert_rule in lookup(var.grafana_config, "alerts", {}):
+    index => alert_rule
+  } 
+  alerting_config = each.value
 
 }
-
+{%- endif %}
+{#
 output grafana_dashboard {
 	value = module.grafana.dashboard.grafana_dashboard
 }
 
 output grafana_alerting {
 	value = module.grafana.dashboard.grafana_alerting
+} #}
+{%- if grafana.dump|default(False) %}
+output grafana_dashboard_dump {
+	value = module.dump.grafana_dashboards
 }
+
+output grafana_folders_dump {
+	value = module.dump.grafana_folder
+}
+{%- endif %}
+
+{%- if grafana.dashboards|default(False) %}
+output grafana_dashboard {
+	value = module.dashboard
+}{%- endif %}

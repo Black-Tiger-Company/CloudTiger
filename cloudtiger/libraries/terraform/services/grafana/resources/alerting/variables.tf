@@ -1,0 +1,3 @@
+variable alerting_config {
+    
+}
