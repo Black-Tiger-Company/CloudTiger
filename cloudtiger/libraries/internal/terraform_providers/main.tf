@@ -192,22 +192,24 @@ locals {
 							) :
 						volume_name => volume if volume_name != "root"
 					}
+
 					default_data_volume_size = lookup(
+						vm,
+						"data_volume_size",
 						lookup(
 							lookup(
 								lookup(
-									var.vm_types, 
-									var.cloud_provider, 
-									var.vm_types["default"]
+									lookup(
+										var.vm_types, 
+										var.cloud_provider, 
+										var.vm_types["default"]
+									),
+									lookup(vm, "type", "custom")
 								),
-								lookup(vm, "type", "custom"),
-								{}
+								lookup(vm, "caliber", "nonprod")
 							),
-							lookup(vm, "caliber", "nonprod"),
-							{}
-						),
-						"data_volume_size",
-						lookup(vm, "data_volume_size", "0")
+							"data_volume_size"
+						)
 					)
 
 					### generic_volume_parameters is a map providing default sizes in Go for template values for disk sizes
