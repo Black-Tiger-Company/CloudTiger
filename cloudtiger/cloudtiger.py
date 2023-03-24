@@ -379,15 +379,6 @@ class Operation:
 
         self.logger.debug("Loading secrets from various providers/services")
 
-        # load credentials for provider from the environment
-        provider_vars = provider_secrets_requirements.get(self.provider, {})
-        required_vars = provider_vars.get('required', [])
-        optional_vars = provider_vars.get('optional', [])
-        for env_var in required_vars + optional_vars:
-            if env_var in list(os.environ.keys()):
-                self.logger.debug("Using CloudTiger variable %s from environment" % env_var)
-                self.provider_secret[env_var] = os.environ[env_var]
-
         # load credentials for provider from .env secrets file
         provider_account = self.scope_config_dict.get('provider_account', "")
         provider_secret = os.path.join(
@@ -406,6 +397,15 @@ class Operation:
             err = format("Cannot read %s file at project root folder: "
                          "file does not exist" % provider_secret)
             self.logger.warning(err)
+
+        # load credentials for provider from the environment
+        provider_vars = provider_secrets_requirements.get(self.provider, {})
+        required_vars = provider_vars.get('required', [])
+        optional_vars = provider_vars.get('optional', [])
+        for env_var in required_vars + optional_vars:
+            if env_var in list(os.environ.keys()):
+                self.logger.debug("Using CloudTiger variable %s from environment" % env_var)
+                self.provider_secret[env_var] = os.environ[env_var]
 
         # check if all credentials are provided
         for env_var in required_vars:
