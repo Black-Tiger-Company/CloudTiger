@@ -18,7 +18,8 @@ available_api_services = [
     "nexus",
     "gitlab",
     "fortigate",
-    "grafana"
+    "grafana",
+    "keycloak"
 ]
 
 terraform_vm_resource_name = {

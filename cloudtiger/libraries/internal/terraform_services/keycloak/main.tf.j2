@@ -1,0 +1,51 @@
+terraform {
+  required_providers {
+    keycloak = {
+      source = "mrparkers/keycloak"
+      version = "4.2.0"
+    }
+  }
+}
+
+{%- if use_tf_backend_for_service|default(false) %}
+
+terraform {
+  backend "pg" {
+  }
+}
+{%- else %}
+
+terraform {
+  backend "local" {
+  }
+}
+{%- endif %}
+
+provider "keycloak" {
+    client_id     = var.client_id
+    username      = var.username
+    password      = var.password
+    url           = var.url
+}
+
+variable "client_id" {}
+
+variable "username" {}
+
+variable "password" {}
+
+variable "url" {}
+
+variable "keycloak_config" {}
+
+{%- if keycloak.realm|default(False) %}
+module "realm" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/keycloak/resources/realm"
+
+  {# for_each = {
+    for realm in lookup(var.keycloak_config, "realm", {}) :
+      realm.name => realm
+  }  #}
+	realm_config = lookup(var.keycloak_config, "realm", {})
+}
+{%- endif %}

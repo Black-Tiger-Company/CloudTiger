@@ -1,0 +1,3 @@
+variable realm_config {
+    
+}
