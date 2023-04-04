@@ -201,6 +201,8 @@ allowed_actions = {
         "1": "configure_ip",
         "scope_folder": "prepare_scope_folder",
         "2": "prepare_scope_folder",
+        "set_mode": "set_mode",
+        "3": "set_mode",
         "meta_aggregate": "init_meta_aggregate",
         "M1": "init_meta_aggregate",
         "meta_distribute": "init_meta_distribute",

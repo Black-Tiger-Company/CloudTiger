@@ -9,6 +9,7 @@ from cloudtiger.init import (
     set_ssh_keys,
     configure_ip,
     prepare_scope_folder,
+    set_mode,
     init_meta_aggregate,
     init_meta_distribute
 )
@@ -128,14 +129,16 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
 
 @click.command('init', short_help='init actions')
 @click.argument('action')
+@click.argument('action_argument', default=None, required=False)
 @click.pass_context
-def init(context, action):
+def init(context, action, action_argument):
     """ Initial actions for preparing a new scope :
 \n- folder (F)            : create a boostrap gitops folder
 \n- ssh_keys (0)          : create a dedicated pair of SSH keys
 for the current scope in secrets/ssh/<PROVIDER>/private|public
 \n- get_ip (1)            : collect available IPs from fping
 \n- scope_folder (2)      : prepare scope folder
+\n- set_mode (3)          : update config.yml to associate specification mode (HA, low, ...) to vm parameters
 \n- meta_aggregate (M1)   : aggregate config.yml files from children scopes
 \n- meta_distribute (M2)  : distribute the meta_config.yml to children scopes
 \n- consolidate (C)       : consolidate addresses and networks from 
@@ -156,8 +159,10 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
 
             operation.logger.debug("%s command" %
                                    allowed_actions["init"][action])
-            globals()[allowed_actions["init"][action]](operation)
-
+            if action_argument:
+                globals()[allowed_actions["init"][action]](operation, action_argument)
+            else:
+                globals()[allowed_actions["init"][action]](operation)
         else:
             # unallowed action
             operation.logger.error("Unallowed action %s" % action)

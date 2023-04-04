@@ -10,6 +10,8 @@ import click
 import netaddr
 import yaml
 
+import re
+
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, merge_dictionaries, read_user_choice, get_credentials
 from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping, custom_ssh_port_per_vm_type
@@ -317,6 +319,16 @@ def prepare_scope_folder(operation: Operation):
 
     operation.logger.info("Successfully created and set scope folder")
 
+def set_mode(operation: Operation, tag):
+    # Display new tag
+    print('new tag: ', tag)
+    file = open(operation.scope_config,'r')
+    content = ''.join(file.readlines())
+    content = re.sub("(?<=tag:\n         mode:)(.*)", " {tag}".format(tag=tag), content )
+    with open(operation.scope_config, "w") as scope:
+        scope.write(content)
+    operation.scope_config_dict = load_yaml(operation.logger, operation.scope_config)
+    prepare_scope_folder(operation)
 
 def set_vm_name(vm, subfolder_values, platform_parent_folder):
 

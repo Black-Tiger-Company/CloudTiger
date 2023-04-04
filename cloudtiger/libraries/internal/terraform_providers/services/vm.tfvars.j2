@@ -1,4 +1,25 @@
 ### description of all virtual machines in HCL format
-vm = {{ vm|tojson(indent=4)|replace(':',' =') }}
+
+{% set vm_specs= {} -%}
+{% set new_vm  = vm -%}
+
+{% for network in vm -%}
+    {% for vlan in vm[network] -%}
+        {% for vm_name in vm[network][vlan] -%}
+        {% set vm_values= vm[network][vlan][vm_name] -%}
+        {% if vm_values["specs"] is defined and vm_values["tag"] is defined and vm_values["specs"][vm_values["tag"]["mode"]] is defined -%}
+          {% set vm_specs= vm_values["specs"][vm_values["tag"]["mode"]] -%}
+          {% set _dummy=vm[network][vlan]
+[vm_name].pop("tag") -%}
+         {%- endif -%}
+         {% set _dummy=vm[network][vlan]
+[vm_name].pop("specs") -%}
+         {% set vm_values= dict(vm_values, **vm_specs)-%}
+         {% set x=new_vm[network][vlan].__setitem__(vm_name, vm_values) -%}
+        {% endfor -%}
+    {% endfor -%}
+{% endfor -%}
+
+vm = {{ new_vm|tojson(indent=4)|replace(':','=') }}
 
 independent_volumes = {}
