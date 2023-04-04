@@ -1,0 +1,3 @@
+variable group_config {
+    
+}

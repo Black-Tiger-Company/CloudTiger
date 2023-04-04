@@ -1,0 +1,3 @@
+variable role_config {
+    
+}

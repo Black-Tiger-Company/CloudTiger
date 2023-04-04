@@ -10,7 +10,7 @@ terraform {
 resource "keycloak_realm" "realm" {
   realm             = var.realm_config.name
   enabled           = true
-  display_name      = "my realm"
+  display_name      = var.realm_config.name
   display_name_html = "<b>my realm</b>"
 
   login_theme = "base"

@@ -4,6 +4,10 @@ terraform {
       source = "mrparkers/keycloak"
       version = "4.2.0"
     }
+    vault = {
+      source = "hashicorp/vault"
+      version = "3.14.0"
+    }
   }
 }
 
@@ -28,6 +32,12 @@ provider "keycloak" {
     url           = var.url
 }
 
+provider "vault" {
+    address       = var.vault_address
+    token         = var.vault_token
+    skip_tls_verify = true
+}
+
 variable "client_id" {}
 
 variable "username" {}
@@ -37,6 +47,10 @@ variable "password" {}
 variable "url" {}
 
 variable "keycloak_config" {}
+
+module "vault" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/keycloak/resources/vault"
+  }
 
 {%- if keycloak.realm|default(False) %}
 module "realm" {
@@ -49,3 +63,57 @@ module "realm" {
 	realm_config = lookup(var.keycloak_config, "realm", {})
 }
 {%- endif %}
+
+{%- if keycloak.roles|default(False) %}
+module "role" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/keycloak/resources/role"
+
+  for_each = {
+    for role in lookup(var.keycloak_config, "roles", {}) :
+      role.name => role
+  } 
+	role_config = each.value
+}
+{%- endif %}
+
+{%- if keycloak.users|default(False) %}
+module "user" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/keycloak/resources/user"
+
+  for_each = {
+    for user in lookup(var.keycloak_config, "users", {}) :
+      user.username => user
+  } 
+	user_config = each.value
+}
+{%- endif %}
+
+{%- if keycloak.clients|default(False) %}
+module "client" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/keycloak/resources/openid_client"
+
+  for_each = {
+    for client in lookup(var.keycloak_config, "clients", {}) :
+      client.name => client
+  } 
+	client_config = each.value
+}
+{%- endif %}
+
+{%- if keycloak.groups|default(False) %}
+module "group" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/services/keycloak/resources/group"
+
+  for_each = {
+    for group in lookup(var.keycloak_config, "groups", {}) :
+      group.name => group
+  } 
+	group_config = each.value
+}
+{%- endif %}
+
+{%- if keycloak.users|default(False) %}
+output keycloak_user {
+  sensitive = true
+	value = module.user
+}{%- endif %}
