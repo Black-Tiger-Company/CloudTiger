@@ -11,9 +11,9 @@
           {% set vm_specs= vm_values["specs"][vm_values["tag"]["mode"]] -%}
           {% set _dummy=vm[network][vlan]
 [vm_name].pop("tag") -%}
-         {%- endif -%}
          {% set _dummy=vm[network][vlan]
 [vm_name].pop("specs") -%}
+         {%- endif -%}
          {% set vm_values= dict(vm_values, **vm_specs)-%}
          {% set x=new_vm[network][vlan].__setitem__(vm_name, vm_values) -%}
         {% endfor -%}
