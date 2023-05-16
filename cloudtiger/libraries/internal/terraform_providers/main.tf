@@ -40,6 +40,7 @@ locals {
 			### used by public cloud providers
 			location = var.region
 			common_availability_zone = lookup(network, "common_availability_zone", [])
+			vlan_id = lookup(network, "vlan_id", "no_relevant_vlan_id")
 
 			### used by vsphere and nutanix
 			datacenter_name = lookup(network, "datacenter", "no_datacenter_set")
