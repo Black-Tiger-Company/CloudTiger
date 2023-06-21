@@ -1,5 +1,18 @@
 ### system images
 system_images:
+  ovh:
+    debian:
+      name: "Debian 9 Stretch"
+      username: "debian"
+    debian10:
+      name: "Debian 10 Buster"
+      username: "debian"
+    ubuntu_server:
+      name: "Ubuntu 20.04 LTS"
+      username: "ubuntu"
+    centos:
+      name: "CentOS 8"
+      username: "centos"
   gcp:
     debian:
       name: "debian-9"
@@ -71,6 +84,31 @@ system_images:
 
 ### vm types
 vm_types:
+  ovh:
+    bastion:
+      prod:
+        type: "b2-15"
+      nonprod:
+        type: "b2-7"
+        data_volume_size: 50
+    mongo:
+      prod:
+        type: "b2-15"
+      nonprod:
+        type: "b2-7"
+        data_volume_size: 50
+    postgres:
+      prod:
+        type: "b2-15"
+      nonprod:
+        type: "b2-7"
+        data_volume_size: 50
+    jumpbox:
+      prod:
+        type: "b2-15"
+      nonprod:
+        type: "b2-7"
+        data_volume_size: 50
   gcp:
     bastion:
       prod: 
@@ -173,12 +211,6 @@ vm_types:
         type: "t3.medium"
         data_volume_size: 125
     k8s_master:
-      prod: 
-        type: "t3.medium"
-      nonprod: 
-        type: "t3.medium"
-        data_volume_size: 125
-    k8s_worker:
       prod: 
         type: "t3.medium"
       nonprod: 

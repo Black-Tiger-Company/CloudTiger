@@ -636,11 +636,12 @@ class Operation:
             for environment in envts_list:
                 addresses_monitoring_per_env = {
                         "targets": [
-                            vm + "." + self.domain
+                            vm + "." + self.domain + ":9100"
                             for _, network in current_metadata_info.get('vm_metadata', {}).items()
                             for vm, vm_metadata in network.items()
                             if (vm_metadata["customer"] == customer)
                             and (vm_metadata["environment"] == environment)
+                            and "test" not in vm
                         ],
                         "labels": {
                             "client": customer,

@@ -257,11 +257,107 @@ ingress_rules:
     cidr: ["0.0.0.0/0"]
     priority: "130"
 
+  "k8s_network":
+    from_port  : 10250
+    to_port    : 10250
+    protocol   : "tcp"
+    description: "k8s network"
+    cidr: ["0.0.0.0/0"]
+    priority: "131"
+
+  "k8s_api":
+    from_port  : 6443
+    to_port    : 6443
+    protocol   : "tcp"
+    description: "k8s api"
+    cidr: ["0.0.0.0/0"]
+    priority: "132"
+
+  "k8s_range":
+    from_port  : 30000
+    to_port    : 32767
+    protocol   : "tcp"
+    description: "k8s range"
+    cidr: ["0.0.0.0/0"]
+    priority: "133"
+  
+  "k8s_etcd":
+    from_port  : 2379
+    to_port    : 2380
+    protocol   : "tcp"
+    description: "k8s etcd"
+    cidr: ["0.0.0.0/0"]
+    priority: "134"
+
+  "k8s_kubelet_tcp":
+    from_port  : 10250
+    to_port    : 10255
+    protocol   : "tcp"
+    description: "k8s kubelet TCP"
+    cidr: ["0.0.0.0/0"]
+    priority: "135"
+
+  "k8s_kubelet_udp":
+    from_port  : 10250
+    to_port    : 10255
+    protocol   : "udp"
+    description: "k8s kubelet UDP"
+    cidr: ["0.0.0.0/0"]
+    priority: "136"
+
+  "k8s_proxy":
+    from_port  : 10256
+    to_port    : 10256
+    protocol   : "tcp"
+    description: "k8s proxy"
+    cidr: ["0.0.0.0/0"]
+    priority: "137"
+
+  "k8s_flannel":
+    from_port  : 8472
+    to_port    : 8472
+    protocol   : "udp"
+    description: "k8s flannel"
+    cidr: ["0.0.0.0/0"]
+    priority: "138"
+
+  "k8s_longhorn":
+    from_port  : 9500
+    to_port    : 9504
+    protocol   : "tcp"
+    description: "k8s longhorn"
+    cidr: ["0.0.0.0/0"]
+    priority: "139"
+
+  "k8s_all":
+    from_port  : 0
+    to_port    : 0
+    protocol   : "-1"
+    description: "k8s all"
+    cidr: ["0.0.0.0/0"]
+    priority: "140"
+
+  "k8s_all_udp":
+    from_port  : 0
+    to_port    : 65535
+    protocol   : "udp"
+    description: "k8s all"
+    cidr: ["0.0.0.0/0"]
+    priority: "141"
+
+  "http_ter":
+    from_port  : 8000
+    to_port    : 8000
+    protocol   : "tcp"
+    description: "HTTP"
+    cidr: ["0.0.0.0/0"]
+    priority: "143"
+
 egress_rules:
   "default":
     from_port: 0
-    to_port: 9999
-    protocol: "tcp"
+    to_port: 0
+    protocol: "-1"
     description: ""
     cidr: ["0.0.0.0/0"]
     priority: "4096"

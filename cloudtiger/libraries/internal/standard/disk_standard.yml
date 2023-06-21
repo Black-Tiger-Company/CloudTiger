@@ -9,6 +9,23 @@
 # standard : cheap HDD
 
 generic_volume_parameters:
+  ovh:
+    small_root:
+      size: 16
+      type: "ovh"
+
+    large_root:
+      size: 32
+      type: "ovh"
+
+    large_data:
+      size: 512
+      type: "ovh"
+
+    none:
+      size: 0
+      type: "ovh"
+
   azure:
     small_root:
       type: "Standard_LRS"

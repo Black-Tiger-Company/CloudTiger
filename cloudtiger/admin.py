@@ -98,34 +98,35 @@ def gather(operation: Operation):
                 except Exception as e:
                     operation.logger.error(
                         "Failed to open file % with error %s".format(subconfig_path, e))
-            for network_provider, network_provider_content in subconfig_data.items():
-                if not isinstance(network_provider_content, dict):
-                    network_provider_content = {}
-                if 'vm_ips' not in meta_addresses.keys():
-                    meta_addresses['vm_ips'] = {}
-                # if network_name not in meta_addresses[network_provider].keys():
-                #     meta_addresses[network_provider][network_name] = {"addresses": {}}
-                for network_name, network in network_provider_content.items():
-                    if network_name not in meta_addresses['vm_ips'].keys():
-                        meta_addresses['vm_ips'][network_name] = {'addresses': {}}
-                    for vm_name, vm_full_address in network.get('addresses', {}).items():
-                        # we manage collisions
-                        if vm_name in meta_addresses.get('vm_ips', {}).get(network_name, {}).get("addresses", {}).keys():
-                            # we remove any potential SSH port at the end of the IP address
-                            previous_full_address = meta_addresses['vm_ips'][network_name]['addresses'][vm_name]
-                            previous_ip = previous_full_address.split(':')[0]
-                            vm_ip = vm_full_address.split(':')[0]
+            if type(subconfig_data) is dict:
+                for network_provider, network_provider_content in subconfig_data.items():
+                    if not isinstance(network_provider_content, dict):
+                        network_provider_content = {}
+                    if 'vm_ips' not in meta_addresses.keys():
+                        meta_addresses['vm_ips'] = {}
+                    # if network_name not in meta_addresses[network_provider].keys():
+                    #     meta_addresses[network_provider][network_name] = {"addresses": {}}
+                    for network_name, network in network_provider_content.items():
+                        if network_name not in meta_addresses['vm_ips'].keys():
+                            meta_addresses['vm_ips'][network_name] = {'addresses': {}}
+                        for vm_name, vm_full_address in network.get('addresses', {}).items():
+                            # we manage collisions
+                            if vm_name in meta_addresses.get('vm_ips', {}).get(network_name, {}).get("addresses", {}).keys():
+                                # we remove any potential SSH port at the end of the IP address
+                                previous_full_address = meta_addresses['vm_ips'][network_name]['addresses'][vm_name]
+                                previous_ip = previous_full_address.split(':')[0]
+                                vm_ip = vm_full_address.split(':')[0]
 
-                            # if we have different IPs AND none of the two different IPs are 
-                            # "0.0.0.0" or '' (meaning very probably a shutdown machine),
-                            # then we provide two different entries, a 'before' and an 'after'
-                            if previous_ip not in ["", "0.0.0.0"] and vm_ip not in ["", "0.0.0.0"]:
-                                if vm_ip != previous_ip:
-                                    meta_addresses['vm_ips'][network_name]['addresses'][vm_name + "_previous"] = previous_full_address
-                                    meta_addresses['vm_ips'][network_name]['addresses'].pop(vm_name)
-                                    meta_addresses['vm_ips'][network_name]['addresses'][vm_name + "_" + subconfig_scope] = vm_full_address
-                        else :
-                            meta_addresses['vm_ips'][network_name]['addresses'][vm_name] = vm_full_address
+                                # if we have different IPs AND none of the two different IPs are 
+                                # "0.0.0.0" or '' (meaning very probably a shutdown machine),
+                                # then we provide two different entries, a 'before' and an 'after'
+                                if previous_ip not in ["", "0.0.0.0"] and vm_ip not in ["", "0.0.0.0"]:
+                                    if vm_ip != previous_ip:
+                                        meta_addresses['vm_ips'][network_name]['addresses'][vm_name + "_previous"] = previous_full_address
+                                        meta_addresses['vm_ips'][network_name]['addresses'].pop(vm_name)
+                                        meta_addresses['vm_ips'][network_name]['addresses'][vm_name + "_" + subconfig_scope] = vm_full_address
+                            else :
+                                meta_addresses['vm_ips'][network_name]['addresses'][vm_name] = vm_full_address
 
     operation.dump_meta_info(meta_addresses, meta_networks, meta_metadata)
 

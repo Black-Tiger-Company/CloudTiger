@@ -7,7 +7,7 @@ labels = {{ labels | default({}) | tojson }}
 ### prefix
 prefix = "{{ prefix | default("") }}"
 
-{%- if provider in ["aws", "azure", "gcp"] %}
+{%- if provider in ["aws", "azure", "gcp", "ovh"] %}
 ### region
 region = "{{ region }}"
 {%- endif %}

@@ -14,7 +14,7 @@ Host {{ vm_name }}
 {% if vm.group != "bastion" -%}
 Host {{ vm_name }}
   Hostname {{ vm.private_ip }}
-  ProxyCommand ssh -F ssh.cfg -W %h:%p {{ vm.bastion_name }}
+  ProxyJump {{ vm.bastion_name }}
   User {{ vm.os_user }}
   IdentityFile {{ ssh_key_path }}
   Port {{ vm.ssh_port }}

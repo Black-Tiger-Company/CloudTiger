@@ -40,6 +40,7 @@ locals {
 			### used by public cloud providers
 			location = var.region
 			common_availability_zone = lookup(network, "common_availability_zone", [])
+			vlan_id = lookup(network, "vlan_id", "no_relevant_vlan_id")
 
 			### used by vsphere and nutanix
 			datacenter_name = lookup(network, "datacenter", "no_datacenter_set")
@@ -180,9 +181,12 @@ locals {
 					root_volume = lookup(
 						lookup(vm, "volumes", {}), 
 						"root", 
-						{"type": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"type":"no_type_set"})["type"]}
+						{"type": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"type":"no_type_set"})["type"]
+						"size": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"size":16})["size"]
+						}
 					)
 					root_volume_size = lookup(vm, "root_volume_size", 16) * 1024
+					default_root_volume_size = 16
 
 					data_volumes = {
 						for volume_name, volume in lookup(

@@ -167,7 +167,8 @@ def load_ssh_parameters(operation: Operation, keep_default_ssh=False):
             for vm_name, vm in subnet_vms.items():
                 operation.scope_config_dict["vm_ssh_params"][vm_name] = {
                     "private_ip": vm.get("private_ip", "unset_ip"),
-                    "group" : vm.get("group", "ungrouped")
+                    "group" : vm.get("group", "ungrouped"),
+                    "metadata": vm.get("metadata", {})
                 }
                 vm_system_image = vm.get("system_image", "ubuntu_server")
 
@@ -248,7 +249,7 @@ def set_vm_ansible_parameters(operation: Operation, vm_name: str) -> dict:
     :return vm_ssh_parameters: dict of SSH parameters to reach the VM with Ansible
     """
 
-    ansible_ssh_host = operation.scope_unpacked_ips[vm_name].split(':')[0]
+    ansible_private_ip = operation.scope_unpacked_ips[vm_name].split(':')[0]
 
     if operation.default_user:
         ansible_user = operation.scope_config_dict["vm_ssh_params"][vm_name]["os_user"]
@@ -261,9 +262,19 @@ def set_vm_ansible_parameters(operation: Operation, vm_name: str) -> dict:
     ansible_ssh_port = operation.scope_config_dict["vm_ssh_params"][vm_name]["ssh_port"]
 
     vm_ssh_parameters = {
-        "ansible_ssh_host": ansible_ssh_host,
-        "ansible_user": ansible_user
+        "ansible_ssh_host": vm_name,
+        "ansible_user": ansible_user,
+        "private_ip": ansible_private_ip
     }
+
+    # add metadata if they exist
+    if "metadata" in operation.scope_config_dict["vm_ssh_params"][vm_name].keys():
+        if isinstance(operation.scope_config_dict["vm_ssh_params"][vm_name]["metadata"], dict):
+            if len(operation.scope_config_dict["vm_ssh_params"][vm_name]["metadata"]) > 0:
+                for k, v in operation.scope_config_dict["vm_ssh_params"][vm_name]["metadata"].items():
+                    # you cannot overloads reserved ansible parameter names
+                    if k not in operation.scope_config_dict["vm_ssh_params"][vm_name].keys():
+                        operation.scope_config_dict["vm_ssh_params"][vm_name][k] = v
 
     if ansible_ssh_port != "22":
         vm_ssh_parameters["ansible_ssh_port"] = ansible_ssh_port

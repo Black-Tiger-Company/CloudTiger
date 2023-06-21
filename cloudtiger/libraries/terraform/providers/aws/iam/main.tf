@@ -11,11 +11,11 @@ data "aws_iam_policy_document" "policy_document" {
   }
 }
 
-resource "aws_iam_policy" "iam_policy" {
-  for_each = var.policy
-  policy   = data.aws_iam_policy_document.policy_document[each.key].json
-  name     = format("%s_%s_iam_policy", var.common_prefix, each.key)
-}
+# resource "aws_iam_policy" "iam_policy" {
+#   for_each = var.policy
+#   policy   = data.aws_iam_policy_document.policy_document[each.key].json
+#   name     = format("%s_%s_iam_policy", var.common_prefix, each.key)
+# }
 
 #############################
 # Role
@@ -86,15 +86,15 @@ locals {
 
 }
 
-resource "aws_iam_role_policy_attachment" "role_custom_policy_attachment" {
-  for_each   = local.formatted_roles_custom_policies
-  role       = format("%s_%s_iam_role", var.common_prefix, each.key)
-  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${format("%s_%s_iam_policy", var.common_prefix, each.value)}"
-  depends_on = [
-    aws_iam_role.iam_role,
-    aws_iam_policy.iam_policy
-  ]
-}
+# resource "aws_iam_role_policy_attachment" "role_custom_policy_attachment" {
+#   for_each   = local.formatted_roles_custom_policies
+#   role       = format("%s_%s_iam_role", var.common_prefix, each.key)
+#   policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${format("%s_%s_iam_policy", var.common_prefix, each.value)}"
+#   depends_on = [
+#     aws_iam_role.iam_role,
+#     aws_iam_policy.iam_policy
+#   ]
+# }
 
 resource "aws_iam_role_policy_attachment" "role_default_policy_attachment" {
   for_each   = local.formatted_roles_default_policies
