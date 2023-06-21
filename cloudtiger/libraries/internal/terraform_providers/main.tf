@@ -181,9 +181,12 @@ locals {
 					root_volume = lookup(
 						lookup(vm, "volumes", {}), 
 						"root", 
-						{"type": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"type":"no_type_set"})["type"]}
+						{"type": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"type":"no_type_set"})["type"]
+						"size": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"size":16})["size"]
+						}
 					)
 					root_volume_size = lookup(vm, "root_volume_size", 16) * 1024
+					default_root_volume_size = 16
 
 					data_volumes = {
 						for volume_name, volume in lookup(
