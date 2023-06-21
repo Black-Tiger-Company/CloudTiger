@@ -1,12 +1,43 @@
+terraform {
+  required_providers {
+    ovh = {
+      source  = "ovh/ovh"
+      version = ">= 0.13.0"
+    }
+    openstack = {
+      source  = "terraform-provider-openstack/openstack"
+      version = "~> 1.42.0"
+    }
+  }
+}
+
+
+
 ############
 # Network (VPC for AWS)
 ############
 
+# Associating cloud project to vRack
+resource "ovh_vrack_cloudproject" "vcp" {
+  # service_name = var.service_name
+  # project_id   = var.project_id
+  service_name = "demo-blacktiger"
+  project_id   = "9f6a476c2f9647ecb701441aa4319958"
+}
+
+resource "ovh_cloud_project_kube" "my_kube_cluster" {
+  service_name = var.service_name
+  name         = "my-super-kube-cluster"
+  region       = "GRA5"
+  version      = "1.22"
+}
+
  resource "ovh_cloud_project_network_private" "network" {
-    service_name = var.network.network_name
+    # service_name = var.network.network_name
+    service_name = "demo-blacktiger"
     name         = format("%s%s_network", var.network.module_prefix, var.network.network_name)
     regions      = [var.network.location]
-    provider     = ovh.ovh
+    # provider     = ovh.ovh
     vlan_id      = var.network.vlan_id
  }
 
@@ -20,16 +51,17 @@
 
   for_each = var.network.private_subnets
 
-    service_name = var.network.network_name
+    # service_name = var.network.network_name
+    service_name = "demo-blacktiger"
     # Identifiant de la ressource ovh_cloud_network_private nommée network
     network_id   = ovh_cloud_project_network_private.network.id
     start        = cidrhost(each.value.cidr_block, 0)
-    end          = cidrhost(each.value.cidr_block, cidrnetmask(local.cidr_block))
-    network      = var.network.cidr_block
+    end          = cidrhost(each.value.cidr_block, tonumber(split("/", each.value.cidr_block)[1]))
+    network      = var.network.network_cidr
     dhcp         = true
     region       = var.network.location
-    provider     = ovh.ovh
-    no_gateway   = true
+    # provider     = ovh.ovh
+    no_gateway   = false
  }
 
 ############
@@ -41,16 +73,17 @@
 
   for_each = var.network.public_subnets
 
-    service_name = var.network.network_name
+    # service_name = var.network.network_name
+    service_name = "demo-blacktiger"
     # Identifiant de la ressource ovh_cloud_network_private nommée network
     network_id   = ovh_cloud_project_network_private.network.id
     start        = cidrhost(each.value.cidr_block, 0)
-    end          = cidrhost(each.value.cidr_block, cidrnetmask(local.cidr_block))
-    network      = var.network.cidr_block
+    end          = cidrhost(each.value.cidr_block, tonumber(split("/", each.value.cidr_block)[1]))
+    network      = var.network.network_cidr
     dhcp         = true
     region       = var.network.location
-    provider     = ovh.ovh
-    no_gateway   = true
+    # provider     = ovh.ovh
+    no_gateway   = false
  }
 
 ############
@@ -85,26 +118,28 @@ locals{
     "ah" = "Ah"
     "esp" = "Esp"
   }
+
 }
+
 
 resource "openstack_networking_secgroup_rule_v2" "security_rule_ingress" {
   for_each                   = local.mapped_firewall_rules_ingress
-  direction         = each.value.direction
+  direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = each.value.protocol
-  port_range_min    = replace(each.value.to_port, "-1", "*")
-  port_range_max    = replace(each.value.to_port, "-1", "*")
+  port_range_min    = each.value.to_port
+  port_range_max    = each.value.to_port
   remote_ip_prefix  = each.value.cidr[0]
   security_group_id = lookup(openstack_networking_secgroup_v2.private_network_security_group, each.value.attached_subnet, lookup(openstack_networking_secgroup_v2.public_network_security_group, each.value.attached_subnet, {})).id
 }
 
 resource "openstack_networking_secgroup_rule_v2" "security_rule_egress" {
   for_each                   = local.mapped_firewall_rules_ingress
-  direction         = each.value.direction
+  direction         = "egress"
   ethertype         = "IPv4"
   protocol          = each.value.protocol
-  port_range_min    = replace(each.value.to_port, "-1", "*")
-  port_range_max    = replace(each.value.to_port, "-1", "*")
+  port_range_min    = each.value.to_port
+  port_range_max    = each.value.to_port
   remote_ip_prefix  = each.value.cidr[0]
   security_group_id = lookup(openstack_networking_secgroup_v2.private_network_security_group, each.value.attached_subnet, lookup(openstack_networking_secgroup_v2.public_network_security_group, each.value.attached_subnet, {})).id
 }

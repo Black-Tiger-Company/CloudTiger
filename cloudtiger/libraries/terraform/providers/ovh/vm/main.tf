@@ -1,3 +1,16 @@
+terraform {
+  required_providers {
+    ovh = {
+      source  = "ovh/ovh"
+      version = ">= 0.13.0"
+    }
+    openstack = {
+      source  = "terraform-provider-openstack/openstack"
+      version = "~> 1.42.0"
+    }
+  }
+}
+
 
 ############
 # Virtual Machine
@@ -7,7 +20,7 @@ resource "openstack_compute_instance_v2" "virtual_machine" {
   name            = format("%s%s_virtual_machine", var.vm.module_prefix, var.vm.vm_name)
   image_name      = var.vm.system_image
   flavor_name     = var.vm.instance_type.type
-  security_groups = [format("%s%s_%s_subnet_sg", var.network.module_prefix, var.network.network_name, each.key)]
+  security_groups = [format("%s%s_%s_subnet_sg", var.vm.module_prefix, var.vm.network_name, var.vm.subnet_name)]
 
   metadata = merge(
     var.vm.module_labels,
@@ -51,7 +64,7 @@ resource "openstack_blockstorage_volume_v2" "vm_data_volume" {
 
   name = format("%s%s_data_volume", var.vm.module_prefix, var.vm.vm_name)
   size = lookup(each.value, "size", var.vm.default_data_volume_size)
-  provider = openstack.ovh
+  # provider = openstack.ovh
 }
 
 
