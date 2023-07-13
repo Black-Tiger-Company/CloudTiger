@@ -61,7 +61,7 @@ Please provide a SSH username to connect to your resources"""
 
     dotenv_asking_ssh_password = """
 Do you wish to provide your SSH password ? It will be stored locally in the .env file encoded in base64.
-If no, you will be prompted to provide your SSH password when executing Ansible """
+If no, you will be prompted to provide your SSH password when executing Ansible without private SSH key access """
     store_ssh_password = click.prompt(dotenv_asking_ssh_password, default=True, type=click.BOOL)
 
     if store_ssh_password:

@@ -27,7 +27,7 @@ from cloudtiger.ans import (
 )
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import create_logger
-from cloudtiger.data import allowed_actions, available_api_services
+from cloudtiger.data import allowed_actions, available_api_services, non_scope_init_actions
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
 from cloudtiger.admin import gather, dns, vms, monitoring
@@ -134,6 +134,7 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
 def init(context, action, action_argument):
     """ Initial actions for preparing a new scope :
 \n- folder (F)            : create a boostrap gitops folder
+\n- config (C)            : configure current gitops folder
 \n- ssh_keys (0)          : create a dedicated pair of SSH keys
 for the current scope in secrets/ssh/<PROVIDER>/private|public
 \n- get_ip (1)            : collect available IPs from fping
@@ -147,26 +148,28 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
     for operation_context in context.obj['operations']:
         operation: Operation = operation_context
 
-        if operation.empty_scope :
-            operation.logger.info("Empty scope %s, skipping operation"
+        # check if action is allowed
+        action_alias = allowed_actions["init"].get(action, "NONE")
+        if action_alias != "NONE":
+
+            operation.logger.debug("%s command" % action_alias)
+
+        else:
+            # unallowed action
+            operation.logger.error("Unallowed action %s" % action)
+            sys.exit()
+
+        if operation.empty_scope & (action_alias not in non_scope_init_actions):
+            operation.logger.debug("Empty scope %s, skipping operation"
                                   % operation.scope)
             continue
 
         operation.logger.info("init action on scope %s" % operation.scope)
 
-        # check if action is allowed
-        if action in allowed_actions["init"].keys():
-
-            operation.logger.debug("%s command" %
-                                   allowed_actions["init"][action])
-            if action_argument:
-                globals()[allowed_actions["init"][action]](operation, action_argument)
-            else:
-                globals()[allowed_actions["init"][action]](operation)
+        if action_argument:
+            globals()[action_alias](operation, action_argument)
         else:
-            # unallowed action
-            operation.logger.error("Unallowed action %s" % action)
-            sys.exit()
+            globals()[action_alias](operation)
 
     operation.logger.info("Finished init action sucessfully")
 

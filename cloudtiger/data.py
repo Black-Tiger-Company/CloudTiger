@@ -189,6 +189,11 @@ https://cloud.google.com/community/tutorials/getting-started-on-gcp-with-terrafo
     },
 }
 
+non_scope_init_actions = [
+    "folder",
+    "config"
+]
+
 allowed_actions = {
     "init": {
         "folder": "folder",
