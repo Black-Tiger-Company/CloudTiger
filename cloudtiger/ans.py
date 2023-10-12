@@ -2,6 +2,7 @@
 import os
 import string
 import sys
+import copy
 import shutil
 import getpass
 import base64
@@ -232,9 +233,15 @@ def load_ssh_parameters(operation: Operation, keep_default_ssh=False):
                     # we choose the first available bastion
                     escape_bastion = list(escape_bastions.keys())[0]
 
+                    bastion_data = operation.terraform_vm_data.get(escape_bastion, {})
+                    if not bastion_data:
+                        # raise warning if no TF data available for bastion
+                        operation.logger.warning(
+                            "Warning : no Terraform data available for bastion")
+
                     # we attribute the bastion to the SSH parameters for the current VM
                     operation.scope_config_dict["vm_ssh_params"][vm_name]["bastion_address"] \
-                        = operation.terraform_vm_data[escape_bastion].get("public_ip", "unset")
+                        = bastion_data.get("public_ip", "unset")
                     operation.scope_config_dict["vm_ssh_params"][vm_name]["bastion_name"] \
                         = escape_bastion
 
@@ -275,6 +282,7 @@ def set_vm_ansible_parameters(operation: Operation, vm_name: str) -> dict:
                     # you cannot overloads reserved ansible parameter names
                     if k not in operation.scope_config_dict["vm_ssh_params"][vm_name].keys():
                         operation.scope_config_dict["vm_ssh_params"][vm_name][k] = v
+                        vm_ssh_parameters[k] = v
 
     if ansible_ssh_port != "22":
         vm_ssh_parameters["ansible_ssh_port"] = ansible_ssh_port
@@ -473,6 +481,25 @@ def install_ansible_dependencies(operation: Operation):
         ansible_requirement_content['roles'] =\
             ansible_requirement_content['roles'] + ansible_local_requirement_content['roles']
 
+    # add repository credentials if needed
+    ansible_requirement_content_backup = copy.deepcopy(ansible_requirement_content)
+    if ("CLOUDTIGER_ANSIBLE_REPO_USER" in os.environ.keys()) & \
+    ("CLOUDTIGER_ANSIBLE_REPO_PASSWORD" in os.environ.keys()):
+        ansible_requirement_content['roles'] = [
+            {
+                'name': role['name'],
+                'version': role['version'],
+                'src': role['src'].replace('https://', 'https://' + 
+                                           os.environ["CLOUDTIGER_ANSIBLE_REPO_USER"] +
+                                           ":" +
+                                           os.environ["CLOUDTIGER_ANSIBLE_REPO_PASSWORD"] +
+                                           "@")
+            }
+            for role in ansible_requirement_content['roles'] if type(role) is dict
+        ] + [
+            role for role in ansible_requirement_content['roles'] if type(role) is string
+        ]
+
     with open(ansible_dest_requirement, "w") as f:
         yaml.dump(ansible_requirement_content, f)
 
@@ -510,6 +537,12 @@ def install_ansible_dependencies(operation: Operation):
     for role_update_command in role_update_commands:
         bash_action(operation.logger, role_update_command, operation.project_root,
                 os.environ, operation.stdout_file)
+
+    # # remove repository credentials if needed
+    # if ("CLOUDTIGER_ANSIBLE_REPO_USER" in os.environ.keys()) & \
+    # ("CLOUDTIGER_ANSIBLE_REPO_PASSWORD" in os.environ.keys()):
+    #     with open(ansible_dest_requirement, "w") as f:
+    #         yaml.dump(ansible_requirement_content, f)
 
 
 def install_ansible_playbooks(operation: Operation):

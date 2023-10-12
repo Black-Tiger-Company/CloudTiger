@@ -84,6 +84,7 @@ Now, let us configure credentials for your chosen cloud provider."""
     chosen_provider = read_user_choice("cloud provider", list(terraform_vm_resource_name.keys()))
 
     get_credentials(
+        operation.libraries_path,
         provider_secrets_helper[chosen_provider],
         os.path.join(operation.scope, "secrets", chosen_provider)
     )
@@ -95,7 +96,8 @@ Do you wish to use a remote Terraform backend ? If yes, you will need to provide
     use_tf_backend = click.prompt(provider_dotenv_tf_backend_prompt, default=False, type=click.BOOL)
 
     if use_tf_backend:
-        get_credentials(provider_secrets_helper["tf_backend"],
+        get_credentials(operation.libraries_path,
+                        provider_secrets_helper["tf_backend"],
                         os.path.join(operation.scope, "secrets", chosen_provider),
                         append=True)
 

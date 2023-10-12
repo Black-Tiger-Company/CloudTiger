@@ -325,7 +325,7 @@ def create_ssh_keys(logger: Logger, private_ssh_folder: str, public_ssh_folder: 
     else:
         logger.debug("An SSH key pair already exists")
 
-def get_credentials(provider_helper, credential_dir, append=False):
+def get_credentials(libraries_path, provider_helper, credential_dir, append=False):
 
     """ This function will use multiple prompt to collect credentials for the 
     chosen cloud provider
@@ -335,7 +335,8 @@ def get_credentials(provider_helper, credential_dir, append=False):
 
     # set templates file
     for filename in provider_helper.get("templates", []):
-        filename = os.path.join(credential_dir, filename)
+        filename = os.path.join(
+            libraries_path, "internal", "gitops", credential_dir, filename)
         if len(filename) > 3:
             if filename[-4:] == ".tpl":
                 if not os.path.exists(filename[:-4]):
@@ -361,7 +362,7 @@ def get_credentials(provider_helper, credential_dir, append=False):
     else:
         write_mode = "w"
 
-    with open(os.path.join(credential_dir, ".env"), write_mode) as f:
+    with open(os.path.join(libraries_path, "internal", "gitops", credential_dir, ".env"), write_mode) as f:
         f.write(dotenv_content)
 
     if "final_helper" in provider_helper.keys():
