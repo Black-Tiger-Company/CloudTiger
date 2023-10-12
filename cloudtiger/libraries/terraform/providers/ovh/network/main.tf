@@ -22,13 +22,13 @@ resource "ovh_vrack_cloudproject" "vcp" {
   # service_name = var.service_name
   # project_id   = var.project_id
   service_name = "demo-blacktiger"
-  project_id   = "9f6a476c2f9647ecb701441aa4319958"
+  project_id   = "XXX"
 }
 
 resource "ovh_cloud_project_kube" "my_kube_cluster" {
   service_name = var.service_name
   name         = "my-super-kube-cluster"
-  region       = "GRA5"
+  region       = "BHS5"
   version      = "1.22"
 }
 
