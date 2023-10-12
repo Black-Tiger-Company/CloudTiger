@@ -34,7 +34,7 @@ system_images:
       name: "debian-10"
       username: "debian"
     ubuntu_server:
-      name: "ubuntu"
+      name: "ubuntu-2204"
       username: "ubuntu"
     centos:
       name: "centos-8"
@@ -104,6 +104,12 @@ vm_types:
         type: "b2-7"
         data_volume_size: 50
     jumpbox:
+      prod:
+        type: "b2-15"
+      nonprod:
+        type: "b2-7"
+        data_volume_size: 50
+    k8s_worker:
       prod:
         type: "b2-15"
       nonprod:
