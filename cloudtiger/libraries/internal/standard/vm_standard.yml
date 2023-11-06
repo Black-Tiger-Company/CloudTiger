@@ -20,8 +20,10 @@ system_images:
     debian10:
       name: "debian-10"
       username: "debian"
-    ubuntu_server:
+    ubuntu_server_2004:
       name: "ubuntu-2004-lts"
+    ubuntu_server_2204:
+      name: "ubuntu-2204-lts"
       username: "ubuntu"
     centos:
       name: "centos-8"
@@ -33,7 +35,7 @@ system_images:
     debian10:
       name: "debian-10"
       username: "debian"
-    ubuntu_server:
+    ubuntu_server_2204:
       name: "ubuntu-2204"
       username: "ubuntu"
     centos:
@@ -121,16 +123,19 @@ vm_types:
         type: "e2-micro"
       nonprod:
         type: "e2-micro"
+        data_volume_size: 125
     jumpbox:
       prod:
-        type: "e2-small"
+        type: "e2-micro"
       nonprod:
-        type: "e2-small"
+        type: "e2-micro"
+        data_volume_size: 125
     backend:
       prod:
         type: "e2-standard-2"
       nonprod:
         type: "e2-standard-2"
+        data_volume_size: 125
     elastic:
       prod: 
         type: "e2-standard-2"
@@ -145,9 +150,9 @@ vm_types:
         data_volume_size: 125
     k8s_worker:
       prod: 
-        type: "e2-standard-4"
+        type: "e2-standard-2"
       nonprod: 
-        type: "e2-standard-4"
+        type: "e2-standard-2"
         data_volume_size: 125
     mongo:
       prod: 
@@ -198,11 +203,17 @@ vm_types:
       nonprod: 
         type: "t2.small"
         data_volume_size: 125
-    k8s_worker:
+    k8s_worker_lowcost:
       prod: 
         type: "t3.xlarge"
       nonprod: 
         type: "t3.xlarge"
+        data_volume_size: 125
+    k8s_worker:
+      prod: 
+        type: "m5.xlarge"
+      nonprod: 
+        type: "m5.xlarge"
         data_volume_size: 125
     backend:
       prod: 
