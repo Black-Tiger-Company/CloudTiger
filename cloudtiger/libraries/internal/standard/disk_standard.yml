@@ -52,6 +52,10 @@ generic_volume_parameters:
       type: "pd-ssd"
       size: 32
 
+    large_k8s:
+      type: "pd-standard"
+      size: "64"
+
     large_data:
       type: "pd-standard"
       size: 512
@@ -68,6 +72,10 @@ generic_volume_parameters:
     large_root:
       type: "gp2"
       size: 32
+
+    large_k8s:
+      type: "gp2"
+      size: "128"
 
     large_data:
       type: "sc1"
