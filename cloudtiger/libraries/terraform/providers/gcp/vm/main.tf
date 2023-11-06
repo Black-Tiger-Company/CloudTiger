@@ -28,9 +28,37 @@ resource "google_compute_firewall" "security_group_vm" {
   # }
 
   allow {
-    protocol = "tcp"
-    ports    = [for rule in var.vm.ingress_rules : rule.to_port if rule.protocol != "icmp"]
+    protocol = "icmp"
+    # ports    = [for rule in var.vm.ingress_rules : format("%s-%s", rule.from_port, rule.to_port) if contains(["icmp", "-1"], rule.protocol)]
   }
+
+  allow {
+    protocol = "tcp"
+    ports    = [for rule in var.vm.ingress_rules : replace(format("%s-%s", rule.from_port, rule.to_port), "0-0", "0-65534") if contains(["tcp", "-1"], rule.protocol)]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = [for rule in var.vm.ingress_rules : replace(format("%s-%s", rule.from_port, rule.to_port), "0-0", "0-65534") if contains(["udp", "-1"], rule.protocol)]
+  }
+
+  # allow {
+  #   protocol = "tcp"
+  #   ports    = [for rule in var.vm.ingress_rules : rule.to_port if rule.protocol != "icmp"]
+  #   # ports    = [for rule in var.vm.ingress_rules : rule.to_port]
+  # }
+
+  # allow {
+  #   protocol = "udp"
+  #   ports    = [for rule in var.vm.ingress_rules : rule.to_port if rule.protocol != "icmp"]
+  #   # ports    = [for rule in var.vm.ingress_rules : rule.to_port]
+  # }
+
+  # allow {
+  #   protocol = "icmp"
+  #   # ports    = [for rule in var.vm.ingress_rules : rule.to_port if rule.protocol != "icmp"]
+  #   ports    = [for rule in var.vm.ingress_rules : rule.to_port]
+  # }
 
   source_ranges = [for rule in var.vm.ingress_rules : rule.cidr[0]]
 }
@@ -105,7 +133,7 @@ resource "google_compute_instance" "virtual_machine" {
   # }
 
   lifecycle {
-    ignore_changes = [attached_disk]
+    # ignore_changes = [attached_disk]
   }
 
   service_account {
@@ -192,6 +220,9 @@ resource "google_compute_attached_disk" "default" {
 
   disk     = google_compute_disk.vm_data_volume[each.key].id
   instance = google_compute_instance.virtual_machine.id
+
+  zone = google_compute_disk.vm_data_volume[each.key].zone
+
 }
 
 ############
