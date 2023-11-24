@@ -24,7 +24,7 @@ Host {{ vm_name }}
 {% endfor -%}
 
 # multiplexing SSH
-Host *
- ControlMaster   auto
- ControlPath     ~/.ssh/mux-%r@%h:%p
- ControlPersist  15m
+# Host *
+#  ControlMaster   auto
+#  ControlPath     ~/.ssh/mux-%r@%h:%p
+#  ControlPersist  15m

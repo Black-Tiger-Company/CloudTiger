@@ -11,7 +11,7 @@ Host {{ vm.private_ip }}
   Port {{ vm.port }}
 {% endfor  %}
 # multiplexing SSH
-Host *
- ControlMaster   auto
- ControlPath     ~/.ssh/mux-%r@%h:%p
- ControlPersist  15m
+# Host *
+#  ControlMaster   auto
+#  ControlPath     ~/.ssh/mux-%r@%h:%p
+#  ControlPersist  15m
