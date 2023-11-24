@@ -353,6 +353,14 @@ ingress_rules:
     cidr: ["0.0.0.0/0"]
     priority: "143"
 
+  "redis":
+    from_port  : 6379
+    to_port    : 6379
+    protocol   : "tcp"
+    description: "HTTP"
+    cidr: ["0.0.0.0/0"]
+    priority: "144"
+
 egress_rules:
   "default":
     from_port: 0
