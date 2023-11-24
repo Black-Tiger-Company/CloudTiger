@@ -1,5 +1,6 @@
 ---{% for actions_batch in ansible %}
 - name: {{ actions_batch.name }}
+  any_errors_fatal: true
 {% if "hosts" in actions_batch.keys() %}  hosts: {{ actions_batch.hosts }}{% endif %}{% if "sudo_prompt" in actions_batch.keys() %}{% if actions_batch.sudo_prompt %}{% endif %}{% endif %}
 
   vars:
