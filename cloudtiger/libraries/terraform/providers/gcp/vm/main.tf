@@ -133,7 +133,7 @@ resource "google_compute_instance" "virtual_machine" {
   # }
 
   lifecycle {
-    # ignore_changes = [attached_disk]
+    ignore_changes = [attached_disk]
   }
 
   service_account {
