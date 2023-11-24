@@ -150,9 +150,21 @@ vm_types:
         data_volume_size: 125
     k8s_worker:
       prod: 
-        type: "e2-standard-2"
+        type: "e2-standard-4"
       nonprod: 
-        type: "e2-standard-2"
+        type: "e2-standard-4"
+        data_volume_size: 125
+    k8s_worker_high_memory:
+      prod: 
+        type: "e2-standard-4"
+      nonprod: 
+        type: "e2-standard-4"
+        data_volume_size: 125
+    k8s_worker_high_compute:
+      prod: 
+        type: "e2-standard-4"
+      nonprod: 
+        type: "e2-standard-4"
         data_volume_size: 125
     mongo:
       prod: 
@@ -215,14 +227,26 @@ vm_types:
       nonprod: 
         type: "m5.xlarge"
         data_volume_size: 125
-    backend:
+    k8s_worker_high_memory:
       prod: 
-        type: "t3.medium"
+        type: "m5.2xlarge"
       nonprod: 
+        type: "m5.2xlarge"
+        data_volume_size: 125
+    k8s_worker_high_compute:
+      prod: 
+        type: "m5.2xlarge"
+      nonprod: 
+        type: "m5.2xlarge"
+        data_volume_size: 125
+    backend:
+      prod:
+        type: "t3.medium"
+      nonprod:
         type: "t3.medium"
         data_volume_size: 125
     elastic:
-      prod: 
+      prod:
         type: "t3.medium"
       nonprod: 
         type: "t3.medium"
