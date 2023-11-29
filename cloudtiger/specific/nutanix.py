@@ -92,7 +92,8 @@ def get_vms_list_per_vlan(operation: Operation):
     all_vms_per_vlan = {"vm_ips": all_vms_per_vlan}
     all_existing_vms = os.path.join(operation.scope_config_folder, "all_existing_vms.yml")
 
-    with open(all_existing_vms, "w") as f:
-        yaml.dump(all_vms_per_vlan, f)
+    if operation.scope == "nutanix_meta":
+        with open(all_existing_vms, "w") as f:
+            yaml.dump(all_vms_per_vlan, f)
 
-    return all_entities
+    return all_vms_per_vlan

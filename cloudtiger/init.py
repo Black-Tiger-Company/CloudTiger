@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import base64
+import ipaddress
 
 import click
 import netaddr
@@ -15,6 +16,7 @@ import re
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, merge_dictionaries, read_user_choice, get_credentials
 from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping, custom_ssh_port_per_vm_type
+from cloudtiger.specific.nutanix import get_vms_list_per_vlan
 
 def config(operation: Operation):
 
@@ -165,6 +167,10 @@ def configure_ip(operation: Operation):
 
     # listing all the subnets that need to be crawled for available IPs
 
+    all_vms_per_vlan = {}
+    if operation.provider == "nutanix":
+        all_vms_per_vlan = get_vms_list_per_vlan(operation)
+
     subnets_to_crawl = {}
     for network_name, network_subnets in operation.scope_config_dict.get('vm', {}).items():
         subnets_to_crawl[network_name] = []
@@ -182,15 +188,28 @@ def configure_ip(operation: Operation):
     for network_name, network_subnets in subnets_to_crawl.items():
         available_ips[network_name] = {}
         for subnet_name in network_subnets:
-            command = format("fping -ugq %s" % (operation.scope_config_dict["network"][network_name]\
-                ["subnets"][subnet_name]["cidr_block"]))
-            operation.logger.info("Executing command %s" % command)
-            process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, text=True)
-            # out, err = process.communicate()
-            process.wait()
-            out = process.stdout.read()
-            all_available_ips = out.split('\n')
+            if operation.provider == "nutanix":
+                network = ipaddress.IPv4Network(operation.scope_config_dict["network"][network_name]\
+                ["subnets"][subnet_name]["cidr_block"], strict=False)
+                vlan_all_ip_addresses = [str(ip) for ip in network.hosts()]
+                vlan_all_ip_set_addresses = [
+                    address for vm, address in all_vms_per_vlan["vm_ips"].get(subnet_name, {}).get("addresses", {}).items()
+                ]
+                unsorted_all_available_ips = [
+                    address for address in vlan_all_ip_addresses if address not in vlan_all_ip_set_addresses
+                ]
+                all_available_ips = sorted(unsorted_all_available_ips, key=lambda x: ipaddress.IPv4Address(x))
+
+            else:
+                command = format("fping -ugq %s" % (operation.scope_config_dict["network"][network_name]\
+                    ["subnets"][subnet_name]["cidr_block"]))
+                operation.logger.info("Executing command %s" % command)
+                process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE, text=True)
+                # out, err = process.communicate()
+                process.wait()
+                out = process.stdout.read()
+                all_available_ips = out.split('\n')
 
             # in order to avoid broadcast IPs
             all_available_ips.reverse()
