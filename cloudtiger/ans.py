@@ -685,12 +685,12 @@ def setup_ssh_connection(operation: Operation):
 
     for vm in all_vms_ip:
         operation.logger.debug("Removing vm IP %s from known hosts" % vm)
-        command = format("ssh-keygen -f \"/home/%s/.ssh/known_hosts\" -R \"%s\""
-                         % (os.environ["USER"], operation.scope_unpacked_ips[vm]))
+        command = format("ssh-keygen -f ~/.ssh/known_hosts -R \"%s\""
+                         % (operation.scope_unpacked_ips[vm]))
         bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
         operation.logger.debug("Removing vm hostname %s from known hosts" % vm)
-        command = format("ssh-keygen -f \"/home/%s/.ssh/known_hosts\" -R \"%s\""
-                         % (os.environ["USER"], vm))
+        command = format("ssh-keygen -f ~/.ssh/known_hosts -R \"%s\""
+                         % (vm))
         bash_action(operation.logger, command, operation.scope_inventory_folder, os.environ)
 
         # when using a proxy SSH connection, a first direct connection with plain SSH
