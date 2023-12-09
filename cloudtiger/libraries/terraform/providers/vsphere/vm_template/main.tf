@@ -1,8 +1,6 @@
 
 locals {
 
-  main_disk = data.vsphere_virtual_machine.ova_template.disks.0
-
   cdrom_backed = [{ "Backing" : {} }]
 
   non_empty_data_volumes = {
@@ -12,17 +10,7 @@ locals {
 
   cloud_init_templates = {
     "jammy/current/jammy-server-cloudimg-amd64.ova" = "cloudinit_ubuntu2204.cfg.tpl"
-    "ubuntu2204-template" = "cloudinit_ubuntu2204.cfg.tpl"
   }
-
-  guestIdMappings = {
-    "ubuntu2204-template" = "ubuntu64Guest"
-  }
-}
-
-data "vsphere_virtual_machine" "ova_template" {
-  name          = var.vm.system_image
-  datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 data "vsphere_datacenter" "datacenter" {
@@ -88,50 +76,50 @@ resource "vsphere_virtual_machine" "virtual_machine" {
 
   scsi_type                  = "pvscsi"
   resource_pool_id           = data.vsphere_resource_pool.pool.id
-  guest_id                   = local.guestIdMappings[var.vm.system_image]
   host_system_id    = data.vsphere_host.host.id
 
   datastore_id = data.vsphere_datastore.datastore_root.id
+  datacenter_id        = data.vsphere_datacenter.datacenter.id
 
-  dynamic "clone" {
-    for_each = ((var.vm.system_image == null) || (var.vm.imported)) ? [] : [1]
-    content {
-      template_uuid   = data.vsphere_virtual_machine.ova_template.id
-      linked_clone    = false
-      ovf_network_map = {}
-      ovf_storage_map = {}
+  ovf_deploy {
+    allow_unverified_ssl_cert = true
+    remote_ovf_url            = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.ova"
+    disk_provisioning         = "thin"
+    ovf_network_map = {
+      "Network 1" = data.vsphere_network.network.id
+      "Network 2" = data.vsphere_network.network.id
     }
   }
 
-  vapp {
-    properties = {
-      "hostname"     = var.vm.vm_name,
-      "instance-id"     = var.vm.vm_name,
-      "user-data"     = base64encode(templatefile(format("%s/%s", path.module, local.cloud_init_templates[var.vm.system_image]),
-        {
-          vm_name    = var.vm.vm_name
-          user       = lookup(var.vm, "user", "unset_user")
-          vm_address = lookup(var.vm, "private_ip", "learned")
-          vm_gateway  = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["gateway_ip_address"]
-          netmask     = split("/", var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["cidr_block"])[1]
-          nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
-          search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
-          interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
-          password = "ubuntu"
-        }
-      ))
+  extra_config = {
+    "guestinfo.hostname"     = var.vm.vm_name,
+    "guestinfo.instance-id"     = var.vm.vm_name,
+    "guestinfo.password"     = "ubuntu"
+    "guestinfo.userdata"          = base64encode(templatefile(format("%s/%s", path.module, local.cloud_init_templates[var.vm.system_image]),
+    {
+      vm_name    = var.vm.vm_name
+      user       = lookup(var.vm, "user", "unset_user")
+      vm_address = lookup(var.vm, "private_ip", "learned")
+      vm_gateway  = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["gateway_ip_address"]
+      netmask     = split("/", var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["cidr_block"])[1]
+      nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
+      search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
+      interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
+      password = "ubuntu"
     }
+  ))
+    "guestinfo.userdata.encoding" = "base64"
   }
 
   enable_disk_uuid = tobool(lower(lookup(var.vm.extra_parameters, "enable_disk_uuid", "true")))
   disk {
     label             = "disk0"
     datastore_id      = data.vsphere_datastore.datastore_root.id
-    size              = max(lookup(var.vm.root_volume, "size", var.vm.default_root_volume_size), local.main_disk.size)
-    eagerly_scrub     = lookup(local.main_disk, "eagerly_scrub", true)
-    thin_provisioned  = lookup(local.main_disk, "thin_provisioned", false)
+    size              = lookup(var.vm.root_volume, "size", var.vm.default_root_volume_size)
+    eagerly_scrub     = true
+    thin_provisioned  = false
     keep_on_remove    = true
-    storage_policy_id = lookup(local.main_disk, "storage_policy_id", null)
+    storage_policy_id = null
   }
 
   dynamic "disk" {
@@ -157,6 +145,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
     }
   }
 
+
   cpu_hot_add_enabled    = tobool(lookup(var.vm.extra_parameters, "cpu_hot_add_enabled", false))
   cpu_reservation        = tonumber(replace(lookup(var.vm.extra_parameters, "cpu_reservation", "None"), "None", "0"))
   enable_logging         = tobool(replace(lookup(var.vm.extra_parameters, "enable_logging", "None"), "None", "false"))
@@ -170,10 +159,6 @@ resource "vsphere_virtual_machine" "virtual_machine" {
   cpu_share_level        = lookup(var.vm.extra_parameters, "cpu_share_level", "normal")
   sync_time_with_host    = tobool(replace(lookup(var.vm.extra_parameters, "sync_time_with_host", "None"), "None", "false"))
   tools_upgrade_policy   = lookup(var.vm.extra_parameters, "tools_upgrade_policy", "manual")
-
-  cdrom {
-    client_device = true
-  }
 
   dynamic "cdrom" {
     for_each = length(lookup(var.vm.extra_parameters, "cdrom_unbacked", [])) > 0 ? [1] : []

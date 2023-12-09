@@ -8,7 +8,6 @@ output "vm_parameters" {
     ssh_key      = var.vm.ssh_public_key
     group        = var.vm.group
     port         = lookup(var.vm.extra_parameters, "custom_ssh_port", "22")
-    datastore = data.vsphere_datastore.datastore_root
   }
   description = "Map of VMs parameters"
   depends_on  = [vsphere_virtual_machine.virtual_machine]

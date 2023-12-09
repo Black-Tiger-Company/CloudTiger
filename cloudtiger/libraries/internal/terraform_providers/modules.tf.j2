@@ -41,6 +41,32 @@ module "iam" {
 }
 {%- endif %}
 
+{%- if vm_template|default(False) %}
+
+### vm_template : prepare templates for virtual machines
+module "vm_template" {
+  source = "{{ ''.join(["../"] * (scope.split('/')|length + 2)) }}terraform/providers/{{ provider }}/vm_template"
+
+  depends_on = [
+  	module.network,
+{%- if profile|default(False) %}
+	module.iam,
+{%- endif %}
+  ]
+
+  for_each = local.formatted_vm_templates
+
+{%- if provider == "nutanix" %}
+	nutanix_username = var.nutanix_user
+	nutanix_password = var.nutanix_password
+{%- endif %}
+
+	vm = each.value
+	network = var.network
+
+}
+{%- endif %}
+
 {%- if vm|default(False) %}
 
 ### vm : contains virtual machines + dedicated firewalls

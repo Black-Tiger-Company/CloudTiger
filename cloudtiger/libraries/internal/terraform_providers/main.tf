@@ -268,6 +268,10 @@ locals {
 
 					### used by vsphere
 					folder = lookup(vm, "folder", "no_folder_used")
+
+					### used by vsphere for identifying templates
+					is_template = lookup(vm, "is_template", false)
+
 				}
 			]
 		]
@@ -275,7 +279,11 @@ locals {
 
 	### flattening the formatted_vm_list
 	formatted_vm = { for vm in local.formatted_vm_list :
-		vm.vm_tf_name => vm
+		vm.vm_tf_name => vm if (!lookup(vm, "is_template", false))
+	}
+
+	formatted_vm_templates = { for vm in local.formatted_vm_list :
+		vm.vm_tf_name => vm if lookup(vm, "is_template", false)
 	}
 
 	### formatting kubernetes clusters

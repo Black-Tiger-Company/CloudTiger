@@ -83,6 +83,12 @@ system_images:
     debian10:
       name: "packer-deb10"
       username: "vagrant"
+    ubuntu22_server:
+      name: "jammy/current/jammy-server-cloudimg-amd64.ova"
+      username: "ubuntu"
+    ubuntu22_server_template:
+      name: "ubuntu2204-template"
+      username: "ubuntu"
 
 ### vm types
 vm_types:
