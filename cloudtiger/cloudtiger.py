@@ -436,7 +436,8 @@ class Operation:
                             no_check=False,
                             ssh_password=False,
                             obsolete_ssh=False,
-                            encrypted_file=None
+                            encrypted_file=None,
+                            ansible_key='ansible'
                             ):
 
         """ this function set specific attributes for ansible connection
@@ -468,6 +469,9 @@ class Operation:
 
         # use an encrypted variable file
         self.encrypted_file = encrypted_file
+
+        # name of the ansible key in config.yml
+        self.ansible_key = ansible_key
 
     def set_restricted_vms(self):
 

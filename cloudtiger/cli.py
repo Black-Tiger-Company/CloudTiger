@@ -262,10 +262,13 @@ from declared resources and reimporting them
 @click.option('--encrypted-file', '-e',
               default=None,
               help="name of encrypted file in 'secrets/ansible-vault' to load at execution time")
+@click.option('--ansible-key', '-a',
+              default='ansible',
+              help="name of the ansible key to use in config.yml")
 @click.pass_context
 def ans(context, action, consolidated, default_user, restricted_vms,
         ansible_force_install, port, default_ssh_port, no_check, ssh_password, obsolete_ssh,
-        encrypted_file):
+        encrypted_file, ansible_key):
     """ Ansible actions
 \n- securize (Z)         : set defined users, deactivate default user
 \n- setup (S)            : configure basic sysadmin features
@@ -294,7 +297,8 @@ def ans(context, action, consolidated, default_user, restricted_vms,
             no_check,
             ssh_password,
             obsolete_ssh,
-            encrypted_file
+            encrypted_file,
+            ansible_key
         )
 
         operation.logger.info("ansible action %s on scope %s" % (action, operation.scope))

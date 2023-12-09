@@ -595,6 +595,11 @@ def prepare_ansible(operation: Operation, securize=False):
         operation.scope_folder, 'inventory', "execute_ansible.yml"
     )
 
+    # if the ansible key is not 'ansible', we need to reinject the ansible key content into
+    # operation.scope_config_dict['ansible']
+    if operation.ansible_key != 'ansible':
+        operation.scope_config_dict["ansible"] = operation.scope_config_dict.get(operation.ansible_key, [])
+
     # if we have an 'ansible_params' key in the config.yml,
     # it means we need to interprete some variables
     # in the 'ansible' dict that are in jinja format
