@@ -25,3 +25,7 @@ ssh_public_key = "{{ env["CLOUDTIGER_PUBLIC_SSH_KEY_PATH"] }}"
 ssh_public_key = "{{ ssh_public_key|default("no_default_public_key") }}"
 {%- endif %}
 {%- endif %}
+{%- if admin_public_keys|default(False) %}
+### list of admin users with their public key
+admin_public_keys = {{ admin_public_keys }}
+{%- endif %}

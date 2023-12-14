@@ -22,6 +22,18 @@ available_api_services = [
     "keycloak"
 ]
 
+supported_public_clouds = [
+    "aws",
+    "azure",
+    "gcp",
+    "ovh"
+]
+
+supported_private_providers = [
+    "nutanix",
+    "vsphere"
+]
+
 terraform_vm_resource_name = {
     "aws": "aws_instance",
     "azure": "azurerm_virtual_machine",
@@ -206,8 +218,10 @@ allowed_actions = {
         "1": "configure_ip",
         "scope_folder": "prepare_scope_folder",
         "2": "prepare_scope_folder",
+        "set_admin": "set_admin",
+        "3": "set_admin",
         "set_mode": "set_mode",
-        "3": "set_mode",
+        "4": "set_mode",
         "meta_aggregate": "init_meta_aggregate",
         "M1": "init_meta_aggregate",
         "meta_distribute": "init_meta_distribute",
@@ -278,6 +292,8 @@ allowed_actions = {
         "D": "dns",
         "vms": "vms",
         "V": "vms",
+        "subnets": "subnets",
+        "S": "subnets",
         "M": "monitoring",
         "monitoring": "monitoring"
     }
