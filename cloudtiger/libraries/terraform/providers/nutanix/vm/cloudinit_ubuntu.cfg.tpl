@@ -1,10 +1,28 @@
 #cloud-config
 hostname: ${vm_name}
-password: ubuntu
 chpasswd: { expire: False }
-ssh_pwauth: True
+
+ssh_pwauth: false
+disable_root: true
+
 keyboard:
   layout: fr
+
+users:
+  - name: ubuntu
+    lock-passwd: false  # Allow password login
+    passwd: ${password}  # Specify the password here
+    groups: sudo
+    shell: /bin/bash
+%{ for user in users_list ~}
+  - name: ${ user.name }
+    ssh-authorized-keys:
+%{ for key in user.public_key ~}
+      - ${ key }
+%{ endfor ~}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+%{ endfor ~}
 
 write_files:
 - path: /etc/netplan/00-installer-config.yaml
@@ -30,3 +48,8 @@ write_files:
 
 runcmd:
 - netplan apply
+
+package_update: true
+package_upgrade: true
+packages:
+  - apt-transport-https
