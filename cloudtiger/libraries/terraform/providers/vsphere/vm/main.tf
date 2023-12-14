@@ -84,7 +84,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
   name     = var.vm.vm_name
   num_cpus = var.vm.instance_type.nb_vcpu_per_socket
   memory   = var.vm.instance_type.memory
-  folder   = "sandbox"
+  folder   = var.vm.folder
 
   scsi_type                  = "pvscsi"
   resource_pool_id           = data.vsphere_resource_pool.pool.id
