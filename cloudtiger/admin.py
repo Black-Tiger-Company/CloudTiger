@@ -10,7 +10,7 @@ import sys
 import dns
 from dns.resolver import Resolver
 from dns.resolver import NXDOMAIN
-from cloudtiger.specific.nutanix import get_vms_list_per_vlan
+from cloudtiger.specific.nutanix import get_vms_list_per_vlan, get_subnets_list
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action
 
@@ -228,6 +228,17 @@ def vms(operation: Operation):
 
     if operation.provider == "nutanix":
         get_vms_list_per_vlan(operation)
+
+def subnets(operation: Operation):
+
+    """ this function list all subnets from virtualizer and compare with 
+    meta folder
+
+    :param operation: Operation, the current Operation
+    """
+
+    if operation.provider == "nutanix":
+        get_subnets_list(operation)
 
 def infer_metadata(operation: Operation, vm: dict, vm_name: str):
 
