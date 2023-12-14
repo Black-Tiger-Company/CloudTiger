@@ -1,12 +1,15 @@
 """CloudTiger functions for running Terraform actions."""
 import json
 import os
+import random
+import string
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action
-from cloudtiger.data import terraform_vm_resource_name
+from cloudtiger.data import terraform_vm_resource_name, supported_private_providers
 from cloudtiger.specific.nutanix import get_vm_nutanix_uuid
 
+DEFAULT_PASSWORD_LENGTH = 64
 
 def tf_generic(operation: Operation, tf_action):
     """ This function executes the wrapped Terraform command for the chosen provider
@@ -16,6 +19,21 @@ def tf_generic(operation: Operation, tf_action):
     """
 
     operation.logger.info("Executing Terraform command %s", tf_action)
+
+    # create a custom environment for the ansible bash command
+    tf_env = os.environ
+
+    # add a random default password
+    characters = string.ascii_letters + string.digits  # Uppercase letters, lowercase letters, and digits
+    tf_env['TF_VAR_default_password'] = ''.join(random.choice(characters) for _ in range(DEFAULT_PASSWORD_LENGTH))
+
+    # add current scope path as default folder
+    if operation.provider == "vsphere":
+        splitted_scope = operation.scope.split(os.sep)
+        # by default we remove the first folder of the scope (usually used to define the cluster name)
+        if len(splitted_scope) > 1:
+            splitted_scope = splitted_scope[1:]
+        tf_env['TF_VAR_scope_folder'] = "/".join(splitted_scope)
 
     # if tf action is not output, import or rm, we need to provide the tfvars files
     # as extra parameters
@@ -45,7 +63,7 @@ def tf_generic(operation: Operation, tf_action):
             if os.path.exists(test_tf_plan_file):
                 os.remove(test_tf_plan_file)
             bash_action(operation.logger, command, operation.scope_terraform_folder,
-                        os.environ, test_tf_plan_file)
+                        tf_env, test_tf_plan_file)
             with open(test_tf_plan_file, "r") as f:
                 test_tf_plan = f.read().split("\n")
             test_tf_plan = {
@@ -66,7 +84,14 @@ def tf_generic(operation: Operation, tf_action):
                     command += " -reconfigure"
 
             bash_action(operation.logger, command, operation.scope_terraform_folder,
-                        os.environ, operation.stdout_file)
+                        tf_env, operation.stdout_file)
+
+            # if the action is 'tf apply' and we have VMs we dump the default password we used
+            if (tf_action == "apply") and (operation.provider in supported_private_providers):
+                if ("vm" in operation.used_services) or ("vm_template" in operation.used_services):
+                    default_password_file = os.path.join(operation.scope_terraform_folder, ".env")
+                    with open(default_password_file, "w") as f:
+                        f.write(f"export TF_VAR_default_password={tf_env['TF_VAR_default_password']}")
 
     # 'import' is a non-terraform CLI, custom command, that remove all VMs of the
     # config.yml from the state if they are in the state, then reimport them.
@@ -77,7 +102,7 @@ def tf_generic(operation: Operation, tf_action):
         temp_vm_list_file = os.path.join(operation.scope_terraform_folder, "temp_vm_list_file.txt")
         command = "terraform state list"
         bash_action(operation.logger, command, operation.scope_terraform_folder,
-                    os.environ, output=temp_vm_list_file)
+                    tf_env, output=temp_vm_list_file)
 
         # purging state from vms
         with open(temp_vm_list_file, "r") as f:
@@ -89,7 +114,7 @@ def tf_generic(operation: Operation, tf_action):
                     command = "terraform state rm " + res  # + ' -lock=false'
                     operation.logger.info('Purging VM %s from tfstate' % res)
                     bash_action(operation.logger, command, operation.scope_terraform_folder,
-                                os.environ, output=operation.stdout_file)
+                                tf_env, output=operation.stdout_file)
 
         if os.path.exists(temp_vm_list_file):
             os.remove(temp_vm_list_file)
@@ -130,7 +155,7 @@ def tf_generic(operation: Operation, tf_action):
         # importing vms
         for command in commands:
             bash_action(operation.logger, command, operation.scope_terraform_folder,
-                        os.environ, operation.stdout_file)
+                        tf_env, operation.stdout_file)
 
     if tf_action == "rm":
         commands = [
@@ -141,13 +166,13 @@ def tf_generic(operation: Operation, tf_action):
 
         for command in commands:
             bash_action(operation.logger, command, operation.scope_terraform_folder,
-                        os.environ, operation.stdout_file)
+                        tf_env, operation.stdout_file)
 
     # at the end of a terraform apply/refresh/output command, we execute a 'terraform output'
     if tf_action in ["apply", "refresh", "output"]:
         os.makedirs(operation.scope_inventory_folder, exist_ok=True)
         command = "terraform output -json"
-        bash_action(operation.logger, command, operation.scope_terraform_folder, os.environ,
+        bash_action(operation.logger, command, operation.scope_terraform_folder, tf_env,
                     operation.terraform_output, single_output=True)
 
     if tf_action == "destroy":

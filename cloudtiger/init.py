@@ -10,6 +10,7 @@ import ipaddress
 import click
 import netaddr
 import yaml
+import requests
 
 import re
 
@@ -193,7 +194,7 @@ def configure_ip(operation: Operation):
                 ["subnets"][subnet_name]["cidr_block"], strict=False)
                 vlan_all_ip_addresses = [str(ip) for ip in network.hosts()]
                 vlan_all_ip_set_addresses = [
-                    address for vm, address in all_vms_per_vlan["vm_ips"].get(subnet_name, {}).get("addresses", {}).items()
+                    ip for vm, address in all_vms_per_vlan["vm_ips"].get(subnet_name, {}).get("addresses", {}).items() for ip in address.split(',')
                 ]
                 unsorted_all_available_ips = [
                     address for address in vlan_all_ip_addresses if address not in vlan_all_ip_set_addresses
@@ -635,3 +636,61 @@ def init_meta_aggregate(operation: Operation):
     meta_config_path = os.path.join(operation.scope_config_folder, "meta_config.yml")
     with open(meta_config_path, "w") as f:
         yaml.dump(meta_config, f)
+
+def set_admin(operation: Operation):
+
+    """ this function download the list of default admin users for the newly created
+    VMs, and their associated SSH public keys """
+
+    # we download the list of admin users
+    admin_list = []
+    try:
+        # Construct the full URL to the YAML file in the Nexus repository
+        full_url = f"{operation.scope_config_dict['artefacts_repository_admin_user_list']}"
+
+        # Send a GET request to download the YAML file
+        response = requests.get(full_url)
+
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            # Load the YAML content as a Python dictionary
+            admin_list = yaml.safe_load(response.text)
+        else:
+            print(f"Failed to download YAML file. Status code: {response.status_code}")
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+    admin_public_keys = []
+
+    for admin in admin_list:
+        try:
+            # Construct the full URL to the YAML file in the Nexus repository
+            full_url = f"{operation.scope_config_dict['artefacts_repository_public_key_url']}/{ admin['name'] }_authorized_key/latest/{ admin['name'] }_authorized_key-latest.txt"
+
+            # Send a GET request to download the YAML file
+            response = requests.get(full_url)
+
+            # parse list of keys
+            keys = [key for key in response.text.split('\n') if key != ""]
+
+            # Check if the request was successful (status code 200)
+            if response.status_code == 200:
+                # Load the YAML content as a Python dictionary
+                admin_public_keys.append({
+                    'name' : admin['name'],
+                    'public_key' : keys
+                })
+            else:
+                print(f"Failed to download key file. Status code: {response.status_code}")
+
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+
+    admin_public_keys_tfvars_file = os.path.join(operation.scope_terraform_folder, "admin.auto.tfvars.json")
+    print(admin_public_keys_tfvars_file)
+    with open(admin_public_keys_tfvars_file, "w") as f:
+        json.dump({"users_list": admin_public_keys}, f, indent=4)
+
+
+    return None
