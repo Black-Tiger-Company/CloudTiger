@@ -10,6 +10,7 @@ from cloudtiger.init import (
     configure_ip,
     prepare_scope_folder,
     set_mode,
+    set_admin,
     init_meta_aggregate,
     init_meta_distribute
 )
@@ -30,7 +31,7 @@ from cloudtiger.common_tools import create_logger
 from cloudtiger.data import allowed_actions, available_api_services, non_scope_init_actions
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
-from cloudtiger.admin import gather, dns, vms, monitoring
+from cloudtiger.admin import gather, dns, vms, monitoring, subnets
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -139,7 +140,8 @@ def init(context, action, action_argument):
 for the current scope in secrets/ssh/<PROVIDER>/private|public
 \n- get_ip (1)            : collect available IPs from fping
 \n- scope_folder (2)      : prepare scope folder
-\n- set_mode (3)          : update config.yml to associate specification mode (HA, low, ...) to vm parameters
+\n- set_admin (3)         : prepare list of admin users for the VMs
+\n- set_mode (4)          : update config.yml to associate specification mode (HA, low, ...) to vm parameters
 \n- meta_aggregate (M1)   : aggregate config.yml files from children scopes
 \n- meta_distribute (M2)  : distribute the meta_config.yml to children scopes
 \n- consolidate (C)       : consolidate addresses and networks from 

@@ -83,6 +83,15 @@ variable vm_types {
   description = "description"
 }
 
+variable default_password {
+	description = "Default password at VM startup"
+}
+
+variable scope_folder {
+	description = "Folder of the VM - used by vSphere provider"
+	default = "."
+}
+
 ### SSH keys
 variable ssh_public_key {
   description = "path to public SSH key or name of SSH public key on public cloud account"
@@ -94,6 +103,12 @@ variable default_os_user {
 	description = "name of the user for VMs"
 	type = map(any)
 	default     = {}
+}
+
+### List of default admins
+variable users_list {
+	description = "list of default admins for VMs"
+	default = []
 }
 
 ### kubernetes clusters

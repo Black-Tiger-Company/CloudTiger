@@ -66,6 +66,8 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
       search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
       interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
+      password   = var.vm.default_password
+      users_list = var.vm.users_list
     }
   ))
 

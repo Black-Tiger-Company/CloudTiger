@@ -267,10 +267,14 @@ locals {
 					imported = lookup(vm, "imported", "false")
 
 					### used by vsphere
-					folder = lookup(vm, "folder", "no_folder_used")
+					folder = lookup(vm, "folder", var.scope_folder)
 
 					### used by vsphere for identifying templates
 					is_template = lookup(vm, "is_template", false)
+
+					### used by non-cloud providers
+					default_password = var.default_password
+					users_list = var.users_list
 
 				}
 			]
