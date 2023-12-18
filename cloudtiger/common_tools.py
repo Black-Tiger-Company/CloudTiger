@@ -17,7 +17,8 @@ from jinja2 import Template
 def merge_dictionaries(dict1: dict, dict2: dict) -> dict:
 
     """
-    Recursive merge dictionaries.
+    Recursive merge dictionaries, with priority to the key
+    from the first dictionary.
 
     :param dict1: Base dictionary to merge.
     :param dict2: Dictionary to merge on top of base dictionary.

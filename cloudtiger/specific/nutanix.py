@@ -40,12 +40,12 @@ def get_vm_nutanix_uuid(operation: Operation, vm_name):
 
     return uuid
 
-def get_vms_list_per_vlan(operation: Operation):
+def get_vms_list_per_vlan_nutanix(operation: Operation):
 
     """ this function calls the nutanix API to get all the VMs inside a VLAN """
-    url = format("https://%s:9440/api/nutanix/v3/%s/list" % (operation.provider_secret.get("TF_VAR_nutanix_endpoint", "nutanix_endpoint"), "vms"))
+    url = format("https://%s:9440/api/nutanix/v3/%s/list" % (operation.provider_secret.get("TF_VAR_nutanix_endpoint", os.environ.get("TF_VAR_nutanix_endpoint", "nutanix_endpoint")), "vms"))
 
-    nutanix_auth = base64.b64encode((operation.provider_secret.get("TF_VAR_nutanix_user", "missing_user") + ':' + operation.provider_secret.get("TF_VAR_nutanix_password", "missing_password")).encode('ascii')).decode('ascii')
+    nutanix_auth = base64.b64encode((operation.provider_secret.get("TF_VAR_nutanix_user", os.environ.get("TF_VAR_nutanix_user","missing_user")) + ':' + operation.provider_secret.get("TF_VAR_nutanix_password", os.environ.get("TF_VAR_nutanix_password", "missing_password"))).encode('ascii')).decode('ascii')
 
     headers = {
             "Authorization" : "Basic " + nutanix_auth,

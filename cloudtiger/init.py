@@ -17,7 +17,8 @@ import re
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, merge_dictionaries, read_user_choice, get_credentials
 from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping, custom_ssh_port_per_vm_type
-from cloudtiger.specific.nutanix import get_vms_list_per_vlan
+from cloudtiger.specific.nutanix import get_vms_list_per_vlan_nutanix
+from cloudtiger.specific.vsphere import get_vms_list_per_vlan_vsphere
 
 def config(operation: Operation):
 
@@ -169,8 +170,18 @@ def configure_ip(operation: Operation):
     # listing all the subnets that need to be crawled for available IPs
 
     all_vms_per_vlan = {}
-    if operation.provider == "nutanix":
-        all_vms_per_vlan = get_vms_list_per_vlan(operation)
+
+    # we collect IPs from existing VMs on private cloud providers
+    if (operation.provider == "nutanix") or ('TF_VAR_nutanix_endpoint' in os.environ.keys()):
+        all_vms_per_vlan_nutanix = get_vms_list_per_vlan_nutanix(operation)
+        merge_dictionaries(all_vms_per_vlan_nutanix, all_vms_per_vlan)
+
+    if (operation.provider == "vsphere") or ('TF_VAR_vsphere_url' in os.environ.keys()):
+        all_vms_per_vlan_vsphere = get_vms_list_per_vlan_vsphere(operation)
+        merge_dictionaries(all_vms_per_vlan_vsphere, all_vms_per_vlan)
+
+    operation.logger.debug("All considered VMs per VLAN :")
+    operation.logger.debug(yaml.dump(all_vms_per_vlan))
 
     subnets_to_crawl = {}
     for network_name, network_subnets in operation.scope_config_dict.get('vm', {}).items():
@@ -189,7 +200,7 @@ def configure_ip(operation: Operation):
     for network_name, network_subnets in subnets_to_crawl.items():
         available_ips[network_name] = {}
         for subnet_name in network_subnets:
-            if operation.provider == "nutanix":
+            if operation.provider in ["nutanix", "vsphere"]:
                 network = ipaddress.IPv4Network(operation.scope_config_dict["network"][network_name]\
                 ["subnets"][subnet_name]["cidr_block"], strict=False)
                 vlan_all_ip_addresses = [str(ip) for ip in network.hosts()]

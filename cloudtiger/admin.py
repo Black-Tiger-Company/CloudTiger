@@ -10,7 +10,7 @@ import sys
 import dns
 from dns.resolver import Resolver
 from dns.resolver import NXDOMAIN
-from cloudtiger.specific.nutanix import get_vms_list_per_vlan, get_subnets_list
+from cloudtiger.specific.nutanix import get_vms_list_per_vlan_nutanix, get_subnets_list
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action
 
@@ -227,7 +227,7 @@ def vms(operation: Operation):
     """
 
     if operation.provider == "nutanix":
-        get_vms_list_per_vlan(operation)
+        get_vms_list_per_vlan_nutanix(operation)
 
 def subnets(operation: Operation):
 
