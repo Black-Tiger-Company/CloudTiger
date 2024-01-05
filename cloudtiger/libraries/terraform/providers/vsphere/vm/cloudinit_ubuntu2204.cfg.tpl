@@ -71,10 +71,12 @@ write_files:
 
 runcmd:
 - rm /etc/netplan/50-cloud-init.yaml
+- chmod -R go-rwx /etc/netplan
 - netplan apply
-- echo "${password_user_ldap_join}" | realm join -U ${user_ldap_join} ${domain_ldap} --computer-ou=${ou_ldap}
+- echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}"
 - cd / && patch -p0 -i /root/temporary
 - sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart && service ssh restart
+- passwd -l ubuntu
 
 package_update: true
 package_upgrade: true
