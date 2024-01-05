@@ -12,10 +12,12 @@ locals {
 
   cloud_init_templates = {
     "jammy/current/jammy-server-cloudimg-amd64.ova" = "cloudinit_ubuntu2204.cfg.tpl"
+    "ubuntu-2204-lts-server-bt-ad-template" = "cloudinit_ubuntu2204.cfg.tpl"
     "ubuntu2204-template" = "cloudinit_ubuntu2204.cfg.tpl"
   }
 
   guestIdMappings = {
+    "ubuntu-2204-lts-server-bt-ad-template" = "ubuntu64Guest"
     "ubuntu2204-template" = "ubuntu64Guest"
   }
 }
@@ -117,7 +119,12 @@ resource "vsphere_virtual_machine" "virtual_machine" {
           nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
           search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
           interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
-          password = "ubuntu"
+          password   = var.vm.default_password
+          domain_ldap = var.vm.domain_ldap
+          ou_ldap = var.vm.ou_ldap
+          user_ldap_join = var.vm.user_ldap_join
+          password_user_ldap_join = var.vm.password_user_ldap_join
+          users_list = var.vm.users_list
         }
       ))
     }

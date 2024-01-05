@@ -275,7 +275,10 @@ locals {
 					### used by non-cloud providers
 					default_password = var.default_password
 					users_list = var.users_list
-
+					domain_ldap = var.domain_ldap
+					ou_ldap = var.ou_ldap
+					user_ldap_join = var.user_ldap_join
+					password_user_ldap_join = var.password_user_ldap_join
 				}
 			]
 		]

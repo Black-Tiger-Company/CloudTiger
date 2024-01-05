@@ -87,8 +87,12 @@ system_images:
       name: "jammy/current/jammy-server-cloudimg-amd64.ova"
       username: "ubuntu"
     ubuntu22_server_template:
+      name: "ubuntu-2204-lts-server-bt-ad-template"
+      username: "ubuntu"
+    ubuntu22_server_template_antoine:
       name: "ubuntu2204-template"
       username: "ubuntu"
+
 
 ### vm types
 vm_types:
