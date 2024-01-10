@@ -103,6 +103,14 @@ variable password_user_ldap_join {
 	description = "Password of User to join computer to LDAP or AD"
 }
 
+variable ldap_user_search_base {
+	description = "Search base to lookup User on LDAP or AD"
+}
+
+variable ldap_sudo_search_base {
+	description = "Search base to lookup Sudo command on LDAP or AD"
+}
+
 variable scope_folder {
 	description = "Folder of the VM - used by vSphere provider"
 	default = "."

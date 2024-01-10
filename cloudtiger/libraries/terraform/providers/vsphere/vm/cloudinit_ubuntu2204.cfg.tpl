@@ -46,37 +46,43 @@ write_files:
 - path: /root/temporary
   permissions: '0600'
   content: |
-    --- /etc/sssd/sssd.conf~    2023-12-13 19:14:57.000000000 +0100
-    +++ /etc/sssd/sssd.conf    2023-12-13 19:19:02.156374438 +0100
-    @@ -1,8 +1,10 @@
-    -
-     [sssd]
-     domains = btgroup.io
-     config_file_version = 2
-    -services = nss, pam
-    +services = nss, pam, sudo, ssh
-    +
-    +[sudo]
-    +
-    
-     [domain/btgroup.io]
-     default_shell = /bin/bash
-    @@ -16,3 +18,6 @@
-     use_fully_qualified_names = True
-     ldap_id_mapping = True
-     access_provider = ad
-    +ldap_user_extra_attrs = sshPublicKeys:sshPublicKeys
-    +ldap_user_ssh_public_key = sshPublicKeys
-    +ldap_use_tokengroups = True
+    [sssd]
+    domains = ${domain_ldap}
+    config_file_version = 2
+    services = nss, pam, sudo, ssh
+
+    [sudo]
+
+    [domain/${domain_ldap}]
+    ldap_user_search_base = ${ldap_user_search_base}
+    ldap_sudo_search_base = ${ldap_sudo_search_base}
+    ad_enabled_domains = ${domain_ldap}
+    default_shell = /bin/bash
+    krb5_store_password_if_offline = True
+    cache_credentials = True
+    krb5_realm = ${uppercase_domain_ldap}
+    realmd_tags = manages-system joined-with-adcli 
+    id_provider = ad
+    fallback_homedir = /home/%u@%d
+    ad_domain = ${domain_ldap}
+    use_fully_qualified_names = True
+    ldap_id_mapping = True
+    access_provider = ad
+    ldap_user_extra_attrs = sshPublicKeys:sshPublicKeys
+    ldap_user_ssh_public_key = sshPublicKeys
+    ldap_use_tokengroups = True
+
 
 runcmd:
+- hostnamectl hostname ${vm_name}
 - rm /etc/netplan/50-cloud-init.yaml
 - chmod -R go-rwx /etc/netplan
 - netplan apply
 - echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}"
-- cd / && patch -p0 -i /root/temporary
+- cp /root/temporary /etc/sssd/sssd.conf
 - sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart && service ssh restart
-- passwd -l ubuntu
+- rm /root/temporary
+- userdel -r ubuntu
 
 package_update: true
 package_upgrade: true

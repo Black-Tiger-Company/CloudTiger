@@ -100,6 +100,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
     content {
       template_uuid   = data.vsphere_virtual_machine.ova_template.id
       linked_clone    = false
+      timeout         = 120
       ovf_network_map = {}
       ovf_storage_map = {}
     }
@@ -121,9 +122,12 @@ resource "vsphere_virtual_machine" "virtual_machine" {
           interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
           password   = var.vm.default_password
           domain_ldap = var.vm.domain_ldap
+          uppercase_domain_ldap = upper(var.vm.domain_ldap)
           ou_ldap = var.vm.ou_ldap
           user_ldap_join = var.vm.user_ldap_join
           password_user_ldap_join = var.vm.password_user_ldap_join
+          ldap_user_search_base = var.vm.ldap_user_search_base
+          ldap_sudo_search_base = var.vm.ldap_sudo_search_base
           users_list = var.vm.users_list
         }
       ))
