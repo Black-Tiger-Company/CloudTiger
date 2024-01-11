@@ -185,7 +185,7 @@ locals {
 						"size": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"size":16})["size"]
 						}
 					)
-					root_volume_size = lookup(vm, "root_volume_size", 16) * 1024
+					root_volume_size = lookup(vm, "root_volume_size", 16) # * 1024
 					default_root_volume_size = 16
 
 					data_volumes = {

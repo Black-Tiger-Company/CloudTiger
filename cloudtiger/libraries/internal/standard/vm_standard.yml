@@ -64,6 +64,9 @@ system_images:
     debian11:
       name: "debian-11-genericcloud-amd64.qcow2"
       username: "debian"
+    debian11-packer:
+      name: "debian-test-user-data-packer-image-11"
+      username: "debian"
     ubuntu_server:
       name: "ubuntu-20.04-server-cloudimg-amd64.img"
       username: "ubuntu"

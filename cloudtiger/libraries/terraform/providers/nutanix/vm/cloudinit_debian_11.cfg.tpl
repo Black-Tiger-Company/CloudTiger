@@ -1,8 +1,24 @@
 #cloud-config
 hostname: ${vm_name}
-password: debian
+password: 5yb2Uh6AGndQ26
 chpasswd: { expire: False }
-ssh_pwauth: True
+ssh_pwauth: false
+
+users:
+  - name: ubuntu
+    lock-passwd: false  # Allow password login
+    passwd: ${password}  # Specify the password here
+    groups: sudo
+    shell: /bin/bash
+%{ for user in users_list ~}
+  - name: ${ user.name }
+    ssh-authorized-keys:
+%{ for key in user.public_key ~}
+      - ${ key }
+%{ endfor ~}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+%{ endfor ~}
 
 write_files:
 - path: /etc/network/interfaces.d/00-installer-config

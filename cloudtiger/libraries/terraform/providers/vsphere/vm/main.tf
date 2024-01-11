@@ -138,7 +138,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
   disk {
     label             = "disk0"
     datastore_id      = data.vsphere_datastore.datastore_root.id
-    size              = max(lookup(var.vm.root_volume, "size", var.vm.default_root_volume_size), local.main_disk.size)
+    size              = max(lookup(var.vm, "root_volume_size", var.vm.default_root_volume_size), local.main_disk.size)
     eagerly_scrub     = lookup(local.main_disk, "eagerly_scrub", true)
     thin_provisioned  = lookup(local.main_disk, "thin_provisioned", false)
     keep_on_remove    = true

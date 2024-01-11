@@ -17,6 +17,7 @@ locals {
   cloud_init_templates = {
     "debian-10-genericcloud-amd64.qcow2"     = "cloudinit_debian.cfg.tpl"
     "debian-11-genericcloud-amd64.qcow2"     = "cloudinit_debian_11.cfg.tpl"
+    "debian-test-user-data-packer-image-11"  = "cloudinit_debian_11.cfg.tpl"
     "ubuntu-20.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
     "ubuntu-22.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
   }
@@ -125,7 +126,7 @@ resource "nutanix_virtual_machine" "virtual_machine" {
       kind = "image"
       uuid = data.nutanix_image.image.metadata.uuid
     }
-    disk_size_mib = var.vm.root_volume_size
+    disk_size_mib = var.vm.root_volume_size * 1024
   }
 
   dynamic "disk_list" {
