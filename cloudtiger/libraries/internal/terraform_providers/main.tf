@@ -185,7 +185,7 @@ locals {
 						"size": lookup(lookup(var.generic_volume_parameters, var.cloud_provider, var.generic_volume_parameters["default"]), lookup(vm, "root_volume_type", "custom"), {"size":16})["size"]
 						}
 					)
-					root_volume_size = lookup(vm, "root_volume_size", 16) * 1024
+					root_volume_size = lookup(vm, "root_volume_size", 16) # * 1024
 					default_root_volume_size = 16
 
 					data_volumes = {
@@ -275,7 +275,13 @@ locals {
 					### used by non-cloud providers
 					default_password = var.default_password
 					users_list = var.users_list
-
+					domain_ldap = var.domain_ldap
+					ou_ldap = var.ou_ldap
+					user_ldap_join = var.user_ldap_join
+					password_user_ldap_join = var.password_user_ldap_join
+					ldap_user_search_base = var.ldap_user_search_base
+					ldap_sudo_search_base = var.ldap_sudo_search_base
+					ad_groups = lookup(vm, "ad_groups", [])
 				}
 			]
 		]

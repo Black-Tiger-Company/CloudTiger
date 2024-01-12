@@ -12,11 +12,13 @@ locals {
 
   cloud_init_templates = {
     "jammy/current/jammy-server-cloudimg-amd64.ova" = "cloudinit_ubuntu2204.cfg.tpl"
+    "ubuntu-2204-lts-server-bt-ad-template" = "cloudinit_ubuntu2204.cfg.tpl"
     "ubuntu2204-template" = "cloudinit_ubuntu2204.cfg.tpl"
     "bt-ubuntu-2204-server-model" = "cloudinit_ubuntu2204.cfg.tpl"
   }
 
   guestIdMappings = {
+    "ubuntu-2204-lts-server-bt-ad-template" = "ubuntu64Guest"
     "ubuntu2204-template" = "ubuntu64Guest"
     "bt-ubuntu-2204-server-model" = "ubuntu64Guest"
   }
@@ -100,6 +102,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
     content {
       template_uuid   = data.vsphere_virtual_machine.ova_template.id
       linked_clone    = false
+      timeout         = 120
       ovf_network_map = {}
       ovf_storage_map = {}
     }
@@ -112,6 +115,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
       "user-data"     = base64encode(templatefile(format("%s/%s", path.module, local.cloud_init_templates[var.vm.system_image]),
         {
           vm_name    = var.vm.vm_name
+          ad_groups   = lookup(var.vm, "ad_groups", [])
           user       = lookup(var.vm, "user", "unset_user")
           vm_address = lookup(var.vm, "private_ip", "learned")
           vm_gateway  = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["gateway_ip_address"]
@@ -120,6 +124,13 @@ resource "vsphere_virtual_machine" "virtual_machine" {
           search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
           interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
           password   = var.vm.default_password
+          domain_ldap = var.vm.domain_ldap
+          uppercase_domain_ldap = upper(var.vm.domain_ldap)
+          ou_ldap = var.vm.ou_ldap
+          user_ldap_join = var.vm.user_ldap_join
+          password_user_ldap_join = var.vm.password_user_ldap_join
+          ldap_user_search_base = var.vm.ldap_user_search_base
+          ldap_sudo_search_base = var.vm.ldap_sudo_search_base
           users_list = var.vm.users_list
         }
       ))
@@ -130,7 +141,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
   disk {
     label             = "disk0"
     datastore_id      = data.vsphere_datastore.datastore_root.id
-    size              = max(lookup(var.vm.root_volume, "size", var.vm.default_root_volume_size), local.main_disk.size)
+    size              = max(lookup(var.vm, "root_volume_size", var.vm.default_root_volume_size), local.main_disk.size)
     eagerly_scrub     = lookup(local.main_disk, "eagerly_scrub", true)
     thin_provisioned  = lookup(local.main_disk, "thin_provisioned", false)
     keep_on_remove    = true

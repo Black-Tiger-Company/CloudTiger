@@ -1,6 +1,6 @@
 #cloud-config
 hostname: ${vm_name}
-password: 5yb2Uh6AGndQ26
+password: ${password}
 chpasswd: { expire: False }
 ssh_pwauth: false
 

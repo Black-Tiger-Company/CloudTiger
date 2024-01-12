@@ -87,6 +87,30 @@ variable default_password {
 	description = "Default password at VM startup"
 }
 
+variable domain_ldap {
+	description = "LDAP or AD Domain to join"
+}
+
+variable ou_ldap {
+	description = "LDAP or AD OU to join computer"
+}
+
+variable user_ldap_join {
+	description = "User to join computer to LDAP or AD"
+}
+
+variable password_user_ldap_join {
+	description = "Password of User to join computer to LDAP or AD"
+}
+
+variable ldap_user_search_base {
+	description = "Search base to lookup User on LDAP or AD"
+}
+
+variable ldap_sudo_search_base {
+	description = "Search base to lookup Sudo command on LDAP or AD"
+}
+
 variable scope_folder {
 	description = "Folder of the VM - used by vSphere provider"
 	default = "."
