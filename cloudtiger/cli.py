@@ -32,6 +32,7 @@ from cloudtiger.data import allowed_actions, available_api_services, non_scope_i
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
 from cloudtiger.admin import gather, dns, vms, monitoring, subnets
+from cloudtiger.config import generate
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -481,11 +482,45 @@ def admin(context, action, domain, timestamp, all_vms, check_existence):
 
     operation.logger.info("Finished admin action sucessfully")
 
+@click.command('config', short_help='config actions')
+@click.argument('action')
+@click.pass_context
+def config(context, action):
+    """ Config actions for generating a new scope and a new config.yml :
+\n- generate (G)            : generate a scope and a config file
+    """
+
+    for operation_context in context.obj['operations']:
+        operation: Operation = operation_context
+
+        operation.logger.info("config action on folder %s" % operation.scope)
+
+        # check if action is allowed
+        if action in allowed_actions["admin"].keys():
+
+            operation.logger.debug("%s command" %
+                                   allowed_actions["admin"][action])
+            operation.scope_setup()
+
+            # we need to load meta information
+            operation.logger.info("Loading current meta information")
+            operation.load_meta_info()
+
+            globals()[allowed_actions["admin"][action]](operation)
+
+        else:
+            # unallowed action
+            operation.logger.error("Unallowed action %s" % action)
+            sys.exit()
+
+    operation.logger.info("Finished admin action sucessfully")
+
 main.add_command(init)
 main.add_command(tf)
 main.add_command(ans)
 main.add_command(service)
 main.add_command(admin)
+main.add_command(config)
 
 if __name__ == "__main__":
     main()

@@ -296,8 +296,34 @@ allowed_actions = {
         "S": "subnets",
         "M": "monitoring",
         "monitoring": "monitoring"
+    },
+    "config": {
+        "generate": "generate",
+        "G": "generate"
     }
 }
+
+common_environments = [
+    "prod",
+    "preprod",
+    "staging",
+    "integration",
+    "qa",
+    "dev",
+    "test",
+    "demo",
+    "sandbox"
+]
+
+common_internal_customers = [
+    "dev",
+    "demo",
+    "devops",
+    "front",
+    "back",
+    "sys",
+    "internal"
+]
 
 common_group_names = [
     "lb",

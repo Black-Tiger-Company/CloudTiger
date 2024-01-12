@@ -217,6 +217,9 @@ class Operation:
         # Meta network info
         self.network_info = {}
 
+        # Meta exhaustive network info
+        self.all_network_info = {}
+
         # Meta addresses info
         self.addresses_info = {}
 
@@ -544,6 +547,11 @@ class Operation:
         # else:
         #     self.logger.critical(f"Error : file {networks_info_file} not found")
         #     sys.exit()
+
+        all_networks_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_networks.yml')
+        if os.path.isfile(all_networks_info_file):
+            with open(all_networks_info_file, "r") as f:
+                self.all_network_info = yaml.load(f, Loader=yaml.FullLoader)
 
         if self.all_vms:
             addresses_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_vms.yml')
