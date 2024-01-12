@@ -25,18 +25,19 @@ users:
 %{ endfor ~}
 
 write_files:
-- path: /etc/netplan/00-installer-config.yaml
-  permissions: '0644'
+- path: /home/ubuntu/configure-network.sh
   content: |
+    #!/bin/bash
+    default_interface=$(ip route | grep default | awk '{print $5}')
+    cat <<EOF > /etc/netplan/00-installer-config.yaml
     network:
       version: 2
       ethernets:
-        eth0:
-          match:
-            name: en*
-          set-name: eth0
+        $default_interface:
+          dhcp4: no
           addresses:
           - ${vm_address}/${netmask}
+          gateway4: ${vm_gateway}
           nameservers:
             addresses: 
     %{ for nameserver in nameservers ~}
@@ -46,17 +47,13 @@ write_files:
     %{ for search_addr in search ~}
             - ${search_addr}
     %{ endfor ~}
-      routes:
-          - to: default
-            via: ${vm_gateway}
-
+    EOF
+  permissions: '0755'
 
 runcmd:
+- /home/ubuntu/configure-network.sh
 - chmod -R go-rwx /etc/netplan
 - netplan apply
-- rmmod floppy
-- echo "blacklist floppy" | sudo tee /etc/modprobe.d/blacklist-floppy.conf
-- LANG=C sudo update-initramfs -u -k all && LANG=C sudo update-grub
 
 package_update: true
 package_upgrade: true

@@ -32,17 +32,24 @@ write_files:
     network:
       version: 2
       ethernets:
-        ens192:
-          dhcp4: no
+        eth0:
+          match:
+            name: en*
+          set-name: eth0
           addresses:
           - ${vm_address}/${netmask}
-          gateway4: ${vm_gateway}
           nameservers:
             addresses: 
     %{ for nameserver in nameservers ~}
             - ${nameserver}
     %{ endfor ~}
+      routes:
+          - to: default
+            via: ${vm_gateway}
 
 runcmd:
 - chmod -R go-rwx /etc/netplan
 - netplan apply
+- rmmod floppy
+- echo "blacklist floppy" | sudo tee /etc/modprobe.d/blacklist-floppy.conf
+- LANG=C sudo update-initramfs -u -k all && LANG=C sudo update-grub
