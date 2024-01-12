@@ -113,6 +113,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
       "user-data"     = base64encode(templatefile(format("%s/%s", path.module, local.cloud_init_templates[var.vm.system_image]),
         {
           vm_name    = var.vm.vm_name
+          ad_groups   = lookup(var.vm, "ad_groups", [])
           user       = lookup(var.vm, "user", "unset_user")
           vm_address = lookup(var.vm, "private_ip", "learned")
           vm_gateway  = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["gateway_ip_address"]

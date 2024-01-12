@@ -54,7 +54,7 @@ write_files:
     [sudo]
 
     [domain/${domain_ldap}]
-    ldap_user_search_base = ${ldap_user_search_base}
+    ldap_user_search_base = ${ldap_user_search_base}%{ for ad_group in ad_groups ~}?DC=btgroup,DC=io?subtree?(memberOf=CN=${ad_group},OU=BT_Groups,DC=btgroup,DC=io)%{ endfor ~}?DC=btgroup,DC=io?subtree?(memberOf=CN=acl-ssh-${vm_name},OU=BT_Groups,DC=btgroup,DC=io)
     ldap_sudo_search_base = ${ldap_sudo_search_base}
     ad_enabled_domains = ${domain_ldap}
     default_shell = /bin/bash
@@ -81,6 +81,10 @@ runcmd:
 - echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}"
 - cp /root/temporary /etc/sssd/sssd.conf
 - sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart && service ssh restart
+- chown root:acl_docker@btgroup.io /data/docker
+- chmod u+rwx /data/docker
+- chmod g+rws /data/docker
+- chmod o-rwx /data/docker
 - rm /root/temporary
 - userdel -r ubuntu
 

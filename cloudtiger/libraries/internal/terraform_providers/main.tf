@@ -281,6 +281,7 @@ locals {
 					password_user_ldap_join = var.password_user_ldap_join
 					ldap_user_search_base = var.ldap_user_search_base
 					ldap_sudo_search_base = var.ldap_sudo_search_base
+					ad_groups = lookup(vm, "ad_groups", [])
 				}
 			]
 		]
