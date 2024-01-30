@@ -123,7 +123,7 @@ resource "nutanix_virtual_machine" "virtual_machine" {
 
   disk_list {
     data_source_reference = {
-      kind = "image"
+      kind = "template"
       uuid = data.nutanix_image.image.metadata.uuid
     }
     disk_size_mib = var.vm.root_volume_size * 1024

@@ -73,6 +73,10 @@ system_images:
     ubuntu22_server:
       name: "ubuntu-22.04-server-cloudimg-amd64.img"
       username: "ubuntu"
+    ubuntu22_server_advanced:
+      name: "tmpltest"
+      # name: "ubuntu-2204-lts-server-bt-ad-template"
+      username: "ubuntu"
     karbon_nutanix:
       name: "ntnx-1.0"
       username: "karbon"
