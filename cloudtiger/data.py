@@ -294,6 +294,8 @@ allowed_actions = {
         "V": "vms",
         "subnets": "subnets",
         "S": "subnets",
+        "clusters": "clusters",
+        "C": "clusters",
         "M": "monitoring",
         "monitoring": "monitoring"
     },
@@ -380,4 +382,95 @@ environment_name_mapping = {
 
 custom_ssh_port_per_vm_type = {
     "sftp" : "8022"
+}
+
+normalized_naming = {
+    "environment" : [
+        "prd",
+        "ppr",
+        "stg",
+        "int",
+        "qa",
+        "dev",
+        "tst",
+        "dmo",
+        "sbx"
+    ],
+    "type" : [
+        "k8nod",
+        "k8ram",
+        "k8cpu",
+        "k8mst",
+        "std"
+    ],
+    "customer" : [
+        "dev",
+        "demo",
+        "dvps",
+        "frt",
+        "bck",
+        "sys",
+        "int"
+    ]
+}
+
+clusterized_hypervisors = [
+    "nutanix",
+    "vsphere"
+]
+
+worldwide_cloud_datacenters = {
+    "aws" : {
+        "datacenters" : [
+            "us-east-1",
+            "us-west-1",
+            "us-central-1",
+            "us-central-2",
+            "us-east-2",
+            "ca-central-1",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "eu-west-3",
+            "eu-west-4",
+            "eu-north-1",
+            "ap-northeast-1"
+        ],
+        "default_datacenter" : "ca-central-1"
+    },
+    "azure" : {
+        "datacenters" : [
+            "eastus",
+            "westus",
+            "westus",
+            "northcentralus",
+            "eastus2",
+            "canadacentral",
+            "northeurope",
+            "uksouth",
+            "westeurope",
+            "francecentral",
+            "northeurope",
+            "japaneast",
+            "japanwest"
+        ],
+        "default_datacenter" : "canadacentral"
+    },
+    "gcp" : {
+        "datacenters" : [
+            "us-east1",
+            "us-east4",
+            "us-central1",
+            "us-west1",
+            "us-west2",
+            "northamerica-northeast1",
+            "europe-west2",
+            "europe-west1",
+            "europe-west3",
+            "europe-west6",
+            "asia-northeast1",
+            "asia-northeast2"
+        ],
+        "default_datacenter" : "northamerica-northeast1"
+    }
 }

@@ -232,6 +232,9 @@ class Operation:
         # All existing VMs info
         self.existing_vms_info = {}
 
+        # All existing subclusters info
+        self.existing_clusters_info = {}
+
         # Provider secret content
         self.provider_secret = {}
 
@@ -544,14 +547,13 @@ class Operation:
         if os.path.isfile(networks_info_file):
             with open(networks_info_file, "r") as f:
                 self.network_info = yaml.load(f, Loader=yaml.FullLoader)
-        # else:
-        #     self.logger.critical(f"Error : file {networks_info_file} not found")
-        #     sys.exit()
+            self.logger.debug(f"Loaded all_networks info")
 
-        all_networks_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_networks.yml')
+        all_networks_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_subnets.yml')
         if os.path.isfile(all_networks_info_file):
             with open(all_networks_info_file, "r") as f:
                 self.all_network_info = yaml.load(f, Loader=yaml.FullLoader)
+            self.logger.debug(f"Loaded all_existing_subnets info")
 
         if self.all_vms:
             addresses_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_vms.yml')
@@ -568,6 +570,11 @@ class Operation:
         if os.path.isfile(existing_vms_info_file):
             with open(existing_vms_info_file, "r") as f:
                 self.existing_vms_info = yaml.load(f, Loader=yaml.FullLoader)
+
+        existing_clusters_info_file = os.path.join(self.datacenter_meta_folder, 'all_existing_clusters.yml')
+        if os.path.isfile(existing_clusters_info_file):
+            with open(existing_clusters_info_file, "r") as f:
+                self.existing_clusters_info = yaml.load(f, Loader=yaml.FullLoader)
 
         metadata_info_file = os.path.join(self.datacenter_meta_folder, "all_metadata.yml")
         if os.path.isfile(metadata_info_file):

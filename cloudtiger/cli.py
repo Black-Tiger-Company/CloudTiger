@@ -31,7 +31,7 @@ from cloudtiger.common_tools import create_logger
 from cloudtiger.data import allowed_actions, available_api_services, non_scope_init_actions
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
-from cloudtiger.admin import gather, dns, vms, monitoring, subnets
+from cloudtiger.admin import gather, dns, vms, monitoring, subnets, clusters
 from cloudtiger.config import generate
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -449,6 +449,7 @@ def admin(context, action, domain, timestamp, all_vms, check_existence):
 \n- gather (G)            : gather all config files from subfolders into a meta folder
 \n- dns (D)               : check DNS associated with all VMs from meta folder
 \n- vms (V)               : list all VMs from virtualizer and compare with meta folder
+\n- subnets (S)           : list all subnets from virtualizer and compare with meta folder
 \n- monitoring (M)        : prepare Grafana configuration files from metadata file
     """
 
@@ -496,24 +497,24 @@ def config(context, action):
         operation.logger.info("config action on folder %s" % operation.scope)
 
         # check if action is allowed
-        if action in allowed_actions["admin"].keys():
+        if action in allowed_actions["config"].keys():
 
             operation.logger.debug("%s command" %
-                                   allowed_actions["admin"][action])
+                                   allowed_actions["config"][action])
             operation.scope_setup()
 
             # we need to load meta information
             operation.logger.info("Loading current meta information")
             operation.load_meta_info()
 
-            globals()[allowed_actions["admin"][action]](operation)
+            globals()[allowed_actions["config"][action]](operation)
 
         else:
             # unallowed action
             operation.logger.error("Unallowed action %s" % action)
             sys.exit()
 
-    operation.logger.info("Finished admin action sucessfully")
+    operation.logger.info("Finished config action sucessfully")
 
 main.add_command(init)
 main.add_command(tf)

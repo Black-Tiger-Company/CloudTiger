@@ -1,0 +1,69 @@
+provider: {{ provider }}
+{% if region is defined %}
+region: {{ region }}
+{% endif %}
+{% if secondary_providers is defined %}
+
+services_account:
+{%- for secondary_provider in secondary_providers %}
+  secondary_provider: ""
+{%- endfor %}
+{% endif %}
+{% if artefacts_repository_public_key_url is defined %}
+
+artefacts_repository_public_key_url: {{ artefacts_repository_public_key_url }}
+{% endif %}
+{% if artefacts_repository_admin_user_list is defined %}
+artefacts_repository_admin_user_list: {{ artefacts_repository_admin_user_list }}
+{% endif %}
+
+network:
+{% for network_name, network_content in network.items( )%}
+  {{ network_name }}:
+    subnets:
+{% for subnet_name, subnet_content in network_content['subnets'].items() %}
+      {{ subnet_name }}:
+{% for k, v in subnet_content.items() %}
+        {{ k }} : {{ v }}
+{% endfor %}
+{% if nameservers_list %}
+        nameservers:
+{% for nameserver in nameservers_list %}
+        - {{ nameserver }}
+{% endfor %}
+{% endif %}
+{% if search_domain_list %}
+        search:
+{% for domain in search_domain_list %}
+        - {{ domain }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+vm:
+{% for network_name, network_content in vm.items( )%}
+  {{ network_name }}:
+{% for subnet_name, subnet_content in network_content.items() %}
+    {{ subnet_name }}:
+{% for vm_name, vm_content in subnet_content.items() %}
+      {{ vm_name }}:
+{% for k, v in vm_content.items() %}
+{% if k not in ['size', 'extra_parameters'] %}
+        {{ k }} : {{ v }}
+{% else %}
+        size:
+{% for sub_k, sub_v in v.items() %}
+          {{ sub_k }} : {{ sub_v }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+
+{% if use_tf_backend is defined %}
+use_tf_backend: {{ use_tf_backend }}
+{% endif %}
+
+ansible: []
