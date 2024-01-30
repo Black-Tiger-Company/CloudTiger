@@ -86,7 +86,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
   }
 
   name     = var.vm.vm_name
-  num_cpus = var.vm.instance_type.nb_vcpu_per_socket
+  num_cpus = var.vm.instance_type.nb_sockets
   memory   = var.vm.instance_type.memory
   folder   = var.vm.folder
 
@@ -177,7 +177,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
   memory_hot_add_enabled = tobool(lookup(var.vm.extra_parameters, "memory_hot_add_enabled", false))
   memory_reservation     = tonumber(replace(lookup(var.vm.extra_parameters, "memory_reservation", 0), "None", "0"))
   sata_controller_count  = tonumber(lookup(var.vm.extra_parameters, "sata_controller_count", 0))
-  num_cores_per_socket   = lookup(var.vm.extra_parameters, "num_cores_per_socket", 1)
+  num_cores_per_socket   = lookup(var.vm.instance_type, "nb_vcpu_per_socket", 1)
   cpu_limit              = lookup(var.vm.extra_parameters, "cpu_limit", -1)
   memory_share_level     = lookup(var.vm.extra_parameters, "memory_share_level", "normal")
   memory_limit           = lookup(var.vm.extra_parameters, "memory_limit", -1)
