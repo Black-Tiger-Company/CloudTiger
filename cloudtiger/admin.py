@@ -10,7 +10,8 @@ import sys
 import dns
 from dns.resolver import Resolver
 from dns.resolver import NXDOMAIN
-from cloudtiger.specific.nutanix import get_vms_list_per_vlan_nutanix, get_subnets_list
+from cloudtiger.specific.nutanix import get_vms_list_per_vlan_nutanix, get_subnets_list_nutanix, get_cluster_info_nutanix
+from cloudtiger.specific.vsphere import get_subnets_list_vsphere, get_vms_list_per_vlan_vsphere, get_cluster_info_vsphere
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action
 
@@ -229,6 +230,9 @@ def vms(operation: Operation):
     if operation.provider == "nutanix":
         get_vms_list_per_vlan_nutanix(operation)
 
+    if operation.provider == "vsphere":
+        get_vms_list_per_vlan_vsphere(operation)
+
 def subnets(operation: Operation):
 
     """ this function list all subnets from virtualizer and compare with 
@@ -238,7 +242,28 @@ def subnets(operation: Operation):
     """
 
     if operation.provider == "nutanix":
-        get_subnets_list(operation)
+        get_subnets_list_nutanix(operation)
+
+    if operation.provider == "vsphere":
+        get_subnets_list_vsphere(operation)
+
+        # check if nutanix is set as a secondary provider
+        if 'TF_VAR_nutanix_endpoint' in os.environ.keys():
+            get_subnets_list_nutanix(operation, secondary=True)
+
+def clusters(operation: Operation):
+
+    """ this function list all subclusters from virtualizer and compare with 
+    meta folder
+
+    :param operation: Operation, the current Operation
+    """
+
+    if operation.provider == "nutanix":
+        get_cluster_info_nutanix(operation)
+
+    if operation.provider == "vsphere":
+        get_cluster_info_vsphere(operation)
 
 def infer_metadata(operation: Operation, vm: dict, vm_name: str):
 

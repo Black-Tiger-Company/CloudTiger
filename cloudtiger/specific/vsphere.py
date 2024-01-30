@@ -11,7 +11,7 @@ from cloudtiger.cloudtiger import Operation
 
 def get_vms_list_per_vlan_vsphere(operation: Operation):
 
-    """ this function calls the nutanix API to get all the VMs inside a VLAN """
+    """ this function calls the vsphere API to get all the VMs inside a VLAN """
 
     # small manipulation to have vsphere credentials indepently of the main provider
     vsphere_secret = {
@@ -144,3 +144,170 @@ def get_vms_list_per_vlan_vsphere(operation: Operation):
     operation.logger.info(yaml.dump(all_vms_per_vlan))
 
     return all_vms_per_vlan
+
+def get_subnets_list_vsphere(operation: Operation):
+
+    """ this function calls the vsphere API to get all the subnets of the cluster """
+
+    # small manipulation to have vsphere credentials indepently of the main provider
+    vsphere_secret = {
+        "endpoint" : operation.provider_secret.get("TF_VAR_vsphere_url", os.environ.get("TF_VAR_vsphere_url", "vsphere_url")),
+        "username" : operation.provider_secret.get("TF_VAR_vsphere_user", os.environ.get("TF_VAR_vsphere_user", "vsphere_user")),
+        "password" : operation.provider_secret.get("TF_VAR_vsphere_password", os.environ.get("TF_VAR_vsphere_password", "vsphere_password")),
+    }
+
+    url = format("https://%s/api/session" % (vsphere_secret["endpoint"]))
+
+    vsphere_auth = base64.b64encode((vsphere_secret["username"] + ':' + vsphere_secret["password"]).encode('ascii')).decode('ascii')
+
+    headers = {
+            "Authorization" : "Basic " + vsphere_auth,
+        }
+    
+    response = requests.post(url, headers=headers, verify=False)
+
+    session_token = "session_token"
+    if response.status_code in [200, 201]:
+        # Authentication successful, get the session token
+        session_token = response.json()
+        operation.logger.debug(f"Session Token: {session_token}")
+    else:
+        operation.logger.error(f"Authentication failed. Status Code: {response.status_code}")
+        sys.exit()
+
+    # Add the session token to the headers
+    headers = {
+        'vmware-api-session-id': session_token
+    }
+
+    subnet_list_url = format("https://%s/api/vcenter/network" % (vsphere_secret["endpoint"]))
+    response = requests.get(subnet_list_url, headers=headers, verify=False)
+
+    network_data = response.json()
+
+
+    network_names = [{"name":network['name'], "network":network['network'], "type":network['type']} for network in network_data]
+
+    operation.logger.debug("List of subnets :")
+    operation.logger.debug(yaml.dump(network_names))
+
+    # dumping results
+    all_subnets = {"vsphere_network": {"subnets": network_names}}
+    all_existing_subnets = os.path.join(operation.scope_config_folder, "all_existing_subnets.yml")
+
+    if "_meta" in operation.scope.split(os.sep)[-1]:
+        with open(all_existing_subnets, "w") as f:
+            yaml.dump(all_subnets, f)
+
+    return all_subnets
+
+def get_cluster_info_vsphere(operation: Operation):
+
+    """ this function calls the vsphere API to get all the subnets of the cluster """
+
+    # small manipulation to have vsphere credentials indepently of the main provider
+    vsphere_secret = {
+        "endpoint" : operation.provider_secret.get("TF_VAR_vsphere_url", os.environ.get("TF_VAR_vsphere_url", "vsphere_url")),
+        "username" : operation.provider_secret.get("TF_VAR_vsphere_user", os.environ.get("TF_VAR_vsphere_user", "vsphere_user")),
+        "password" : operation.provider_secret.get("TF_VAR_vsphere_password", os.environ.get("TF_VAR_vsphere_password", "vsphere_password")),
+    }
+
+    url = format("https://%s/api/session" % (vsphere_secret["endpoint"]))
+
+    vsphere_auth = base64.b64encode((vsphere_secret["username"] + ':' + vsphere_secret["password"]).encode('ascii')).decode('ascii')
+
+    headers = {
+            "Authorization" : "Basic " + vsphere_auth,
+        }
+    
+    response = requests.post(url, headers=headers, verify=False)
+
+    session_token = "session_token"
+    if response.status_code in [200, 201]:
+        # Authentication successful, get the session token
+        session_token = response.json()
+        operation.logger.debug(f"Session Token: {session_token}")
+    else:
+        operation.logger.error(f"Authentication failed. Status Code: {response.status_code}")
+        sys.exit()
+
+    # Add the session token to the headers
+    headers = {
+        'vmware-api-session-id': session_token
+    }
+
+    cluster_data = {}
+    for cluster_resource in ['cluster', 'datastore', 'folder', 'host', 'resource-pool', 'datacenter']:
+        resource_list_url = format("https://%s/api/vcenter/%s" % (vsphere_secret["endpoint"], cluster_resource))
+        response = requests.get(resource_list_url, headers=headers, verify=False)
+
+        cluster_data[cluster_resource] = response.json()
+
+    # network_names = [{"name":network['name'], "network":network['network'], "type":network['type']} for network in network_data]
+
+    # operation.logger.debug("List of subnets :")
+    # operation.logger.debug(yaml.dump(network_names))
+
+    # dumping results
+    all_cluster_resources = {"vsphere_cluster_resources": cluster_data}
+    all_existing_clusters = os.path.join(operation.scope_config_folder, "all_existing_clusters.yml")
+
+    if "_meta" in operation.scope.split(os.sep)[-1]:
+        with open(all_existing_clusters, "w") as f:
+            yaml.dump(all_cluster_resources, f)
+
+    return all_cluster_resources
+
+def check_folder_exists_vsphere(operation: Operation, folder):
+
+    """ this function calls the vsphere API to check if the vsphere folder exists """
+
+    # small manipulation to have vsphere credentials indepently of the main provider
+    vsphere_secret = {
+        "endpoint" : operation.provider_secret.get("TF_VAR_vsphere_url", os.environ.get("TF_VAR_vsphere_url", "vsphere_url")),
+        "username" : operation.provider_secret.get("TF_VAR_vsphere_user", os.environ.get("TF_VAR_vsphere_user", "vsphere_user")),
+        "password" : operation.provider_secret.get("TF_VAR_vsphere_password", os.environ.get("TF_VAR_vsphere_password", "vsphere_password")),
+    }
+
+    url = format("https://%s/api/session" % (vsphere_secret["endpoint"]))
+
+    vsphere_auth = base64.b64encode((vsphere_secret["username"] + ':' + vsphere_secret["password"]).encode('ascii')).decode('ascii')
+
+    headers = {
+            "Authorization" : "Basic " + vsphere_auth,
+        }
+
+    response = requests.post(url, headers=headers, verify=False)
+
+    session_token = "session_token"
+    if response.status_code in [200, 201]:
+        # Authentication successful, get the session token
+        session_token = response.json()
+        operation.logger.debug(f"Session Token: {session_token}")
+    else:
+        operation.logger.error(f"Authentication failed. Status Code: {response.status_code}")
+        sys.exit()
+
+    parent_folders = folder.split('/')
+
+    # Add the session token to the headers
+    headers = {
+        'vmware-api-session-id': session_token
+    }
+
+    payload = {}
+    if len(parent_folders) > 0:
+        payload = {
+            "parent_folders" : parent_folders[:-1]
+        }
+
+    resource_list_url = format("https://%s/api/vcenter/%s" % (vsphere_secret["endpoint"], "folder"))
+    response = requests.get(resource_list_url, headers=headers, data=payload, verify=False)
+
+    content = response.json()
+
+    # we check the length of the answer to know if the requested folder exists
+    if len(content) == 0:
+        return False
+    else:
+        return True
