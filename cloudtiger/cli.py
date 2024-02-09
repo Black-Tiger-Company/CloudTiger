@@ -117,6 +117,7 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
             operation.secrets_setup()
             operation.logger.debug("Operations setup")
         else :
+            operation.logger.info("Working on empty scope")
             operation.empty_scope = True
 
         operations.append(operation)
@@ -485,10 +486,16 @@ def admin(context, action, domain, timestamp, all_vms, check_existence):
 
 @click.command('config', short_help='config actions')
 @click.argument('action')
+@click.option('--platform', '-p',
+              is_flag=True,
+              default=False,
+              help="set a full platform from a manifest file")
 @click.pass_context
-def config(context, action):
+def config(context, action, platform):
     """ Config actions for generating a new scope and a new config.yml :
 \n- generate (G)            : generate a scope and a config file
+
+--platform/-p               : set a full platform from a manifest file
     """
 
     for operation_context in context.obj['operations']:
@@ -502,6 +509,9 @@ def config(context, action):
             operation.logger.debug("%s command" %
                                    allowed_actions["config"][action])
             operation.scope_setup()
+
+            # we activate the use of a manifest if necessary
+            operation.set_manifest(platform)
 
             # we need to load meta information
             operation.logger.info("Loading current meta information")
