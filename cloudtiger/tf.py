@@ -6,7 +6,7 @@ import string
 
 from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action
-from cloudtiger.data import terraform_vm_resource_name, supported_private_providers
+from cloudtiger.data import terraform_vm_resource_name, supported_providers
 from cloudtiger.specific.nutanix import get_vm_nutanix_uuid
 
 DEFAULT_PASSWORD_LENGTH = 64
@@ -87,7 +87,8 @@ def tf_generic(operation: Operation, tf_action):
                         tf_env, operation.stdout_file)
 
             # if the action is 'tf apply' and we have VMs we dump the default password we used
-            if (tf_action == "apply") and (operation.provider in supported_private_providers):
+            private_supported_providers = [prov['name'] for prov in supported_providers["private"]]
+            if (tf_action == "apply") and (operation.provider in private_supported_providers):
                 if ("vm" in operation.used_services) or ("vm_template" in operation.used_services):
                     default_password_file = os.path.join(operation.scope_terraform_folder, ".env")
                     with open(default_password_file, "w") as f:
