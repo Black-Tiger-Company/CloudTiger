@@ -9,10 +9,15 @@ import datetime
 import shutil
 from logging import Logger
 
+from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
+from InquirerPy.separator import Separator
+from InquirerPy.validator import NumberValidator, EmptyInputValidator, PathValidator
+
 import pkg_resources
 import yaml
 from .common_tools import load_yaml, bash_source, merge_dictionaries
-from cloudtiger.data import available_infra_services, provider_secrets_requirements
+from cloudtiger.data import available_infra_services, provider_secrets_requirements, supported_providers
 
 LIBRARIES_PATH = pkg_resources.resource_filename('cloudtiger', 'libraries')
 
@@ -250,6 +255,9 @@ class Operation:
         # meta - consider only VMs that exists in all_existing_vms.yml
         self.check_existence = False
 
+        # Use a platform manifest for the scope
+        self.manifest = False
+
     def set_domain(self, domain: str):
 
         """ this function set the DNS domain
@@ -278,6 +286,13 @@ class Operation:
 
         self.check_existence = check_existence
 
+    def set_manifest(self, manifest: bool):
+
+        """ this function activate the use of a platform manifest for the scope
+        """
+
+        self.manifest = manifest
+
     def scope_setup(self):
 
         """ this function set intermediate internal parameters for the current scope
@@ -290,6 +305,36 @@ class Operation:
         else:
             self.logger.warning("WARNING: cannot read .env file at project root folder:\
                 file does not exist")
+
+        # set standard spec values
+        cloudtiger_standard_file = os.path.join(
+            self.libraries_path, "internal", "standard", "vm_standard.yml")
+        cloudtiger_standard_config = load_yaml(self.logger, cloudtiger_standard_file)
+        local_standard_file = os.path.join(self.project_root, "standard", "standard.yml")
+        if os.path.exists(local_standard_file):
+            local_standard_config = load_yaml(self.logger, local_standard_file)
+        else:
+            local_standard_config = {}
+        self.standard_config = merge_dictionaries(cloudtiger_standard_config, local_standard_config)
+
+        # if we are running the command directly in the project root, we need a prompt to choose the provider's folder
+        if self.scope == ".":
+            # choose main cloud provider
+            all_supported_providers = [
+                    Choice(value=prov['name'], name=prov['common_name'], enabled=False) for prov in supported_providers["private"] + supported_providers["public"]
+                ]
+            provider = inquirer.select(
+                message="Which Cloud Provider would you like to use:",
+                choices=all_supported_providers,
+                multiselect=False,
+                default=None,
+            ).execute()
+
+            scope = os.path.join(provider, provider + "_meta")
+
+            self.provider = provider
+            self.scope = scope
+
 
         # parameters that will be set in the terraform vars files in scopes/<SCOPE>/terraform folder
         self.scope_config_folder = os.path.join(self.project_root, 'config', self.scope)
@@ -331,7 +376,6 @@ class Operation:
                 self.used_services.append(service)
 
         # set scopes values
-        self.provider = self.scope_config_dict.get('provider', 'admin')
         self.logger.debug("Provider is %s" % self.provider)
         self.scope_config_dict["ssh_key_path"] = self.scope_config_dict\
             .get('ssh_key_name',
@@ -346,17 +390,6 @@ class Operation:
         self.scope_terraform_folder = os.path.join(self.scope_folder, "terraform")
         # self.scope_data_folder = os.path.join(self.scope_folder, "data")
         # self.scope_dedicated_config_folder = os.path.join(self.scope_folder, "config")
-
-        # set standard VM spec values
-        cloudtiger_standard_file = os.path.join(
-            self.libraries_path, "internal", "standard", "vm_standard.yml")
-        cloudtiger_standard_config = load_yaml(self.logger, cloudtiger_standard_file)
-        local_standard_file = os.path.join(self.project_root, "standard", "standard.yml")
-        if os.path.exists(local_standard_file):
-            local_standard_config = load_yaml(self.logger, local_standard_file)
-        else:
-            local_standard_config = {}
-        self.standard_config = merge_dictionaries(cloudtiger_standard_config, local_standard_config)
 
         # set provider alias for standard configuration
         if self.provider in self.standard_config["vm_types"].keys():
