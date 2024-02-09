@@ -227,9 +227,13 @@ def configure_ip(operation: Operation):
             all_available_ips.reverse()
 
             # in order to avoid gateway IP and other technical IPs
-            all_available_ips.pop()
-            all_available_ips.pop()
-            all_available_ips.pop()
+            if len(all_available_ips) > 3:
+                all_available_ips.pop()
+                all_available_ips.pop()
+                all_available_ips.pop()
+            else:
+                operation.logger.info("Error : the VLAN you chose does not contain enough remaining available IPs")
+                sys.exit()
 
             # we get the list of forbidden IPs
             forbidden_range_start = operation.scope_config_dict["network"][network_name]\
