@@ -81,10 +81,6 @@ runcmd:
 - echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}"
 - cp /root/temporary /etc/sssd/sssd.conf
 - sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart && service ssh restart
-- chown root:acl_docker@${domain_ldap} /data/docker
-- chmod u+rwx /data/docker
-- chmod g+rws /data/docker
-- chmod o-rwx /data/docker
 - rm /root/temporary
 - userdel -r ubuntu
 
