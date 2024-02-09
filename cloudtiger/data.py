@@ -22,17 +22,59 @@ available_api_services = [
     "keycloak"
 ]
 
-supported_public_clouds = [
-    "aws",
-    "azure",
-    "gcp",
-    "ovh"
-]
+# supported_public_clouds = [
+#     "aws",
+#     "azure",
+#     "gcp",
+#     "ovh"
+# ]
 
-supported_private_providers = [
-    "nutanix",
-    "vsphere"
-]
+# supported_private_providers = [
+#     "nutanix",
+#     "vsphere"
+# ]
+
+supported_providers = {
+    "public" : [
+        {
+            "name" : "aws",
+            "common_name": "Amazon AWS",
+            "default_base_folder": "aws"
+        },
+        {
+            "name" : "azure",
+            "common_name": "Microsoft Azure",
+            "default_base_folder": "azure"
+        },
+        {
+            "name" : "gcp",
+           "common_name": "Google Cloud Services",
+            "default_base_folder": "gcp"
+        },
+        {
+            "name" : "ovh",
+            "common_name": "OVH Cloud",
+            "default_base_folder": "ovh"
+        }
+    ],
+    "private" : [
+        {
+            "name" : "nutanix",
+            "common_name": "Nutanix Hyper-Converged Infrastructure",
+            "default_base_folder": "nutanix"
+        },
+        {
+            "name" : "vsphere",
+            "common_name": "VMware ESXi",
+            "default_base_folder": "vsphere"
+        },
+        {
+            "name" : "proxmox",
+            "common_name": "Proxmox VE",
+            "default_base_folder": "vsphere"
+        }
+    ]
+}
 
 terraform_vm_resource_name = {
     "aws": "aws_instance",
@@ -473,4 +515,39 @@ worldwide_cloud_datacenters = {
         ],
         "default_datacenter" : "northamerica-northeast1"
     }
+}
+
+worldwide_cloud_default_network = {
+    "default_cidr" : "10.0.0.0/16",
+    "default_cidr_per_env" : {
+        "prod" : "12.0.",
+        "preprod": "16.0.",
+        "staging": "13.0.",
+        "integration": "18.0.",
+        "qa": "15.0.",
+        "dev" : "11.0.",
+        "test": "10.0.",
+        "demo": "14.0.",
+        "sandbox": "17.0."
+    },
+    "subnets" : [
+        {
+            "name" : "dmz",
+            "cidr_block_suffix": "5.0/24",
+            "availability_zone": "a",
+            "public": True
+        },
+        {
+            "name": "datalake",
+            "cidr_block_suffix": "10.0/24",
+            "availability_zone": "a",
+            "public": False
+        }
+    ]
+}
+
+pvs_suffix = {
+    "aws": "p1",
+    "azure": "1",
+    "gcp": "1"
 }

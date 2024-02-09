@@ -5,9 +5,9 @@ region: {{ region }}
 {% if secondary_providers is defined %}
 
 services_account:
-{%- for secondary_provider in secondary_providers %}
-  secondary_provider: ""
-{%- endfor %}
+{% for secondary_provider in secondary_providers %}
+  secondary_provider: {{ secondary_provider }}
+{% endfor %}
 {% endif %}
 {% if artefacts_repository_public_key_url is defined %}
 
@@ -65,5 +65,3 @@ vm:
 {% if use_tf_backend is defined %}
 use_tf_backend: {{ use_tf_backend }}
 {% endif %}
-
-ansible: []

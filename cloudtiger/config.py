@@ -7,11 +7,19 @@ from InquirerPy.validator import NumberValidator, EmptyInputValidator, PathValid
 import os
 import sys
 import json
+import yaml
+import copy
 from colored import Fore, Back, Style
 
 from cloudtiger.cloudtiger import Operation
-from cloudtiger.data import common_environments, common_internal_customers, worldwide_cloud_datacenters, clusterized_hypervisors
+from cloudtiger.data import common_environments, common_internal_customers, worldwide_cloud_datacenters, clusterized_hypervisors, supported_providers, worldwide_cloud_default_network, pvs_suffix
 from cloudtiger.specific.vsphere import check_folder_exists_vsphere
+
+def int_to_two_char_string(number):
+    if 0 <= number <= 99:
+        return f"{number:02d}"
+    else:
+        return "Invalid number"
 
 def generate(operation: Operation):
 
@@ -19,6 +27,11 @@ def generate(operation: Operation):
     
     :param operation: Operation, the current Operation
     """
+
+    # prepare deployment manifest
+    manifest_data = {}
+    if operation.manifest:
+        manifest_data = manifest(operation)
 
     config_content = {}
 
@@ -32,54 +45,65 @@ def generate(operation: Operation):
     config_template = environment.get_template("config.yml.j2")
 
     # choose main cloud provider
-    provider = inquirer.select(
-        message="Which Cloud Provider would you like to use:",
-        choices=[
-            Choice(value="nutanix", name="Nutanix Hyper-Converged Infrastructure",enabled=True),
-            Choice(value="vsphere", name="VMware ESXi",enabled=False),
-            Choice(value="proxmox", name="Proxmox VE",enabled=False),
-            Choice(value="aws", name="Amazon AWS",enabled=False),
-            Choice(value="azure", name="Microsoft Azure",enabled=False),
-            Choice(value="gcp", name="Google Cloud Services",enabled=False),
-        ],
-        multiselect=False,
-        default=None,
-    ).execute()
+    all_supported_providers = [
+            Choice(value=prov['name'], name=prov['common_name'], enabled=False) for prov in supported_providers["private"] + supported_providers["public"]
+        ]
+    provider = "admin"
+    if operation.provider == "admin":
+        provider = inquirer.select(
+            message="Which Cloud Provider would you like to use:",
+            choices=all_supported_providers,
+            multiselect=False,
+            default=None,
+        ).execute()
+    else:
+        provider = operation.provider
+
+    # is it a public cloud provider ?
+    public_cloud_provider = (provider in worldwide_cloud_datacenters.keys())
+
+    # if you have a platform manifest, set associated ansible config
+    public_exposition_layer = False
+    if len(manifest_data) > 0:
+
+        # choose if a public exposition proxy has to be set
+        public_exposition_layer = inquirer.confirm(
+            message="Do you want to include a public exposition proxy ?",
+            default=public_cloud_provider
+        ).execute()
 
     # do you have secondary cloud providers on your network ?
+    secondary_providers = operation.standard_config.get(provider, {}).get("secondary_providers", [])
     have_secondary_providers = inquirer.confirm(
         message="Do you have secondary cloud providers sharing your network ?",
-        default=False
+        default=(len(secondary_providers) > 0)
     ).execute()
+
+    default_secondary_provider = None
+    if len(secondary_providers) > 0:
+        default_secondary_provider = secondary_providers[0]
     secondary_providers = []
 
     # provide secondary cloud providers
     while have_secondary_providers:
         secondary_provider = inquirer.select(
-        message="Which Secondary Cloud Provider would you like to add:",
-        choices=[
-            Choice(value="nutanix", name="Nutanix Hyper-Converged Infrastructure",enabled=True),
-            Choice(value="vsphere", name="VMware ESXi",enabled=False),
-            Choice(value="proxmox", name="Proxmox VE",enabled=False),
-            Choice(value="aws", name="Amazon AWS",enabled=False),
-            Choice(value="azure", name="Microsoft Azure",enabled=False),
-            Choice(value="gcp", name="Google Cloud Services",enabled=False),
-        ],
-        multiselect=False,
-        default=None,
-    ).execute()
+            message="Which Secondary Cloud Provider would you like to add:",
+            choices=all_supported_providers,
+            multiselect=False,
+            default=default_secondary_provider,
+        ).execute()
 
         secondary_providers.append(secondary_provider)
 
         have_secondary_providers = inquirer.confirm(
-        message="Do you want to add an extra secondary provider ?",
-        default=False
-    ).execute()
+            message="Do you want to add an extra secondary provider ?",
+            default=False
+        ).execute()
 
     # cloud region
     region = "datacenter"
     cloud_regions = []
-    if provider in worldwide_cloud_datacenters.keys():
+    if public_cloud_provider:
         cloud_regions = [
             Choice(value=region, name=region, enabled=(region == worldwide_cloud_datacenters[provider]['default_datacenter']))
             for region in worldwide_cloud_datacenters[provider]['datacenters']
@@ -127,8 +151,9 @@ def generate(operation: Operation):
         ).execute()
 
     # define environment
+    common_env = operation.standard_config.get("common_environments", common_environments)
     environments_choices = [
-        Choice(value=environment, name=environment, enabled=False) for environment in common_environments
+        Choice(value=environment, name=environment, enabled=False) for environment in common_env
     ]
     environments_choices.append("custom")
     chosen_environment = inquirer.select(
@@ -142,6 +167,32 @@ def generate(operation: Operation):
             message = "Please provide the exact name of your environment"
         ).execute()
 
+    # if you have a platform manifest, get VM type counts according to environment
+    if len(manifest_data) > 0:
+        sizing_data = manifest_data["manifest"].get("infrastructure", {}).get("sizing", {})
+        manifest_data['vm_type_count'] = {'public':{}, 'private':{}}
+        for module in manifest_data['activated_modules']:
+            for vm_type, vm_count in sizing_data.get(chosen_environment, sizing_data["nonprod"]).get(module, {}).items():
+                # check if VM should be on private or public subnet
+                vm_kind = "private"
+                if vm_count.get("public", False):
+                    vm_kind = "public"
+                # check if VM is needed as belonging to an extral public layer
+                if (not vm_count.get("exposition_layer", False)) or public_exposition_layer:
+                    if vm_type in manifest_data['vm_type_count'].keys():
+                        manifest_data['vm_type_count'][vm_kind][vm_type] += vm_count["count"]
+                    else:
+                        manifest_data['vm_type_count'][vm_kind][vm_type] = vm_count["count"]
+
+        for kind in ['public', 'private']:
+            manifest_data['vm_type_count'][kind] = [
+                {
+                    "vm_type" : k,
+                    "count": v
+                } for k, v in manifest_data['vm_type_count'][kind].items()
+            ]
+        print(manifest_data['vm_type_count'])
+
     # define scope
     default_scope = os.path.join(provider, chosen_customer, 
                                  chosen_environment)
@@ -152,7 +203,7 @@ def generate(operation: Operation):
     # do you want to add SSH keys from a repository ?
     add_ssh_keys_from_repo = inquirer.confirm(
         message="Do you want to add SSH keys from a repository ?",
-        default=("artefacts_repository_admin_user_list" in operation.standard_config.keys())
+        default=operation.standard_config.get("add_ssh_keys_from_repo", False)
     ).execute()
 
     if add_ssh_keys_from_repo:
@@ -172,7 +223,7 @@ def generate(operation: Operation):
     # do you want to provide nameservers to the VMs ?
     add_nameservers = inquirer.confirm(
         message="Do you want to add nameservers ?",
-        default=("nameservers" in operation.standard_config.keys())
+        default=((not public_cloud_provider) and ("nameservers" in operation.standard_config.keys()))
     ).execute()
 
     nameservers_list = []
@@ -187,7 +238,7 @@ def generate(operation: Operation):
     # do you want to provide a default search domain for the VMs ?
     add_search_domain = inquirer.confirm(
         message="Do you want to add a default search domain for the VMs ?",
-        default=("search" in operation.standard_config.keys())
+        default=((not public_cloud_provider) and ("search" in operation.standard_config.keys()))
     ).execute()
 
     search_domain_list = []
@@ -200,7 +251,7 @@ def generate(operation: Operation):
             ).execute()
 
     # define a default OS for VMs
-    default_os = "default_os"
+    default_os = operation.standard_config.get(provider, {}).get("default_os_template", None)
     os_choices = operation.standard_config['system_images'].get(provider, {}).keys()
     set_default_os = inquirer.confirm(
         message="Do you want to set default OS for all the VMs of your scope ?",
@@ -211,7 +262,7 @@ def generate(operation: Operation):
             message = "Choose a default OS for your scope:",
             choices = os_choices,
             multiselect=False,
-            default = None
+            default = default_os
         ).execute()
 
     # define a default folder for VMs - for vsphere provider only
@@ -272,6 +323,28 @@ def generate(operation: Operation):
     #             message = "Set a default vsphere folder for your scope:",
     #             default = default_folder
     #         ).execute()
+    
+    # get network data
+    network = {}
+    network_name = operation.provider + "_network"
+    if public_cloud_provider:
+        network_name = inquirer.text(
+            message = "Choose the name of your network",
+            default = "main_network"
+        ).execute()
+        network_cidr = inquirer.text(
+            message = "Choose the CIDR range of your network",
+            default = worldwide_cloud_default_network["default_cidr_per_env"].get(chosen_environment, worldwide_cloud_default_network["default_cidr"]) + "0.0/16"
+        ).execute()
+        network = {
+            network_name : {
+                "network_cidr": network_cidr,
+                "prefix": chosen_environment + "_",
+                "subnets" : {}
+            }
+        }
+    else:
+        network = { network_name : {"subnets" : {}} }
 
     # get subnets data
     subnet_data = {}
@@ -291,67 +364,183 @@ def generate(operation: Operation):
 
     # choose subnet
     add_subnet = True
-    network = { operation.provider + "_network" : {"subnets" : {}} }
+    default_subnet = operation.standard_config.get(provider, {}).get("default_vlan", "default")
     subnet_choices = [
-        Choice(value=subnet_name, name=subnet_name) for subnet_name, subnet in subnet_data.items()
+        Choice(value=subnet_name, name=subnet_name, enabled=(subnet_name == default_subnet)) for subnet_name, subnet in subnet_data.items()
     ]
 
+    subnet_iterator = 0
+    a_public_subnet_exists = False
     while add_subnet:
-        added_subnet = inquirer.select(
-            message = "Choose a subnet for your scope",
-            choices = subnet_choices,
-            multiselect = False,
-            default=None
+
+        vm_subnet_count = 0
+        
+        # do we create a new subnet, or add VMs on an existing one ?
+        create_subnet = inquirer.confirm(
+                message="Create new subnet ?",
+                default=(public_cloud_provider)
         ).execute()
 
-        network[operation.provider + "_network"]['subnets'][added_subnet] = subnet_data[added_subnet]
+        if create_subnet:
+            print(subnet_iterator)
+            network_name = list(network.keys())[0]
+            default_subnet = worldwide_cloud_default_network["subnets"][subnet_iterator]
 
-        # ask if network is Terraform-managed
-        not_terraform_managed = inquirer.confirm(
-            message="Is this subnet created outside of current scope ?",
-            default=True
-        ).execute()
+            subnet_name = inquirer.text(
+                message = "Please provide subnet name",
+                default = default_subnet["name"]
+            ).execute()
 
-        network[operation.provider + "_network"]['subnets'][added_subnet]['unmanaged'] = not_terraform_managed
+            cidr_block = inquirer.text(
+                message = "Please provide subnet CIDR",
+                default = worldwide_cloud_default_network["default_cidr_per_env"].get(chosen_environment, worldwide_cloud_default_network["default_cidr"]) + default_subnet["cidr_block_suffix"]
+            ).execute()
 
-        # ask if IPAM is activated on VLAN
-        activated_ipam = inquirer.confirm(
-            message="Has this subnet IPAM activated ?",
-            default=True
-        ).execute()
+            az_suffix = inquirer.select(
+                message = "Please provide availability zone",
+                choices = [
+                        Choice(value = "a", name = "a"),
+                        Choice(value = "b", name = "b"),
+                        Choice(value = "c", name = "c"),
+                    ],
+                multiselect=False,
+                default = default_subnet["availability_zone"],
+            ).execute()
 
-        network[operation.provider + "_network"]['subnets'][added_subnet]['managed_ips'] = activated_ipam
+            # get suffix of availability zone
+            az_suffix_len = len(region.split("-"))
+            if az_suffix_len < 2:
+                az_suffix = "-" + az_suffix
+
+            added_subnet = {
+                "name" : subnet_name,
+                "cidr_block" : cidr_block,
+                "availability_zone" : region + az_suffix
+            }
+
+            default_public = inquirer.confirm(
+                message="Is subnet public ?",
+                default=(default_subnet.get("public", False))
+            ).execute()
+
+            if default_public:
+                a_public_subnet_exists = True
+                added_subnet["public"] = "true"
+                network[network_name]["private_subnets_escape_public_subnet"] = default_subnet["name"]
+            network[network_name]['subnets'][subnet_name] =  added_subnet
+
+            added_subnet = subnet_name
+
+        else:
+            added_subnet = inquirer.select(
+                message = "Choose an existing subnet for your scope",
+                choices = subnet_choices,
+                multiselect = False,
+                default = default_subnet
+            ).execute()
+
+            network[network_name]['subnets'][added_subnet] = subnet_data[added_subnet]
+
+            # ask if network is Terraform-managed
+            not_terraform_managed = inquirer.confirm(
+                message="Is this subnet created outside of current scope ?",
+                default=True
+            ).execute()
+
+            network[network_name]['subnets'][added_subnet]['unmanaged'] = not_terraform_managed
+
+            # ask if IPAM is activated on VLAN
+            activated_ipam = inquirer.confirm(
+                message="Has this subnet IPAM activated ?",
+                default=True
+            ).execute()
+
+            network[network_name]['subnets'][added_subnet]['managed_ips'] = activated_ipam
+
+        # get subnet kind
+        subnet_is_public = network[network_name]['subnets'][added_subnet].get("public", False)
+        subnet_kind = "private"
+        if subnet_is_public:
+            subnet_kind = "public"
 
         # add VMs on subnet
         add_vm = True
-        vm = { operation.provider + "_network" : {added_subnet : {}}}
+        vm = { network_name : {added_subnet : {}}}
         vm_type_choices = [
             Choice(value=vm_type_name, name=vm_type_name) for vm_type_name in operation.standard_config["vm_types"].get(provider, operation.standard_config["vm_types"]["default"]).keys()
         ]
+
+        vm_type_manifest_iterator = 0
+        vm_count = 0
+
+        # choose IP addresses for the VM ?
+        choose_ip_addresses = inquirer.confirm(
+            message="Do you want to choose IP addresses for this VLAN ?",
+            default=public_cloud_provider
+        ).execute()
+
         while add_vm:
-            added_vm_type = inquirer.select(
-                message = "Choose a VM type",
-                choices = vm_type_choices,
-                multiselect = False,
-                default = None
-            ).execute()
 
-            vm_name = '-'.join([chosen_environment, added_vm_type, chosen_customer])
-            vm_name = inquirer.text(
-                message = "Please provide the name of your VM",
-                default = vm_name
-            ).execute()
+            # check if we are using a platform manifest
+            if "sizing" in manifest_data.get("manifest", {}).get("infrastructure", {}).keys():
+                # if platform manifest, the number of VMs of each type is pre-set
+                print(manifest_data['vm_type_count'][subnet_kind])
+                nb_vms = manifest_data['vm_type_count'][subnet_kind][vm_type_manifest_iterator]['count']
+                vm_set = (nb_vms > 1)
+                added_vm_type = manifest_data['vm_type_count'][subnet_kind][vm_type_manifest_iterator]['vm_type']
+                vm_sizing = "nonprod"
+                if chosen_environment == "prod":
+                    vm_sizing = "prod"
+                customize_sizing = inquirer.confirm(
+                    message=f"Do you want to customize {added_vm_type} nodes ?",
+                    default=False
+                ).execute()
+                if customize_sizing:
+                    vm_sizing = "custom"
 
-            vm_sizing = inquirer.select(
-                message="Which sizing for the VM:",
-                choices=[
-                    Choice(value="prod", name="default - prod",enabled=True),
-                    Choice(value="nonprod", name="default - non prod",enabled=False),
-                    Choice(value="custom", name="custom",enabled=False),
-                ],
-                multiselect=False,
-                default=None,
-            ).execute()
+            else:
+                # do you want a set of identical VMs ?
+                nb_vms = 1
+                vm_set = inquirer.confirm(
+                    message="Do you want a set of identical VMs ?",
+                    default=False
+                ).execute()
+
+                if vm_set:
+                    nb_vms = inquirer.number(
+                        message="Enter number of VMs:",
+                        min_allowed=1,
+                        max_allowed=99,
+                        default=1,
+                    ).execute()
+
+                added_vm_type = inquirer.select(
+                    message = "Choose a VM type",
+                    choices = vm_type_choices,
+                    multiselect = False,
+                    default = None
+                ).execute()
+
+            # normalized_naming = operation.standard_config.get("normalized_naming", {})
+            # normalized_environment = normalized_naming.get("environment", {}).get(chosen_environment, chosen_environment)
+            # normalized_vm_tpe = normalized_naming.get("type", {}).get(added_vm_type, added_vm_type)
+            # normalized_customer = normalized_naming.get("customer", {}).get(chosen_customer, chosen_customer)
+            # vm_name = ''.join([normalized_environment, normalized_vm_tpe, normalized_customer])
+            # vm_name = inquirer.text(
+            #     message = "Please provide the name of your VM",
+            #     default = vm_name
+            # ).execute()
+
+                vm_sizing = inquirer.select(
+                    message="Which sizing for the VM:",
+                    choices=[
+                        Choice(value="prod", name="default - prod",enabled=True),
+                        Choice(value="nonprod", name="default - non prod",enabled=False),
+                        Choice(value="custom", name="custom",enabled=False),
+                    ],
+                    multiselect=False,
+                    default=None,
+                ).execute()
 
             vm_values = {}
 
@@ -455,19 +644,94 @@ def generate(operation: Operation):
                 vm_values['extra_parameters']['datastore'] = "/" + "/".join([vsphere_vm_specific_resources['datacenter'], "datastore", vsphere_vm_specific_resources['datastore']])
                 vm_values['extra_parameters']['resource_pool'] = "/" + "/".join([vsphere_vm_specific_resources['datacenter'], "host", vsphere_vm_specific_resources['cluster']])
 
-            vm[operation.provider + "_network"][added_subnet][vm_name] = vm_values
+            # prepare VM default name
+            normalized_naming = operation.standard_config.get("normalized_naming", {})
+            normalized_environment = normalized_naming.get("environment", {}).get(chosen_environment, chosen_environment)
+            normalized_vm_type = normalized_naming.get("type", {}).get(added_vm_type, added_vm_type)
+            normalized_customer = normalized_naming.get("customer", {}).get(chosen_customer, chosen_customer)
 
-            # do you want to add an extra VM
-            add_vm = inquirer.confirm(
-                message="Do you want to add another VM ?",
-                default=False
-            ).execute()
+            # # do you want a set of identical VMs ?
+            # nb_vms = 1
+            # vm_set = inquirer.confirm(
+            #     message="Do you want a set of identical VMs ?",
+            #     default=False
+            # ).execute()
+
+            # if vm_set:
+            #     nb_vms = inquirer.number(
+            #         message="Enter number of VMs:",
+            #         min_allowed=1,
+            #         max_allowed=99,
+            #         default=1,
+            #     ).execute()
+
+            if vm_set:
+
+                for i in range(0, int(nb_vms)):
+                    vm_name = ''.join([normalized_environment, normalized_vm_type, int_to_two_char_string(i+1), normalized_customer])
+                    vm_name = inquirer.text(
+                        message = "Please provide the name of your VM",
+                        default = vm_name
+                    ).execute()
+                    if choose_ip_addresses:
+                        cidr_prefix = network[network_name]['subnets'][added_subnet].get("cidr_block", "10.0.0.0/16")
+                        cidr_prefix = '.'.join(cidr_prefix.split('.')[:3])
+                        private_ip = inquirer.text(
+                            message = "Please provide the private IP address of your VM",
+                            default = cidr_prefix + "." + int_to_two_char_string(i+10)
+                        ).execute()
+                        vm_values['private_ip'] = private_ip
+                    vm[network_name][added_subnet][vm_name] = copy.deepcopy(vm_values)
+
+            else:
+                vm_name = ''.join([normalized_environment, normalized_vm_type, normalized_customer])
+                vm_name = inquirer.text(
+                    message = "Please provide the name of your VM",
+                    default = vm_name
+                ).execute()
+                if choose_ip_addresses:
+                    cidr_prefix = network[network_name]['subnets'][added_subnet].get("cidr_block", "10.0.0.0/16")
+                    cidr_prefix = '.'.join(cidr_prefix.split('.')[:3])
+                    private_ip = inquirer.text(
+                        message = "Please provide the private IP address of your VM",
+                        default = cidr_prefix + "." + int_to_two_char_string(vm_subnet_count+10)
+                    ).execute()
+                    vm_values['private_ip'] = private_ip
+                vm[network_name][added_subnet][vm_name] = vm_values
+
+            # check if we are using a platform manifest
+            if "sizing" in manifest_data["manifest"].get("infrastructure", {}).keys():
+                vm_type_manifest_iterator += 1
+                # if platform manifest, we continue to the next VM type of the manifest
+                print(manifest_data['vm_type_count'][subnet_kind])
+                if vm_type_manifest_iterator >= len(manifest_data['vm_type_count'][subnet_kind]):
+                    add_vm = False
+            else:
+                # do you want to add an extra VM
+                add_vm = inquirer.confirm(
+                    message="Do you want to add another VM ?",
+                    default=False
+                ).execute()
+
+            # increase vm count for subnet
+            if vm_set:
+                vm_count += nb_vms
+            else:
+                vm_count += 1
 
         # do you want to add an extra subnet
+        add_subnets = False
+        # if we are using a manifest with a public exposition layer, we need 2 subnets
+        if len(manifest_data) > 0:
+            if public_exposition_layer:
+                if subnet_iterator == 0:
+                    add_subnets = True
         add_subnet = inquirer.confirm(
             message="Do you want to add another subnet ?",
-            default=False
+            default=add_subnets
         ).execute()
+
+        subnet_iterator += 1
 
     # do you plan to use a Terraform backend
     use_tf_backend = inquirer.confirm(
@@ -485,10 +749,10 @@ def generate(operation: Operation):
         "use_tf_backend" : use_tf_backend
     }
 
-    if have_secondary_providers:
+    if len(secondary_providers) > 0:
         template_data["secondary_providers"] = secondary_providers
 
-    if provider in worldwide_cloud_datacenters.keys():
+    if public_cloud_provider:
         template_data["region"] = region
 
     if add_ssh_keys_from_repo:
@@ -503,6 +767,55 @@ def generate(operation: Operation):
 
     ### render config file
     content = config_template.render(template_data)
+
+    # if you have a platform manifest, set associated ansible config
+    if len(manifest_data) > 0:
+        # set the folder to browse for a platform manifest ansible template
+        default_ansible_folder = "./manifests"
+        ansible_folder = inquirer.text(
+            message = "Please provide the platform ansible template folder to browse, relative to your current project root folder",
+            default = default_ansible_folder,
+            validate = PathValidator(is_dir=True, message="Input is not a folder")
+        ).execute()
+
+        if public_exposition_layer:
+            manifest_data['public_dns'] = inquirer.text(
+                message="Choose a public DNS for the exposition of your platform",
+                default=provider + "." + operation.standard_config.get("default_external_domain", "myplatform.com")
+            ).execute()
+
+        default_deployment_mode = "internal"
+        ansible_template_file = "ansible.yml.j2"
+        if public_cloud_provider:
+            default_deployment_mode = "external"
+
+        ansible_template_file = inquirer.select(
+            message="Select the ansible template to use:",
+            choices=[
+                Choice(value="internal", name="internal"),
+                Choice(value="external", name="external")
+            ],
+            multiselect=False,
+            default=default_deployment_mode,
+        ).execute()
+        ansible_template_file = ansible_template_file + ".ansible.yml.j2"
+
+        if not os.path.exists(os.path.join(ansible_folder, ansible_template_file)):
+            operation.logger.info(f"The ansible template {ansible_template_file} does not exist, please provide one before generating a config file for a platform")
+            sys.exit()
+
+        # get ansible template
+        environment = Environment(
+            loader=FileSystemLoader(ansible_folder),
+            trim_blocks=True
+        )
+        ansible_template = environment.get_template(ansible_template_file)
+
+        ### render ansible template file
+        manifest_data['config'] = template_data
+        manifest_data['public_exposition_layer'] = public_exposition_layer
+        print(yaml.dump(manifest_data))
+        ansible_content = ansible_template.render(manifest_data)
 
     ### create scope
     scope_folder = os.path.join(operation.project_root, "config", scope)
@@ -524,5 +837,124 @@ def generate(operation: Operation):
     config_file = os.path.join(scope_folder, "config.yml")
     with open(config_file, mode="w", encoding="utf-8") as configfile:
         configfile.write(content)
+        if len(manifest_data) > 0:
+            configfile.write(ansible_content)
         operation.logger.info(f"Created config file for scope {scope}")
 
+def manifest(operation: Operation):
+
+    """ this function prompt an interactive definition of a platform manifest
+    
+    :param operation: Operation, the current Operation
+    """
+
+    # set the folder to browse for a platform manifest
+    default_manifest_folder = "./manifests"
+    manifest_folder = inquirer.text(
+        message = "Please provide the manifest folder to browse, relative to your current project root folder",
+        default = default_manifest_folder,
+        validate = PathValidator(is_dir=True, message="Input is not a folder")
+    ).execute()
+
+    # browse manifest folder for a platform manifest
+    platformManifestChoices = []
+    for file in os.listdir(manifest_folder):
+        if (file.endswith(".json")) :
+            platformManifestChoices.append(Choice(value=file, name=file,enabled=False))
+
+    platform_manifest_file = inquirer.select(
+        message="Select the platform manifest to start from:",
+        choices=platformManifestChoices,
+        multiselect=False,
+        default=None,
+    ).execute()
+    platform_manifest_file = os.path.join(manifest_folder, platform_manifest_file)
+
+    platform_manifest = {}
+    with open(platform_manifest_file, "r") as file:
+        platform_manifest = json.load(file)
+
+    if "vm_types" in platform_manifest.get("infrastructure", {}).keys():
+        operation.standard_config["vm_types"] = platform_manifest["infrastructure"]["vm_types"]
+
+    # activate/deactivate modules for the platform
+    module_choices = platform_manifest.get("modules", [])
+    module_choices = [
+        Choice(value = module['id'], name = module['name'], enabled = True) for module in module_choices
+    ]
+    activated_modules = inquirer.select(
+        message="Which modules would you like to include in the platform :",
+        choices=module_choices,
+        multiselect=True,
+        default=None,
+    ).execute()
+    activated_modules.append("dependencies")
+
+    # activate/deactivate components for the platform
+    component_list = platform_manifest.get("components", [])
+    activated_components = []
+    for module in activated_modules:
+        component_choices = [
+            Choice(value = component['id'], name = component['name'] + " " + component["version"], enabled = True) for component in component_list if component.get("module", "") == module
+        ]
+        module_text = f"module {module}"
+        if module == "dependencies":
+            module_text = "platform dependencies"
+        if len(component_choices)>0 :
+            activated_components_per_module = inquirer.select(
+                message=f"Which component would you like to include for {module_text} :",
+                choices=component_choices,
+                multiselect=True,
+                default=None,
+            ).execute()
+            activated_components += activated_components_per_module
+
+    # customize platform
+    customization = {}
+    for module, module_content in platform_manifest.get("customization", {}).items():
+        if module in activated_modules:
+            customization[module] = {}
+            for parameter in module_content:
+
+    # for module in activated_modules:
+    #     customization[module] = {}
+    #     for parameter in platform_manifest.get("customization", {}).get(module, []):
+                if parameter.get("type", "text") == "boolean":
+                    customization[module][parameter["name"]] = inquirer.confirm(
+                            message=parameter["prompt"],
+                            default=False
+                    ).execute()
+                if parameter.get("type", "text") == "text":
+                    customization[module][parameter["name"]] = inquirer.text(
+                        message = parameter["prompt"],
+                        default = parameter["default_value"]
+                    ).execute()
+                if parameter.get("type", "text") == "secret":
+                    customization[module][parameter["name"]] = inquirer.secret(
+                        message = parameter["prompt"]
+                    ).execute()
+
+    # load custom credentials
+    custom_credentials = {}
+    for custom_credential_name, custom_credential in operation.standard_config.get("custom_credentials", {}).items():
+        custom_credentials[custom_credential_name] = custom_credential
+        custom_credentials[custom_credential_name]['password'] = os.environ.get("CLOUDTIGER_" + custom_credential_name.upper(), "password_not_set")
+
+    deploy_manifest = {
+        "manifest" : platform_manifest,
+        "activated_modules" : activated_modules,
+        "activated_components" : activated_components,
+        "customization" : customization,
+        "custom_credentials" : custom_credentials,
+        "pvs_suffix" : pvs_suffix
+    }
+
+    # set the folder to browse for a platform manifest ansible template
+    default_manifest_folder = "./manifests"
+    manifest_folder = inquirer.text(
+        message = "Please provide the platform ansible template folder to browse, relative to your current project root folder",
+        default = default_manifest_folder,
+        validate = PathValidator(is_dir=True, message="Input is not a folder")
+    ).execute()
+
+    return deploy_manifest

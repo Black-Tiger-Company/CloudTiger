@@ -474,3 +474,15 @@ default_os_images:
 
 default_os_user:
   default: ubuntu
+
+default_firewall_rules_per_type:
+  jumpbox: ["icmp","ssh", "nexus"]
+  bastion: ["icmp","ssh","http","https","http_bis","http_ter"]
+  kubemaster:
+  - k8s_all
+  kubenode:
+  - k8s_all
+  kubenode_high_memory:
+  - k8s_all
+  kubenode_high_compute:
+  - k8s_all
