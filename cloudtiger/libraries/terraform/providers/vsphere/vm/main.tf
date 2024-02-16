@@ -122,7 +122,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
           netmask     = split("/", var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["cidr_block"])[1]
           nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
           search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
-          interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
+          # interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
           password   = var.vm.default_password
           domain_ldap = var.vm.domain_ldap
           uppercase_domain_ldap = upper(var.vm.domain_ldap)
@@ -154,7 +154,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
       label             = lookup(disk.value, "disk_label", format("disk%s", disk.value.index))
       size              = lookup(disk.value, "size", var.vm.default_data_volume_size)
       unit_number       = disk.value.index
-      datastore_id      = data.vsphere_datastore.datastore_datadisks[each.key].id
+      datastore_id      = data.vsphere_datastore.datastore_datadisks[disk.key].id
       eagerly_scrub     = lookup(disk.value, "eagerly_scrub", false)
       thin_provisioned  = lookup(disk.value, "thin_provisioned", true)
       disk_sharing      = lookup(disk.value, "disk_sharing", "sharingNone")

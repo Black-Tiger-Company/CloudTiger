@@ -138,7 +138,7 @@ def generate(operation: Operation):
     customer_choices = [
         Choice(value=customer, name=customer, enabled=False) for customer in customer_list
     ]
-    # customer_choices = ["custom"] + customer_choices
+    customer_choices = [Choice(value="custom", name="custom")] + customer_choices
     chosen_customer = inquirer.select(
         message = "Choose a customer for your scope:",
         choices = customer_choices,
@@ -155,7 +155,7 @@ def generate(operation: Operation):
     environments_choices = [
         Choice(value=environment, name=environment, enabled=False) for environment in common_env
     ]
-    environments_choices.append("custom")
+    environments_choices.append(Choice(value="custom", name="custom"))
     chosen_environment = inquirer.select(
         message = "Choose an environment for your scope:",
         choices = environments_choices,
@@ -191,12 +191,14 @@ def generate(operation: Operation):
                     "count": v
                 } for k, v in manifest_data['vm_type_count'][kind].items()
             ]
-        print(manifest_data['vm_type_count'])
 
     # define scope
-    default_scope = os.path.join(provider, chosen_customer, 
-                                 chosen_environment)
-    
+    # by default, the scope format is <PROVIDER>/<CUSTOMER>/<ENVIRONMENT>
+    default_scope = os.path.join(provider, chosen_customer, chosen_environment)
+    if len(manifest_data) > 0:
+        # if we are deploying a platform, the default scope format is <PROVIDER>/customers/<CUSTOMER>/<ENVIRONMENT>
+        default_scope = os.path.join(provider, "customers", chosen_customer, chosen_environment)
+
     scope = inquirer.text(message="Provide the path of the scope you want to create, excluding the 'config' folder:", 
                           default=default_scope).execute()
 
@@ -268,6 +270,8 @@ def generate(operation: Operation):
     # define a default folder for VMs - for vsphere provider only
     default_folder = os.path.join(chosen_customer, chosen_environment)
     if provider == "vsphere":
+        default_base_folder = operation.standard_config[provider].get("default_base_folder", "")
+        default_folder = os.path.join(default_base_folder, default_folder)
         set_default_folder = inquirer.confirm(
             message="Do you want to set default vsphere folder for all the VMs of your scope ?",
             default=True
@@ -284,7 +288,7 @@ def generate(operation: Operation):
     # define default specific resources for VMs - for vsphere provider only
     vsphere_specific_resources = {}
     if provider == "vsphere":
-        for resource in ["cluster", "datacenter", "datastore"]:
+        for resource in ["cluster", "datacenter", "datastore", "host"]:
             set_default_resource = inquirer.confirm(
                 message=f"Do you want to set default {resource} for all the VMs of your scope ?",
                 default=True
@@ -362,6 +366,8 @@ def generate(operation: Operation):
         for subnet in operation.all_network_info.get("vsphere", {}).get("subnets", []):
             subnet_data[subnet['name']]['name'] = subnet['name']
 
+        network[network_name]['datacenter'] = vsphere_specific_resources['datacenter']
+
     # choose subnet
     add_subnet = True
     default_subnet = operation.standard_config.get(provider, {}).get("default_vlan", "default")
@@ -382,7 +388,6 @@ def generate(operation: Operation):
         ).execute()
 
         if create_subnet:
-            print(subnet_iterator)
             network_name = list(network.keys())[0]
             default_subnet = worldwide_cloud_default_network["subnets"][subnet_iterator]
 
@@ -484,7 +489,6 @@ def generate(operation: Operation):
             # check if we are using a platform manifest
             if "sizing" in manifest_data.get("manifest", {}).get("infrastructure", {}).keys():
                 # if platform manifest, the number of VMs of each type is pre-set
-                print(manifest_data['vm_type_count'][subnet_kind])
                 nb_vms = manifest_data['vm_type_count'][subnet_kind][vm_type_manifest_iterator]['count']
                 vm_set = (nb_vms > 1)
                 added_vm_type = manifest_data['vm_type_count'][subnet_kind][vm_type_manifest_iterator]['vm_type']
@@ -520,16 +524,6 @@ def generate(operation: Operation):
                     multiselect = False,
                     default = None
                 ).execute()
-
-            # normalized_naming = operation.standard_config.get("normalized_naming", {})
-            # normalized_environment = normalized_naming.get("environment", {}).get(chosen_environment, chosen_environment)
-            # normalized_vm_tpe = normalized_naming.get("type", {}).get(added_vm_type, added_vm_type)
-            # normalized_customer = normalized_naming.get("customer", {}).get(chosen_customer, chosen_customer)
-            # vm_name = ''.join([normalized_environment, normalized_vm_tpe, normalized_customer])
-            # vm_name = inquirer.text(
-            #     message = "Please provide the name of your VM",
-            #     default = vm_name
-            # ).execute()
 
                 vm_sizing = inquirer.select(
                     message="Which sizing for the VM:",
@@ -600,6 +594,8 @@ def generate(operation: Operation):
             if provider == "nutanix":
                 vm_values['availability_zone'] = default_cluster
 
+            # if 
+
             # set VM's OS
             vm_os = default_os
             set_vm_specific_os = inquirer.confirm(
@@ -622,7 +618,7 @@ def generate(operation: Operation):
                     default=False
                 ).execute()
                 if set_custom_resources:
-                    for resource in ["cluster", "datacenter", "datastore"]:
+                    for resource in ["cluster", "datacenter", "datastore", "host"]:
                         available_resources = operation.all_existing_clusters.get("vsphere_cluster_resources", {}).get(resource, [])
                         available_resources = [
                             available_resource.get("name", "no_name") for available_resource in available_resources
@@ -643,6 +639,8 @@ def generate(operation: Operation):
                 vm_values['extra_parameters'] = vm_values.get('extra_parameters', {})
                 vm_values['extra_parameters']['datastore'] = "/" + "/".join([vsphere_vm_specific_resources['datacenter'], "datastore", vsphere_vm_specific_resources['datastore']])
                 vm_values['extra_parameters']['resource_pool'] = "/" + "/".join([vsphere_vm_specific_resources['datacenter'], "host", vsphere_vm_specific_resources['cluster']])
+                vm_values['datacenter'] = vsphere_vm_specific_resources['datacenter']
+                vm_values['availability_zone'] = vsphere_vm_specific_resources['host']
 
             # prepare VM default name
             normalized_naming = operation.standard_config.get("normalized_naming", {})
@@ -700,10 +698,9 @@ def generate(operation: Operation):
                 vm[network_name][added_subnet][vm_name] = vm_values
 
             # check if we are using a platform manifest
-            if "sizing" in manifest_data["manifest"].get("infrastructure", {}).keys():
+            if "sizing" in manifest_data.get("manifest", {}).get("infrastructure", {}).keys():
                 vm_type_manifest_iterator += 1
                 # if platform manifest, we continue to the next VM type of the manifest
-                print(manifest_data['vm_type_count'][subnet_kind])
                 if vm_type_manifest_iterator >= len(manifest_data['vm_type_count'][subnet_kind]):
                     add_vm = False
             else:

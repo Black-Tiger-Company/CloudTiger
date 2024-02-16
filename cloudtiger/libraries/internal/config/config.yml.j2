@@ -6,7 +6,7 @@ region: {{ region }}
 
 services_account:
 {% for secondary_provider in secondary_providers %}
-  secondary_provider: {{ secondary_provider }}
+  {{ secondary_provider }}: ""
 {% endfor %}
 {% endif %}
 {% if artefacts_repository_public_key_url is defined %}
@@ -39,6 +39,9 @@ network:
 {% endfor %}
 {% endif %}
 {% endfor %}
+{% if provider == "vsphere" %}
+    datacenter: {{ network_content['datacenter']}}
+{% endif %}
 {% endfor %}
 
 vm:
@@ -52,7 +55,7 @@ vm:
 {% if k not in ['size', 'extra_parameters'] %}
         {{ k }} : {{ v }}
 {% else %}
-        size:
+        {{ k }}:
 {% for sub_k, sub_v in v.items() %}
           {{ sub_k }} : {{ sub_v }}
 {% endfor %}
