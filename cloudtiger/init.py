@@ -19,6 +19,7 @@ from cloudtiger.common_tools import load_yaml, j2, create_ssh_keys, merge_dictio
 from cloudtiger.data import available_infra_services, terraform_vm_resource_name, provider_secrets_helper, environment_name_mapping, custom_ssh_port_per_vm_type
 from cloudtiger.specific.nutanix import get_vms_list_per_vlan_nutanix
 from cloudtiger.specific.vsphere import get_vms_list_per_vlan_vsphere
+from cloudtiger.specific.dns import *
 
 def config(operation: Operation):
 
@@ -709,3 +710,67 @@ def set_admin(operation: Operation):
 
 
     return None
+
+def set_dns(operation: Operation):
+
+    """ this function will call the operate_dsn function with the 'set' operation """
+
+    operate_dns(operation, "set")
+
+def delete_dns(operation: Operation):
+
+    """ this function will call the operate_dsn function with the 'delete' operation """
+
+    operate_dns(operation, "delete")
+
+def operate_dns(operation: Operation, operator):
+
+    """ this function creates or deletes the DNS records (A and PTR) associated with the 
+    config_ips.yml file """
+
+    # loading attributed IPs from config_ips.yml
+    operation.load_ips()
+
+    dns_server_type = operation.standard_config.get("default_dns_server_type", "bind")
+
+    # check if DNS server credentials are defined
+    dns_credentials = {}
+    for dns_credential in ["address", "login", "password"]:
+        dns_credential_var = "CLOUDTIGER_DNS_" + dns_credential.upper()
+        if dns_credential_var not in os.environ.keys():
+            operation.logger.error(f"Error : there is no {dns_credential_var} value defined in your base .env file")
+            sys.exit()
+        dns_credentials[dns_credential] = os.environ[dns_credential_var]
+        if dns_credential == "password":
+            dns_credentials[dns_credential] = base64.b64decode(dns_credentials[dns_credential]).decode('ascii').rstrip('\n')
+
+    # check if a domain is defined for editing your VMs DNS
+    if "search" not in operation.standard_config.keys():
+        operation.logger.error(f"Error : the domain is not defined in your standard.yml file, please define a 'search' value")
+        sys.exit()
+
+    domain = operation.standard_config['search']
+
+    # for Windows server DNS
+    if dns_server_type == "windows":
+        ms_connection = dns_login(
+            operation,
+            dns_credentials["address"],
+            dns_credentials["login"],
+            dns_credentials["password"]
+        )
+
+        if operator == "set":
+            for vm_name, ip_address in operation.scope_unpacked_ips.items():
+                operation.logger.info(f"Adding VM DNS {vm_name} to domain {domain}")
+                dns_add_a_record(operation, vm_name, ip_address, domain, ms_connection)
+                if operation.ptr:
+                    dns_add_ptr_record(operation, vm_name, ip_address, domain, ms_connection)
+
+        if operator == "delete":
+            for vm_name, ip_address in operation.scope_unpacked_ips.items():
+                operation.logger.info(f"Deleted VM DNS {vm_name} from domain {domain}")
+                dns_delete_a_record(operation, vm_name, ip_address, domain, ms_connection)
+                dns_delete_ptr_record(operation, vm_name, ip_address, domain, ms_connection)
+
+    return

@@ -264,6 +264,11 @@ allowed_actions = {
         "3": "set_admin",
         "set_mode": "set_mode",
         "4": "set_mode",
+        "set_mode": "set_mode",
+        "5": "set_dns",
+        "set_dns": "set_dns",
+        "6": "delete_dns",
+        "delete_dns": "delete_dns",
         "meta_aggregate": "init_meta_aggregate",
         "M1": "init_meta_aggregate",
         "meta_distribute": "init_meta_distribute",
@@ -427,33 +432,33 @@ custom_ssh_port_per_vm_type = {
 }
 
 normalized_naming = {
-    "environment" : [
-        "prd",
-        "ppr",
-        "stg",
-        "int",
-        "qa",
-        "dev",
-        "tst",
-        "dmo",
-        "sbx"
-    ],
-    "type" : [
-        "k8nod",
-        "k8ram",
-        "k8cpu",
-        "k8mst",
-        "std"
-    ],
-    "customer" : [
-        "dev",
-        "demo",
-        "dvps",
-        "frt",
-        "bck",
-        "sys",
-        "int"
-    ]
+    "environment": {
+        "prod": "prd",
+        "preprod": "ppr",
+        "staging": "stg",
+        "integration": "int",
+        "qa": "qa",
+        "dev": "dev",
+        "test": "tst",
+        "demo": "dmo",
+        "sandbox": "sbx"
+    },
+    "type": {
+        "kubenode": "k8nod",
+        "kubenode_high_memory": "k8ram",
+        "kubenode_high_compute": "k8cpu",
+        "kubemaster": "k8mst",
+        "standard": "std"
+    },
+    "customer": {
+        "dev": "dev",
+        "demo": "demo",
+        "devops": "dvps",
+        "front": "frt",
+        "back": "bck",
+        "sys": "sys",
+        "internal": "int"
+    }
 }
 
 clusterized_hypervisors = [

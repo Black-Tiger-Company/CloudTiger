@@ -11,6 +11,8 @@ from cloudtiger.init import (
     prepare_scope_folder,
     set_mode,
     set_admin,
+    set_dns,
+    delete_dns,
     init_meta_aggregate,
     init_meta_distribute
 )
@@ -133,8 +135,12 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
 @click.command('init', short_help='init actions')
 @click.argument('action')
 @click.argument('action_argument', default=None, required=False)
+@click.option('--ptr',
+              is_flag=True,
+              default=False,
+              help="add PTR records to DNS A records")
 @click.pass_context
-def init(context, action, action_argument):
+def init(context, action, action_argument, ptr):
     """ Initial actions for preparing a new scope :
 \n- folder (F)            : create a boostrap gitops folder
 \n- config (C)            : configure current gitops folder
@@ -144,9 +150,11 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
 \n- scope_folder (2)      : prepare scope folder
 \n- set_admin (3)         : prepare list of admin users for the VMs
 \n- set_mode (4)          : update config.yml to associate specification mode (HA, low, ...) to vm parameters
+\n- set_dns (5)           : create DNS records according to config_ips.yml
+\n- delete_dns (6)        : delete DNS records according to config_ips.yml
 \n- meta_aggregate (M1)   : aggregate config.yml files from children scopes
 \n- meta_distribute (M2)  : distribute the meta_config.yml to children scopes
-\n- consolidate (C)       : consolidate addresses and networks from 
+\n- consolidate (C)       : consolidate addresses and networks from cluster
     """
 
     for operation_context in context.obj['operations']:
@@ -162,6 +170,10 @@ for the current scope in secrets/ssh/<PROVIDER>/private|public
             # unallowed action
             operation.logger.error("Unallowed action %s" % action)
             sys.exit()
+
+        # do we add PTR records to A records ?
+        if ptr:
+            operation.ptr = True
 
         if operation.empty_scope & (action_alias not in non_scope_init_actions):
             operation.logger.debug("Empty scope %s, skipping operation"

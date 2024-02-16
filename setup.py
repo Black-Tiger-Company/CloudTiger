@@ -14,7 +14,7 @@ requirements = [
     'Click>=7.0', 'python-dotenv>=0.14.0', 'pyyaml', 'jinja2',
     'ansible', 'pykeepass', 'Paramiko', 'xmltodict', 'pycryptodome',
     'requests', 'passlib', 'netaddr', 'pydantic', 'ruamel.yaml',
-    'dnspython', 'inquirerpy', 'colored'
+    'dnspython', 'inquirerpy', 'colored', 'pypsrp'
 ]
 
 test_requirements = []

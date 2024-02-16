@@ -258,6 +258,9 @@ class Operation:
         # Use a platform manifest for the scope
         self.manifest = False
 
+        # Add PTR record to A record when creating DNS
+        self.ptr = True
+
     def set_domain(self, domain: str):
 
         """ this function set the DNS domain
@@ -335,7 +338,6 @@ class Operation:
             self.provider = provider
             self.scope = scope
 
-
         # parameters that will be set in the terraform vars files in scopes/<SCOPE>/terraform folder
         self.scope_config_folder = os.path.join(self.project_root, 'config', self.scope)
         self.scope_config = os.path.join(self.project_root, 'config', self.scope, 'config.yml')
@@ -376,6 +378,7 @@ class Operation:
                 self.used_services.append(service)
 
         # set scopes values
+        self.provider = self.scope_config_dict.get('provider', self.provider)
         self.logger.debug("Provider is %s" % self.provider)
         self.scope_config_dict["ssh_key_path"] = self.scope_config_dict\
             .get('ssh_key_name',
