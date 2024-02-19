@@ -83,6 +83,7 @@ runcmd:
 - sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart && service ssh restart
 - rm /root/temporary
 - userdel -r ubuntu
+- rm /etc/sudoers.d/90-cloud-init-users
 
 package_update: true
 package_upgrade: true
