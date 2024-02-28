@@ -64,7 +64,11 @@ def generate(operation: Operation):
 
     # if you have a platform manifest, set associated ansible config
     public_exposition_layer = False
+    using_platform_manifest = False
     if len(manifest_data) > 0:
+        using_platform_manifest = True
+
+    if using_platform_manifest:
 
         # choose if a public exposition proxy has to be set
         public_exposition_layer = inquirer.confirm(
@@ -168,7 +172,7 @@ def generate(operation: Operation):
         ).execute()
 
     # if you have a platform manifest, get VM type counts according to environment
-    if len(manifest_data) > 0:
+    if using_platform_manifest:
         sizing_data = manifest_data["manifest"].get("infrastructure", {}).get("sizing", {})
         manifest_data['vm_type_count'] = {'public':{}, 'private':{}}
         for module in manifest_data['activated_modules']:
@@ -195,7 +199,7 @@ def generate(operation: Operation):
     # define scope
     # by default, the scope format is <PROVIDER>/<CUSTOMER>/<ENVIRONMENT>
     default_scope = os.path.join(provider, chosen_customer, chosen_environment)
-    if len(manifest_data) > 0:
+    if using_platform_manifest:
         # if we are deploying a platform, the default scope format is <PROVIDER>/customers/<CUSTOMER>/<ENVIRONMENT>
         default_scope = os.path.join(provider, "customers", chosen_customer, chosen_environment)
 
@@ -288,9 +292,10 @@ def generate(operation: Operation):
     # define default specific resources for VMs - for vsphere provider only
     vsphere_specific_resources = {}
     if provider == "vsphere":
+        operation.logger.info('*** VSPHERE SPECIFIC ***')
         for resource in ["cluster", "datacenter", "datastore", "host"]:
             set_default_resource = inquirer.confirm(
-                message=f"Do you want to set default {resource} for all the VMs of your scope ?",
+                message=f"Vsphere infrastructure - Do you want to set default {resource} for all the VMs of your scope ?",
                 default=True
             ).execute()
             if set_default_resource:
@@ -313,21 +318,6 @@ def generate(operation: Operation):
                 vsphere_specific_resources[resource] = default_resource
         vsphere_specific_resources['folder'] = default_folder
 
-    # # define a default folder for VMs - for vsphere provider only
-    # default_folder = "."
-    # if len(operation.scope.split(os.sep)) > 2:
-    #     default_folder = os.path.join(operation.scope.split(os.sep)[2:])
-    # if provider == "vsphere":
-    #     set_default_folder = inquirer.confirm(
-    #         message="Do you want to set default vsphere folder for all the VMs of your scope ?",
-    #         default=True
-    #     ).execute()
-    #     if set_default_folder:
-    #         default_folder = inquirer.text(
-    #             message = "Set a default vsphere folder for your scope:",
-    #             default = default_folder
-    #         ).execute()
-    
     # get network data
     network = {}
     network_name = operation.provider + "_network"
@@ -387,7 +377,13 @@ def generate(operation: Operation):
                 default=(public_cloud_provider)
         ).execute()
 
+        # by default the subnet is not managed by Terraform
+        not_terraform_managed = True
+
         if create_subnet:
+
+            not_terraform_managed = False
+
             network_name = list(network.keys())[0]
             default_subnet = worldwide_cloud_default_network["subnets"][subnet_iterator]
 
@@ -446,21 +442,18 @@ def generate(operation: Operation):
 
             network[network_name]['subnets'][added_subnet] = subnet_data[added_subnet]
 
-            # ask if network is Terraform-managed
-            not_terraform_managed = inquirer.confirm(
-                message="Is this subnet created outside of current scope ?",
-                default=True
-            ).execute()
 
-            network[network_name]['subnets'][added_subnet]['unmanaged'] = not_terraform_managed
 
             # ask if IPAM is activated on VLAN
-            activated_ipam = inquirer.confirm(
-                message="Has this subnet IPAM activated ?",
+            no_dhcp_ip_attribution = inquirer.confirm(
+                message="Are you choosing IP addresses by yourself (no DHCP) ?",
                 default=True
             ).execute()
 
-            network[network_name]['subnets'][added_subnet]['managed_ips'] = activated_ipam
+            network[network_name]['subnets'][added_subnet]['managed_ips'] = no_dhcp_ip_attribution
+        
+        # we define if the subnet should be managed by Terraform in the current scope
+        network[network_name]['subnets'][added_subnet]['unmanaged'] = not_terraform_managed
 
         # get subnet kind
         subnet_is_public = network[network_name]['subnets'][added_subnet].get("public", False)
@@ -480,7 +473,7 @@ def generate(operation: Operation):
 
         # choose IP addresses for the VM ?
         choose_ip_addresses = inquirer.confirm(
-            message="Do you want to choose IP addresses for this VLAN ?",
+            message="Do you want to manually set IP addresses for this VLAN ?",
             default=public_cloud_provider
         ).execute()
 
@@ -591,10 +584,6 @@ def generate(operation: Operation):
                 "root_volume_size": root_volume_size,
                 "group": vm_group
             }
-            if provider == "nutanix":
-                vm_values['availability_zone'] = default_cluster
-
-            # if 
 
             # set VM's OS
             vm_os = default_os
@@ -610,8 +599,19 @@ def generate(operation: Operation):
                     default = default_os
                 ).execute()
 
+            if provider == "nutanix":
+                vm_values['availability_zone'] = default_cluster
+
+                # set VM template UUID from standard config
+                available_clone_uuid = operation.standard_config.get("system_images", {}).get("nutanix", {}).get(vm_os, {}).get("uuid", "unset_template_vm_uuid")
+                vm_values['extra_parameters'] = vm_values.get("extra_parameters", {})
+                vm_values['extra_parameters']["source_image_uuid"] = available_clone_uuid
+
+                vm_values['system_image'] =  vm_os
+
             # vsphere specific - set resources
             if provider == "vsphere":
+                operation.logger.info('*** VSPHERE SPECIFIC ***')
                 vsphere_vm_specific_resources = vsphere_specific_resources
                 set_custom_resources = inquirer.confirm(
                     message=f"Do you want to set custom vSphere resources for this VM ?",
@@ -647,21 +647,6 @@ def generate(operation: Operation):
             normalized_environment = normalized_naming.get("environment", {}).get(chosen_environment, chosen_environment)
             normalized_vm_type = normalized_naming.get("type", {}).get(added_vm_type, added_vm_type)
             normalized_customer = normalized_naming.get("customer", {}).get(chosen_customer, chosen_customer)
-
-            # # do you want a set of identical VMs ?
-            # nb_vms = 1
-            # vm_set = inquirer.confirm(
-            #     message="Do you want a set of identical VMs ?",
-            #     default=False
-            # ).execute()
-
-            # if vm_set:
-            #     nb_vms = inquirer.number(
-            #         message="Enter number of VMs:",
-            #         min_allowed=1,
-            #         max_allowed=99,
-            #         default=1,
-            #     ).execute()
 
             if vm_set:
 
@@ -719,7 +704,7 @@ def generate(operation: Operation):
         # do you want to add an extra subnet
         add_subnets = False
         # if we are using a manifest with a public exposition layer, we need 2 subnets
-        if len(manifest_data) > 0:
+        if using_platform_manifest:
             if public_exposition_layer:
                 if subnet_iterator == 0:
                     add_subnets = True
@@ -766,7 +751,7 @@ def generate(operation: Operation):
     content = config_template.render(template_data)
 
     # if you have a platform manifest, set associated ansible config
-    if len(manifest_data) > 0:
+    if using_platform_manifest:
         # set the folder to browse for a platform manifest ansible template
         default_ansible_folder = "./manifests"
         ansible_folder = inquirer.text(
@@ -834,7 +819,7 @@ def generate(operation: Operation):
     config_file = os.path.join(scope_folder, "config.yml")
     with open(config_file, mode="w", encoding="utf-8") as configfile:
         configfile.write(content)
-        if len(manifest_data) > 0:
+        if using_platform_manifest:
             configfile.write(ansible_content)
         operation.logger.info(f"Created config file for scope {scope}")
 
@@ -945,13 +930,5 @@ def manifest(operation: Operation):
         "custom_credentials" : custom_credentials,
         "pvs_suffix" : pvs_suffix
     }
-
-    # set the folder to browse for a platform manifest ansible template
-    default_manifest_folder = "./manifests"
-    manifest_folder = inquirer.text(
-        message = "Please provide the platform ansible template folder to browse, relative to your current project root folder",
-        default = default_manifest_folder,
-        validate = PathValidator(is_dir=True, message="Input is not a folder")
-    ).execute()
 
     return deploy_manifest
