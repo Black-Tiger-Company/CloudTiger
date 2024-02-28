@@ -195,6 +195,8 @@ def configure_ip(operation: Operation):
                     subnets_to_crawl[network_name].append(subnet_name)
                     break
 
+    operation.logger.debug(f"Subnets to inspect to find available IPs {subnets_to_crawl}")
+
     # we 'fping' the subnets to find available IPs
     available_ips = {}
     all_available_ips = []
@@ -223,6 +225,9 @@ def configure_ip(operation: Operation):
                 process.wait()
                 out = process.stdout.read()
                 all_available_ips = out.split('\n')
+
+            # dump available IPs for debug
+            operation.logger.debug(f"Subnets to inspect to find available IPs {subnets_to_crawl}")
 
             # in order to avoid broadcast IPs
             all_available_ips.reverse()

@@ -58,7 +58,11 @@ def get_vms_list_per_vlan_vsphere(operation: Operation):
     all_vms_per_vlan = {}
 
     # list subnets to inspect
-    requested_subnets = operation.scope_config_dict.get("vm", {}).get("vsphere_network").keys()
+    networks = operation.scope_config_dict.get("vm", {}).keys()
+    requested_subnets = []
+    for network in networks:
+        extra_subnets = operation.scope_config_dict.get("vm", {}).get(network, {}).keys()
+        requested_subnets += extra_subnets
 
     for vm in vm_names:
         # we filter vSphere Cluster Service VM
