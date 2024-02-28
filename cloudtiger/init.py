@@ -169,7 +169,6 @@ def configure_ip(operation: Operation):
     """
 
     # listing all the subnets that need to be crawled for available IPs
-
     all_vms_per_vlan = {}
 
     # we collect IPs from existing VMs on private cloud providers

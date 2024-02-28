@@ -50,6 +50,8 @@ write_files:
     domains = ${domain_ldap}
     config_file_version = 2
     services = nss, pam, sudo, ssh
+    timeout = 20
+    dyndns_update = false
 
     [sudo]
 

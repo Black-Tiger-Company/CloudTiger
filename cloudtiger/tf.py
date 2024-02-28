@@ -47,7 +47,7 @@ def tf_generic(operation: Operation, tf_action):
         # if tf action is init, we need to set the environment variables for reaching the backend if
         # backend is used
         if (tf_action == "init") & (operation.scope_config_dict.get("use_tf_backend", False)):
-            command += format(' -backend-config="conn_str=postgres://%s:%s@%s/%s?sslmode=allow"' %
+            command += format(' -backend-config="conn_str=postgres://%s:%s@%s/%s?sslmode=disable"' %
                               (
                                   os.environ['CLOUDTIGER_BACKEND_USERNAME'],
                                   os.environ['CLOUDTIGER_BACKEND_PASSWORD'],
