@@ -20,6 +20,7 @@ locals {
     "debian-test-user-data-packer-image-11"  = "cloudinit_debian_11.cfg.tpl"
     "ubuntu-20.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
     "ubuntu-22.04-server-cloudimg-amd64.img" = "cloudinit_ubuntu.cfg.tpl"
+    "ubuntu-2204-lts-server-bt-ad-template-nutanix" = "cloudinit_ubuntu2204.cfg.tpl"
   }
 
   subnet_has_managed_ips = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "managed_ips", false)
@@ -35,9 +36,6 @@ data "nutanix_subnet" "subnets" {
   subnet_name = var.vm.subnet_name
 }
 
-data "nutanix_image" "image" {
-  image_name = var.vm.system_image
-}
 
 resource "nutanix_virtual_machine" "virtual_machine" {
 
@@ -48,26 +46,31 @@ resource "nutanix_virtual_machine" "virtual_machine" {
   lifecycle {
     ignore_changes = [
       guest_customization_cloud_init_user_data,
-      # nic_list,
       owner_reference,
       project_reference,
-      #disk_list
-      # disk_list[1].data_source_reference.uuid
+      disk_list[0].data_source_reference,
+      parent_reference
     ]
   }
 
   guest_customization_cloud_init_user_data = (lookup(var.vm.extra_parameters, "cloud_init_set", false) == true) ? null : base64encode(templatefile(format("%s/%s", path.module, local.cloud_init_templates[var.vm.system_image]),
     {
-      # vm_address = nutanix_virtual_machine.virtual_machine.nic_list[0].ip_endpoint_list[0].ip
       vm_name    = var.vm.vm_name
+      ad_groups   = lookup(var.vm, "ad_groups", [])
+      user       = lookup(var.vm, "user", "unset_user")
       vm_address = lookup(var.vm, "private_ip", "learned")
-      # vm_address = !lookup(var.vm.extra_parameters, "post_assigned", true) ? "vm_address" : var.vm.private_ip
       vm_gateway  = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["gateway_ip_address"]
       netmask     = split("/", var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["cidr_block"])[1]
       nameservers = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["nameservers"]
       search      = var.network[var.vm.network_name]["subnets"][var.vm.subnet_name]["search"]
-      interface   = lookup(var.network[var.vm.network_name]["subnets"][var.vm.subnet_name], "network_interface")
       password   = var.vm.default_password
+      domain_ldap = var.vm.domain_ldap
+      uppercase_domain_ldap = upper(var.vm.domain_ldap)
+      ou_ldap = var.vm.ou_ldap
+      user_ldap_join = var.vm.user_ldap_join
+      password_user_ldap_join = var.vm.password_user_ldap_join
+      ldap_user_search_base = var.vm.ldap_user_search_base
+      ldap_sudo_search_base = var.vm.ldap_sudo_search_base
       users_list = var.vm.users_list
     }
   ))
@@ -91,42 +94,25 @@ resource "nutanix_virtual_machine" "virtual_machine" {
     }
   }
 
-  # dynamic "nic_list" {
-  #   for_each = (!(local.subnet_has_managed_ips)) ? [1] : []
-  #   content {
-  #     subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
-  #     ip_endpoint_list {
-  #       type = "LEARNED"
-  #       ip   = lookup(var.vm.extra_parameters, "assigned_ip", "192.168.0.0")
-  #     }
-  #     nic_type = "NORMAL_NIC"
-  #   }
-  # }
-
-  dynamic "nic_list" {
-    for_each = (!(local.subnet_has_managed_ips)) ? [1] : []
-    content {
-      subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
-      nic_type = "NORMAL_NIC"
-    }
-  }
-
-  # nic_list {
-  #   subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
-  #   # ip_endpoint_list {}
-  #   nic_type = "NORMAL_NIC"
-  # }
 
   num_vcpus_per_socket = var.vm.instance_type.nb_vcpu_per_socket
   num_sockets          = var.vm.instance_type.nb_sockets
   memory_size_mib      = var.vm.instance_type.memory
 
+  parent_reference = {
+    kind = "vm"
+    # name = var.vm.system_image
+    # uuid = "399221a1-09b8-47af-a7a4-3a3ae647d432"
+    # uuid = var.vm.system_image
+    uuid = var.vm.extra_parameters.source_image_uuid
+  }
+
+
   disk_list {
     data_source_reference = {
-      kind = "template"
-      uuid = data.nutanix_image.image.metadata.uuid
+      kind = "vm"
+      uuid = var.vm.extra_parameters.source_image_uuid
     }
-    disk_size_mib = var.vm.root_volume_size * 1024
   }
 
   dynamic "disk_list" {
