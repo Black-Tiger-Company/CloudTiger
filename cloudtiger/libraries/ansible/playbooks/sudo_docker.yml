@@ -1,0 +1,18 @@
+---
+- name: Create docker alias for Bash shell users
+  hosts: "{{ hosts }}"
+  gather_facts: yes
+
+  vars:
+    nodes: "{{ nodes }}"
+    user: "{{ user }}"
+
+  tasks:
+  - name: Add user to docker group
+    debug:
+      msg: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ user }}@{{ item }} 'sudo gpasswd -a {{ user }} docker'
+    loop: "{{ nodes }}"
+
+  - name: Add user to docker group
+    raw: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ user }}@{{ item }} 'sudo gpasswd -a {{ user }} docker'
+    loop: "{{ nodes }}"
