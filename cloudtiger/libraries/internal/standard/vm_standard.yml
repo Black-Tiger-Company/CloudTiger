@@ -334,132 +334,156 @@ vm_types:
     bastion:
       prod:
         data_volume_size: 0
+        root_volume_size: 16
         memory: 1024
         nb_sockets: 1
         nb_vcpu_per_socket: 1
       nonprod:
         data_volume_size: 0
+        root_volume_size: 16
         memory: 1024
         nb_sockets: 1
         nb_vcpu_per_socket: 1
     jumpbox:
       prod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 1
       nonprod:
-        data_volume_size: 5
+        data_volume_size: 0
+        root_volume_size: 5
         memory: 1024
         nb_sockets: 1
         nb_vcpu_per_socket: 1
     backend:
       prod:
-        data_volume_size: 100
+        data_volume_size: 0
+        root_volume_size: 100
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 4
       nonprod:
-        data_volume_size: 40
+        data_volume_size: 0
+        root_volume_size: 40
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 2
     elastic:
       prod:
-        data_volume_size: 60
+        data_volume_size: 0
+        root_volume_size: 60
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 2
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 2
     k8s_master:
       prod:
-        data_volume_size: 100
+        data_volume_size: 0
+        root_volume_size: 100
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 2
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 2
     k8s_worker:
       prod:
-        data_volume_size: 100
+        data_volume_size: 0
+        root_volume_size: 100
         memory: 8192
         nb_sockets: 1
         nb_vcpu_per_socket: 2
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 2
     mongo:
       prod:
-        data_volume_size: 100
+        data_volume_size: 0
+        root_volume_size: 100
         memory: 32768
         nb_sockets: 2
         nb_vcpu_per_socket: 4
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 2
     keycloak:
       prod:
-        data_volume_size: 60
+        data_volume_size: 0
+        root_volume_size: 60
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 1
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 1
     sftp:
       prod:
-        data_volume_size: 60
+        data_volume_size: 0
+        root_volume_size: 60
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 1
       nonprod:
-        data_volume_size: 30
+        data_volume_size: 0
+        root_volume_size: 30
         memory: 2048
         nb_sockets: 1
         nb_vcpu_per_socket: 1
     sparkmaster:
       prod:
-        data_volume_size: 60
+        data_volume_size: 0
+        root_volume_size: 60
         memory: 16384
         nb_sockets: 1
         nb_vcpu_per_socket: 4
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 2
     sparknode:
       prod:
-        data_volume_size: 160
+        data_volume_size: 0
+        root_volume_size: 160
         memory: 32768
         nb_sockets: 2
         nb_vcpu_per_socket: 4
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 2
     kibana:
       prod:
-        data_volume_size: 60
+        data_volume_size: 0
+        root_volume_size: 60
         memory: 8192
         nb_sockets: 1
         nb_vcpu_per_socket: 4
       nonprod:
-        data_volume_size: 20
+        data_volume_size: 0
+        root_volume_size: 20
         memory: 4096
         nb_sockets: 1
         nb_vcpu_per_socket: 2 
