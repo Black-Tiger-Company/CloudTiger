@@ -108,7 +108,7 @@ provider "vsphere" {
       api_timeout    = 120
 
       # If you have a self-signed cert
-      allow_unverified_ssl = true
+      allow_unverified_ssl = "1"
 }
 {%- endif %}
 
