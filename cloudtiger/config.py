@@ -28,22 +28,6 @@ def generate(operation: Operation):
     :param operation: Operation, the current Operation
     """
 
-    # prepare deployment manifest
-    manifest_data = {}
-    if operation.manifest:
-        manifest_data = manifest(operation)
-
-    config_content = {}
-
-    # get config template from internal catalog
-    config_template_dir = os.path.join(
-        operation.libraries_path, "internal", "config")
-    environment = Environment(
-        loader=FileSystemLoader(config_template_dir),
-        trim_blocks=True
-    )
-    config_template = environment.get_template("config.yml.j2")
-
     # choose main cloud provider
     all_supported_providers = [
             Choice(value=prov['name'], name=prov['common_name'], enabled=False) for prov in supported_providers["private"] + supported_providers["public"]
@@ -61,6 +45,38 @@ def generate(operation: Operation):
 
     # is it a public cloud provider ?
     public_cloud_provider = (provider in worldwide_cloud_datacenters.keys())
+
+    # is it an internal or external deployment ?
+    default_deployment_mode = "internal"
+    if public_cloud_provider:
+        default_deployment_mode = "external"
+    deployment_mode = inquirer.select(
+            message="Select the deployment mode (internal or external):",
+            choices=[
+                Choice(value="internal", name="internal"),
+                Choice(value="external", name="external")
+            ],
+            multiselect=False,
+            default=default_deployment_mode,
+        ).execute()
+
+    # prepare deployment manifest
+    manifest_data = {}
+    if operation.manifest:
+        manifest_data = manifest(operation, deployment_mode)
+
+    config_content = {}
+
+    # get config template from internal catalog
+    config_template_dir = os.path.join(
+        operation.libraries_path, "internal", "config")
+    environment = Environment(
+        loader=FileSystemLoader(config_template_dir),
+        trim_blocks=True
+    )
+    config_template = environment.get_template("config.yml.j2")
+
+    
 
     # if you have a platform manifest, set associated ansible config
     public_exposition_layer = False
@@ -144,7 +160,7 @@ def generate(operation: Operation):
     ]
     customer_choices = [Choice(value="custom", name="custom")] + customer_choices
     chosen_customer = inquirer.select(
-        message = "Choose a customer for your scope:",
+        message = "Choose a customer for your scope (custom customer's scope starts at 'gitops/config', standard customer's scope starts at 'gitops/customers/<CUSTOMER>'):",
         choices = customer_choices,
         multiselect=False,
         default = None
@@ -175,7 +191,7 @@ def generate(operation: Operation):
     if using_platform_manifest:
         sizing_data = manifest_data["manifest"].get("infrastructure", {}).get("sizing", {})
         manifest_data['vm_type_count'] = {'public':{}, 'private':{}}
-        for module in manifest_data['activated_modules']:
+        for module in (manifest_data['activated_modules'] + ['requirements']):
             for vm_type, vm_count in sizing_data.get(chosen_environment, sizing_data["nonprod"]).get(module, {}).items():
                 # check if VM should be on private or public subnet
                 vm_kind = "private"
@@ -285,9 +301,6 @@ def generate(operation: Operation):
                 message = "Set a default vsphere folder for your scope:",
                 default = default_folder
             ).execute()
-            # if not check_folder_exists_vsphere(operation, default_folder):
-            #     operation.logger.info("Error : the folder you have specified does not exist - create it in the vSphere UI before creating config file")
-            #     sys.exit()
 
     # define default specific resources for VMs - for vsphere provider only
     vsphere_specific_resources = {}
@@ -446,7 +459,7 @@ def generate(operation: Operation):
 
             # ask if IPAM is activated on VLAN
             no_dhcp_ip_attribution = inquirer.confirm(
-                message="Are you choosing IP addresses by yourself (no DHCP) ?",
+                message="Are you setting IP addresses without DHCP ?",
                 default=True
             ).execute()
 
@@ -479,21 +492,23 @@ def generate(operation: Operation):
 
         while add_vm:
 
+            default_vm_sizing = "nonprod"
+            if chosen_environment == "prod":
+                default_vm_sizing = "prod"
+
             # check if we are using a platform manifest
             if "sizing" in manifest_data.get("manifest", {}).get("infrastructure", {}).keys():
                 # if platform manifest, the number of VMs of each type is pre-set
                 nb_vms = manifest_data['vm_type_count'][subnet_kind][vm_type_manifest_iterator]['count']
                 vm_set = (nb_vms > 1)
                 added_vm_type = manifest_data['vm_type_count'][subnet_kind][vm_type_manifest_iterator]['vm_type']
-                vm_sizing = "nonprod"
-                if chosen_environment == "prod":
-                    vm_sizing = "prod"
-                customize_sizing = inquirer.confirm(
-                    message=f"Do you want to customize {added_vm_type} nodes ?",
-                    default=False
-                ).execute()
-                if customize_sizing:
-                    vm_sizing = "custom"
+                
+                # customize_sizing = inquirer.confirm(
+                #     message=f"Do you want to customize {added_vm_type} nodes ?",
+                #     default=False
+                # ).execute()
+                # if customize_sizing:
+                #     vm_sizing = "custom"
 
             else:
                 # do you want a set of identical VMs ?
@@ -518,16 +533,16 @@ def generate(operation: Operation):
                     default = None
                 ).execute()
 
-                vm_sizing = inquirer.select(
-                    message="Which sizing for the VM:",
-                    choices=[
-                        Choice(value="prod", name="default - prod",enabled=True),
-                        Choice(value="nonprod", name="default - non prod",enabled=False),
-                        Choice(value="custom", name="custom",enabled=False),
-                    ],
-                    multiselect=False,
-                    default=None,
-                ).execute()
+            vm_sizing = inquirer.select(
+                message="Which sizing for the VM:",
+                choices=[
+                    Choice(value="prod", name="default - prod",enabled=True),
+                    Choice(value="nonprod", name="default - non prod",enabled=False),
+                    Choice(value="custom", name="custom",enabled=False),
+                ],
+                multiselect=False,
+                default=default_vm_sizing,
+            ).execute()
 
             vm_values = {}
 
@@ -536,8 +551,12 @@ def generate(operation: Operation):
                 nb_sockets = vm_standard_values["nb_sockets"]
                 nb_vcpu_per_socket = vm_standard_values["nb_vcpu_per_socket"]
                 memory = vm_standard_values["memory"]
-                data_volume_size = vm_standard_values["data_volume_size"]
-                root_volume_size = operation.standard_config.get("default_root_volume_size", "16")
+                if provider in ["nutanix", "vsphere"]:
+                    root_volume_size = vm_standard_values.get("root_volume_size", operation.standard_config.get("default_root_volume_size", "16"))
+                    data_volume_size = 0
+                else:
+                    data_volume_size = vm_standard_values["data_volume_size"]
+                    root_volume_size = operation.standard_config.get("default_root_volume_size", "16")
                 vm_group = added_vm_type
             else:
                 nb_sockets = inquirer.number(
@@ -558,13 +577,13 @@ def generate(operation: Operation):
                     max_allowed=65536,
                     default=1024,
                 ).execute()
-                data_volume_size = inquirer.number(
-                    message="Enter number of Go of data disk:",
+                root_volume_size = inquirer.number(
+                    message="Enter number of Go of root disk:",
                     min_allowed=0,
                     max_allowed=1000,
                     default=16,
                 ).execute()
-                root_volume_size = inquirer.number(
+                data_volume_size = inquirer.number(
                     message="Enter number of Go of data disk:",
                     min_allowed=0,
                     max_allowed=1000,
@@ -766,11 +785,6 @@ def generate(operation: Operation):
                 default=provider + "." + operation.standard_config.get("default_external_domain", "myplatform.com")
             ).execute()
 
-        default_deployment_mode = "internal"
-        ansible_template_file = "ansible.yml.j2"
-        if public_cloud_provider:
-            default_deployment_mode = "external"
-
         ansible_template_file = inquirer.select(
             message="Select the ansible template to use:",
             choices=[
@@ -778,7 +792,7 @@ def generate(operation: Operation):
                 Choice(value="external", name="external")
             ],
             multiselect=False,
-            default=default_deployment_mode,
+            default=deployment_mode,
         ).execute()
         ansible_template_file = ansible_template_file + ".ansible.yml.j2"
 
@@ -796,7 +810,8 @@ def generate(operation: Operation):
         ### render ansible template file
         manifest_data['config'] = template_data
         manifest_data['public_exposition_layer'] = public_exposition_layer
-        print(yaml.dump(manifest_data))
+        operation.logger.debug("Values for generating manifest :")
+        operation.logger.debug(yaml.dump(manifest_data))
         ansible_content = ansible_template.render(manifest_data)
 
     ### create scope
@@ -823,7 +838,7 @@ def generate(operation: Operation):
             configfile.write(ansible_content)
         operation.logger.info(f"Created config file for scope {scope}")
 
-def manifest(operation: Operation):
+def manifest(operation: Operation, deployment_mode):
 
     """ this function prompt an interactive definition of a platform manifest
     
@@ -897,24 +912,21 @@ def manifest(operation: Operation):
         if module in activated_modules:
             customization[module] = {}
             for parameter in module_content:
-
-    # for module in activated_modules:
-    #     customization[module] = {}
-    #     for parameter in platform_manifest.get("customization", {}).get(module, []):
-                if parameter.get("type", "text") == "boolean":
-                    customization[module][parameter["name"]] = inquirer.confirm(
-                            message=parameter["prompt"],
-                            default=False
-                    ).execute()
-                if parameter.get("type", "text") == "text":
-                    customization[module][parameter["name"]] = inquirer.text(
-                        message = parameter["prompt"],
-                        default = parameter["default_value"]
-                    ).execute()
-                if parameter.get("type", "text") == "secret":
-                    customization[module][parameter["name"]] = inquirer.secret(
-                        message = parameter["prompt"]
-                    ).execute()
+                if (parameter.get("deployment_mode", deployment_mode) == deployment_mode):
+                    if parameter.get("type", "text") == "boolean":
+                        customization[module][parameter["name"]] = inquirer.confirm(
+                                message=parameter["prompt"],
+                                default=False
+                        ).execute()
+                    if parameter.get("type", "text") == "text":
+                        customization[module][parameter["name"]] = inquirer.text(
+                            message = parameter["prompt"],
+                            default = parameter["default_value"]
+                        ).execute()
+                    if parameter.get("type", "text") == "secret":
+                        customization[module][parameter["name"]] = inquirer.secret(
+                            message = parameter["prompt"]
+                        ).execute()
 
     # load custom credentials
     custom_credentials = {}
