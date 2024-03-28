@@ -8,6 +8,7 @@ import getpass
 import base64
 from typing import Tuple
 import ruamel.yaml
+import re
 
 import yaml
 from ansible.inventory.manager import InventoryManager
@@ -617,6 +618,48 @@ def prepare_ansible(operation: Operation, securize=False):
         ansible_config_dict = operation.scope_config_dict
 
     j2(operation.logger, execute_ansible_template, ansible_config_dict, execute_ansible_output)
+
+    # set secret keys in the execute_ansible.yml file
+    cloudtiger_secret_pattern = re.escape("__CT_SECRET_START__") + "(.*?)" + re.escape("__CT_SECRET_STOP__")
+
+    execute_ansible_content = ""
+    with open(execute_ansible_output, "r") as file:
+        execute_ansible_content = file.read()
+
+    cloudtiger_ansible_secrets = re.findall(cloudtiger_secret_pattern, execute_ansible_content)
+    # get unique secret patterns
+    cloudtiger_ansible_secrets = list(set(cloudtiger_ansible_secrets))
+
+    for ct_ansible_secret in cloudtiger_ansible_secrets:
+        secret_path = ct_ansible_secret.split('_')
+        if len(secret_path) < 2:
+            operation.logger.error(f"Error : the ansible secret pattern {ct_ansible_secret} is badly formatted")
+            sys.exit()
+        else:
+            secret_folder = secret_path[0].lower()
+            secret_key = "_".join(secret_path[1:])
+            # check if secret_folder exists, and contains .env
+            secret_file = os.path.join(operation.project_root, 'secrets', secret_folder, '.env')
+            if not os.path.exists(secret_file):
+                operation.logger.error(f"Error : the file {secret_file} referenced by secret {ct_ansible_secret} does not exist")
+                sys.exit()
+            secrets = []
+            with open(secret_file, "r") as file:
+                secrets = file.read().split('\n')
+                # remove lines without '='
+            secrets = [
+                key for key in secrets if '=' in key
+            ]
+            secrets = {
+                line.replace('export ', '').split('=')[0] : line.replace('export ', '').split('=')[1] for line in secrets
+            }
+            if secret_key not in secrets.keys():
+                operation.logger.error(f"Error : the key {secret_key} referenced by secret {ct_ansible_secret} does not exist in secret file {secret_file}")
+                sys.exit()
+            secret = secrets[secret_key]
+            execute_ansible_content = execute_ansible_content.replace("__CT_SECRET_START__" + ct_ansible_secret + "__CT_SECRET_STOP__", secret)
+            with open(execute_ansible_output, "w") as file:
+                file.write(execute_ansible_content)
 
 
 def execute_ansible(operation: Operation):
