@@ -168,6 +168,9 @@ def configure_ip(operation: Operation):
     :param operation: Operation, the current Operation
     """
 
+    # we load the IPs already set for the current scope
+    operation.set_terraform_output_info()
+
     # listing all the subnets that need to be crawled for available IPs
     all_vms_per_vlan = {}
 
@@ -257,9 +260,6 @@ def configure_ip(operation: Operation):
                 ]
 
     operation.logger.debug("The list of available addresses:\n%s" % all_available_ips)
-
-    # we load the IPs already set for the current scope
-    operation.set_terraform_output_info()
 
     # we update the config_ips using the available IPs for the VMs missing an attributed IP
     updated_config_ip = {
