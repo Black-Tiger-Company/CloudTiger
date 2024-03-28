@@ -1,0 +1,53 @@
+---
+- name: Extend root LVG to use all available disk space
+  hosts: "{{ hosts }}"
+  gather_facts: yes
+  become: true
+
+  vars:
+    pv_name_command: "pvdisplay | grep 'PV Name' | awk '{print $NF}'"
+    lv_path_command: "lvdisplay | grep 'LV Path' | awk '{print $NF}'"
+
+  tasks:
+    - name: Get the PV Name
+      ansible.builtin.shell: "{{ pv_name_command }}"
+      register: pv_name
+      changed_when: false
+
+    - name: Get disk name without partition number
+      ansible.builtin.shell: "echo {{ pv_name.stdout }} | sed 's/[0-9]//g'"
+      register: disk_name
+      changed_when: false
+
+    - name: Print actual LVM partition size
+      ansible.builtin.shell: "parted {{ disk_name.stdout }} u GB p"
+      changed_when: false
+
+    - name: Rescan disk size
+      ansible.builtin.shell: "echo 1 > /sys/block/$(echo {{ pv_name.stdout }} | sed 's/[0-9]//g' | awk -F '/' '{print $NF}')/device/rescan"
+      changed_when: true
+
+    - name: Extend LVM partition to fill the new size
+      ansible.builtin.shell: "growpart -v {{ disk_name.stdout }} 3"
+      changed_when: true
+
+    - name: Print new LVM partition size
+      ansible.builtin.shell: "parted {{ disk_name.stdout }} u GB p"
+      changed_when: false
+
+    - name: Resize physical volume to fill the new size
+      ansible.builtin.shell: "pvresize --verbose {{ pv_name.stdout }}"
+      changed_when: true
+
+    - name: Get the LV Path
+      ansible.builtin.shell: "{{ lv_path_command }}"
+      register: lv_path
+      changed_when: false
+
+    - name: Add space to the logical volume to fill the new size
+      ansible.builtin.shell: "lvextend -v -r -l +100%FREE {{ lv_path.stdout }}"
+      changed_when: true
+
+    - name: Print new filesystem size
+      ansible.builtin.shell: "duf -style ascii -only local"
+      changed_when: false
