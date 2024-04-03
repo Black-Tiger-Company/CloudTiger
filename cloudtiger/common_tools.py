@@ -369,9 +369,9 @@ def get_credentials(logger, libraries_path, provider_helper, credential_dir, app
                 ).execute()
                 
         # check if path exists if necessary
-        if variable.get("check_path", False):
-            if not os.path.exists(dotenv_content[variable['name']]):
-                logger.info(f"WARNING : the provided {variable.get("display_name", variable['name'])} path does not exists")
+        # if variable.get("check_path", False):
+        #     if not os.path.exists(dotenv_content[variable['name']]):
+        #         logger.info(f"WARNING : the provided {variable.get("display_name", variable['name'])} path does not exists")
 
     dotenv_content = "\n".join(
         [format("export %s=%s" % (key, value)) for key, value in dotenv_content.items()])
