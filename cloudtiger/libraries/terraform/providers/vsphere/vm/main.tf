@@ -81,12 +81,12 @@ resource "vsphere_virtual_machine" "virtual_machine" {
       annotation,
       disk.0.eagerly_scrub,
       disk.0.thin_provisioned,
-      disk.0.size
+      vapp.0.properties
     ]
   }
 
   name     = var.vm.vm_name
-  num_cpus = var.vm.instance_type.nb_sockets
+  num_cpus = var.vm.instance_type.nb_sockets * var.vm.instance_type.nb_vcpu_per_socket
   memory   = var.vm.instance_type.memory
   folder   = var.vm.folder
 
