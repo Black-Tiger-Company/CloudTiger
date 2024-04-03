@@ -5,7 +5,7 @@ import click
 
 from cloudtiger.init import (
     folder,
-    config,
+    config_gitops,
     set_ssh_keys,
     configure_ip,
     prepare_scope_folder,
@@ -34,7 +34,7 @@ from cloudtiger.data import allowed_actions, available_api_services, non_scope_i
 from cloudtiger.service import tf_service_generic, prepare, convert
 from cloudtiger.tf import tf_generic
 from cloudtiger.admin import gather, dns, vms, monitoring, subnets, clusters
-from cloudtiger.config import generate
+from cloudtiger.config import generate, deploy
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -114,6 +114,7 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
         root_dotenv = os.path.join(project_root, ".env")
         config_file = os.path.join(project_root, scope_elt, "config.yml")
         meta_config_file = os.path.join(project_root, scope_elt, "meta_config.yml")
+        deploy_config_file = os.path.join(project_root, scope_elt, "deploy.yml")
         if os.path.exists(root_dotenv) & (os.path.exists(config_file)|os.path.exists(meta_config_file)):
             operation.scope_setup()
             operation.secrets_setup()
@@ -143,7 +144,7 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
 def init(context, action, action_argument, ptr):
     """ Initial actions for preparing a new scope :
 \n- folder (F)            : create a boostrap gitops folder
-\n- config (C)            : configure current gitops folder
+\n- config_gitops (C)     : configure current gitops folder
 \n- ssh_keys (0)          : create a dedicated pair of SSH keys
 for the current scope in secrets/ssh/<PROVIDER>/private|public
 \n- get_ip (1)            : collect available IPs from fping
@@ -506,6 +507,7 @@ def admin(context, action, domain, timestamp, all_vms, check_existence):
 def config(context, action, platform):
     """ Config actions for generating a new scope and a new config.yml :
 \n- generate (G)            : generate a scope and a config file
+\n- deploy (D)              : finalize config file when creating a platform
 
 --platform/-p               : set a full platform from a manifest file
     """
@@ -520,14 +522,18 @@ def config(context, action, platform):
 
             operation.logger.debug("%s command" %
                                    allowed_actions["config"][action])
-            operation.scope_setup()
+            if allowed_actions["config"][action] != "deploy":
+                operation.scope_setup()
 
-            # we activate the use of a manifest if necessary
-            operation.set_manifest(platform)
+                # we activate the use of a manifest if necessary
+                operation.set_manifest(platform)
 
-            # we need to load meta information
-            operation.logger.info("Loading current meta information")
-            operation.load_meta_info()
+                # we need to load meta information
+                operation.logger.info("Loading current meta information")
+                operation.load_meta_info()
+
+            else:
+                operation.scope_setup(no_config=True)
 
             globals()[allowed_actions["config"][action]](operation)
 

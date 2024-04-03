@@ -7,10 +7,16 @@ import sys
 import base64
 import ipaddress
 
-import click
 import netaddr
 import yaml
 import requests
+
+from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
+# from InquirerPy.base.control import Choice
+# from InquirerPy.separator import Separator
+# from InquirerPy.validator import NumberValidator, EmptyInputValidator, PathValidator
+# from colored import Fore, Back, Style
 
 import re
 
@@ -21,7 +27,7 @@ from cloudtiger.specific.nutanix import get_vms_list_per_vlan_nutanix
 from cloudtiger.specific.vsphere import get_vms_list_per_vlan_vsphere
 from cloudtiger.specific.dns import *
 
-def config(operation: Operation):
+def config_gitops(operation: Operation):
 
     """ this function executes the initial configuration of a CloudTiger project folder
 
@@ -36,49 +42,13 @@ def config(operation: Operation):
 Let us configure some parameters for your CloudTiger project folder."""
     print(dotenv_configuration_prompt)
 
-    dotenv_asking_private_ssh_key = """
-Do you wish to use one of your own private SSH key to access your resources ?"""
-    use_private_ssh_key = click.prompt(dotenv_asking_private_ssh_key, default=True, type=click.BOOL)
+    get_credentials(
+        operation.logger,
+        operation.libraries_path,
+        provider_secrets_helper["root"],
+        operation.scope
+    )
 
-    if use_private_ssh_key:
-        dotenv_private_ssh_key_path = """
-Please provide the local path to your private SSH key path"""
-        private_ssh_key_path = click.prompt(dotenv_private_ssh_key_path, default="~/.ssh/id_rsa")
-        if not os.path.exists(os.path.expanduser(private_ssh_key_path)):
-            operation.logger.info("The provided SSH key path %s does not exist, exiting" %
-                                  private_ssh_key_path)
-
-        root_dotenv["CLOUDTIGER_PRIVATE_SSH_KEY_PATH"] = private_ssh_key_path
-
-        dotenv_public_ssh_key_path = """
-Please provide the local path to your public SSH key path"""
-        public_ssh_key_path = click.prompt(dotenv_public_ssh_key_path, default="~/.ssh/id_rsa.pub")
-        if not os.path.exists(os.path.expanduser(public_ssh_key_path)):
-            operation.logger.info("The provided SSH key path %s does not exist, exiting" %
-                                  public_ssh_key_path)
-
-        root_dotenv["CLOUDTIGER_PUBLIC_SSH_KEY_PATH"] = public_ssh_key_path
-
-    dotenv_asking_ssh_username = """
-Please provide a SSH username to connect to your resources"""
-    ssh_username = click.prompt(dotenv_asking_ssh_username)
-    root_dotenv["CLOUDTIGER_SSH_USERNAME"] = ssh_username
-
-    dotenv_asking_ssh_password = """
-Do you wish to provide your SSH password ? It will be stored locally in the .env file encoded in base64.
-If no, you will be prompted to provide your SSH password when executing Ansible without private SSH key access """
-    store_ssh_password = click.prompt(dotenv_asking_ssh_password, default=True, type=click.BOOL)
-
-    if store_ssh_password:
-        dotenv_ssh_password = """
-Please provide your sudo password"""
-        ssh_password = click.prompt(dotenv_ssh_password, hide_input=True)
-        root_dotenv["CLOUDTIGER_SSH_PASSWORD"] = base64.b64encode(bytes(ssh_password, 'utf-8'))
-
-    root_dotenv_content = "\n".join(
-        [format("export %s=%s" % (key, value)) for key, value in root_dotenv.items()]) + "\n"
-    with open(os.path.join(operation.scope, ".env"), "w") as f:
-        f.write(root_dotenv_content)
 
     # .env file per cloud provider
 
@@ -86,22 +56,28 @@ Please provide your sudo password"""
 Now, let us configure credentials for your chosen cloud provider."""
     print(provider_dotenv_configuration_prompt)
 
-    chosen_provider = read_user_choice("cloud provider", list(terraform_vm_resource_name.keys()))
+    chosen_providers = inquirer.checkbox(
+        message = "Select cloud providers",
+        choices = terraform_vm_resource_name.keys(),
+        default = None
+    ).execute()
 
-    get_credentials(
-        operation.libraries_path,
-        provider_secrets_helper[chosen_provider],
-        os.path.join(operation.scope, "secrets", chosen_provider)
-    )
+    for chosen_provider in chosen_providers:
+        get_credentials(
+            operation.libraries_path,
+            provider_secrets_helper[chosen_provider],
+            os.path.join(operation.scope, "secrets", chosen_provider)
+        )
 
     # check if the user wants to use a Terraform backend
-
-    provider_dotenv_tf_backend_prompt = """
-Do you wish to use a remote Terraform backend ? If yes, you will need to provide them beforehand"""
-    use_tf_backend = click.prompt(provider_dotenv_tf_backend_prompt, default=False, type=click.BOOL)
+    use_tf_backend = inquirer.confirm(
+        message = "Do you wish to use a remote Terraform backend ? If yes, you will need to provide them beforehand",
+        default = False
+    ).execute()
 
     if use_tf_backend:
-        get_credentials(operation.libraries_path,
+        get_credentials(operation.logger,
+                        operation.libraries_path,
                         provider_secrets_helper["tf_backend"],
                         os.path.join(operation.scope, "secrets", chosen_provider),
                         append=True)

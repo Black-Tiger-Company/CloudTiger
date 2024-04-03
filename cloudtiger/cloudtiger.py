@@ -296,7 +296,7 @@ class Operation:
 
         self.manifest = manifest
 
-    def scope_setup(self):
+    def scope_setup(self, no_config=False):
 
         """ this function set intermediate internal parameters for the current scope
         """
@@ -343,6 +343,10 @@ class Operation:
         self.scope_config = os.path.join(self.project_root, 'config', self.scope, 'config.yml')
         self.scope_meta_config = os.path.join(
             self.project_root, 'config', self.scope, 'meta_config.yml')
+        
+        # if we are working in a scope without config.yml (for example with 'config D' command)
+        if no_config:
+            return
 
         if not os.path.exists(self.scope_config):
             self.logger.warning(

@@ -76,8 +76,6 @@ def generate(operation: Operation):
     )
     config_template = environment.get_template("config.yml.j2")
 
-    
-
     # if you have a platform manifest, set associated ansible config
     public_exposition_layer = False
     using_platform_manifest = False
@@ -766,11 +764,9 @@ def generate(operation: Operation):
     if len(search_domain_list) > 0:
         template_data['search_domain_list'] = search_domain_list.split(',')
 
-    ### render config file
-    content = config_template.render(template_data)
-
     # if you have a platform manifest, set associated ansible config
     if using_platform_manifest:
+
         # set the folder to browse for a platform manifest ansible template
         default_ansible_folder = "./manifests"
         ansible_folder = inquirer.text(
@@ -812,7 +808,6 @@ def generate(operation: Operation):
         manifest_data['public_exposition_layer'] = public_exposition_layer
         operation.logger.debug("Values for generating manifest :")
         operation.logger.debug(yaml.dump(manifest_data))
-        ansible_content = ansible_template.render(manifest_data)
 
     ### create scope
     scope_folder = os.path.join(operation.project_root, "config", scope)
@@ -821,22 +816,38 @@ def generate(operation: Operation):
 
     scope_file = os.path.join(scope_folder, "config.yml")
 
-    if os.path.exists(scope_file):
-        do_not_erase = inquirer.confirm(
-            message="Do you want to overwrite existing config.yml file ?",
-            default=True
-        ).execute()
-        if not do_not_erase:
-            operation.logger.info("You have chosen to not overwrite existing scope configuration file, exiting")
-            sys.exit()
+    if using_platform_manifest:
 
-    # dump config file
-    config_file = os.path.join(scope_folder, "config.yml")
-    with open(config_file, mode="w", encoding="utf-8") as configfile:
-        configfile.write(content)
-        if using_platform_manifest:
-            configfile.write(ansible_content)
-        operation.logger.info(f"Created config file for scope {scope}")
+        # dump deploy file
+        deploy_file = os.path.join(scope_folder, "deploy.yml")
+ 
+        with open(deploy_file, mode="w", encoding="utf-8") as deployfile:
+            yaml.dump(manifest_data, deployfile)
+
+        operation.logger.info(f"Created deploy file for scope {scope}")
+
+    else:
+
+        if os.path.exists(scope_file):
+            do_not_erase = inquirer.confirm(
+                message="Do you want to overwrite existing config.yml file ?",
+                default=True
+            ).execute()
+            if not do_not_erase:
+                operation.logger.info("You have chosen to not overwrite existing scope configuration file, exiting")
+                sys.exit()
+
+        ### render config file
+        content = config_template.render(template_data)
+        ansible_content = ansible_template.render(manifest_data)
+
+        # dump config file
+        config_file = os.path.join(scope_folder, "config.yml")
+        with open(config_file, mode="w", encoding="utf-8") as configfile:
+            configfile.write(content)
+            if using_platform_manifest:
+                configfile.write(ansible_content)
+            operation.logger.info(f"Created config file for scope {scope}")
 
 def manifest(operation: Operation, deployment_mode):
 
@@ -940,7 +951,85 @@ def manifest(operation: Operation, deployment_mode):
         "activated_components" : activated_components,
         "customization" : customization,
         "custom_credentials" : custom_credentials,
-        "pvs_suffix" : pvs_suffix
+        "pvs_suffix" : pvs_suffix,
+        "deployment_mode": deployment_mode
     }
 
     return deploy_manifest
+
+def deploy(operation: Operation):
+
+    # INFRASTRUCTURE PART
+    scope_folder = os.path.join(operation.project_root, "config", operation.scope)
+
+    deploy_file = os.path.join(scope_folder, "deploy.yml")
+    if not os.path.exists(deploy_file):
+        operation.logger.error(f"ERROR : the file {deploy_file} does not exist !")
+        sys.exit()
+
+    content = {}
+    with open(deploy_file, "r") as deployfile:
+        manifest_data = yaml.load(deployfile, Loader=yaml.FullLoader)
+
+    # template_data = content.get("infrastructure", {})
+    # manifest_data = content.get("configuration_management", {})
+    template_data = manifest_data['config']
+
+    deployment_mode = manifest_data.get("deployment_mode", "internal")
+
+    # get config template from internal catalog
+    config_template_dir = os.path.join(
+        operation.libraries_path, "internal", "config")
+    environment = Environment(
+        loader=FileSystemLoader(config_template_dir),
+        trim_blocks=True
+    )
+    config_template = environment.get_template("config.yml.j2")
+
+    # CONFIGURATION MANAGEMENT PART
+    # set the folder to browse for a platform manifest ansible template
+    default_ansible_folder = "./manifests"
+    ansible_folder = inquirer.text(
+        message = "Please provide the platform ansible template folder to browse, relative to your current project root folder",
+        default = default_ansible_folder,
+        validate = PathValidator(is_dir=True, message="Input is not a folder")
+    ).execute()
+
+    ansible_template_file = inquirer.select(
+        message="Select the ansible template to use:",
+        choices=[
+            Choice(value="internal", name="internal"),
+            Choice(value="external", name="external")
+        ],
+        multiselect=False,
+        default=deployment_mode,
+    ).execute()
+    ansible_template_file = ansible_template_file + ".ansible.yml.j2"
+
+    if not os.path.exists(os.path.join(ansible_folder, ansible_template_file)):
+        operation.logger.info(f"The ansible template {ansible_template_file} does not exist, please provide one before generating a config file for a platform")
+        sys.exit()
+
+    # get ansible template
+    environment = Environment(
+        loader=FileSystemLoader(ansible_folder),
+        trim_blocks=True
+    )
+    ansible_template = environment.get_template(ansible_template_file)
+
+    # RENDERING
+    ansible_template_file = deployment_mode + ".ansible.yml.j2"
+    ansible_template = environment.get_template(ansible_template_file)
+
+    # render config template
+    content = config_template.render(template_data)
+    print(content)
+    ansible_content = ansible_template.render(manifest_data)
+    print(ansible_content)
+
+    # dump config file
+    config_file = os.path.join(scope_folder, "config.yml")
+    with open(config_file, mode="w", encoding="utf-8") as configfile:
+        configfile.write(content)
+        configfile.write(ansible_content)
+        operation.logger.info(f"Created config file for scope {operation.scope}")

@@ -104,6 +104,32 @@ provider_secrets_requirements = {
 }
 
 provider_secrets_helper = {
+    "root": {
+        "keys" : [
+            {
+                "to_confirm": True,
+                "confirmation_helper": "Do you wish to use one of your own private SSH key to access your resources ?",
+                "helper" : "Please provide the local path to your private SSH key path",
+                "default": "~/.ssh/id_rsa",
+                "name" : "CLOUDTIGER_PRIVATE_SSH_KEY_PATH",
+                "check_path": True
+            },
+            {
+                "to_confirm": True,
+                "confirmation_helper": "Deploy associated public SSH key ?",
+                "helper" : "Please provide the local path to your public SSH key path",
+                "default": "~/.ssh/id_rsa.pub",
+                "name" : "CLOUDTIGER_PUBLIC_SSH_KEY_PATH"
+            },
+            {
+                "to_confirm": True,
+                "confirmation_helper": """Do you wish to provide your sudo password ? It will be stored locally in the .env file encoded in base64. 
+If no, you will be prompted to provide your SSH password when executing Ansible without private SSH key access""",
+                "helper" : "Please provide your sudo password",
+                "name" : "CLOUDTIGER_SSH_PASSWORD"
+            }
+        ]
+    },
     "tf_backend": {
         "keys" : [
             {
@@ -245,15 +271,15 @@ https://cloud.google.com/community/tutorials/getting-started-on-gcp-with-terrafo
 
 non_scope_init_actions = [
     "folder",
-    "config"
+    "config_gitops"
 ]
 
 allowed_actions = {
     "init": {
         "folder": "folder",
         "F": "folder",
-        "config": "config",
-        "C": "config",
+        "config_gitops": "config_gitops",
+        "C": "config_gitops",
         "ssh_keys": "set_ssh_keys",
         "0": "set_ssh_keys",
         "configure_ip": "configure_ip",
@@ -348,7 +374,9 @@ allowed_actions = {
     },
     "config": {
         "generate": "generate",
-        "G": "generate"
+        "G": "generate",
+        "deploy": "deploy",
+        "D": "deploy"
     }
 }
 
