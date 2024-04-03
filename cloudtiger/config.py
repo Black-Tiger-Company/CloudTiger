@@ -839,14 +839,11 @@ def generate(operation: Operation):
 
         ### render config file
         content = config_template.render(template_data)
-        ansible_content = ansible_template.render(manifest_data)
 
         # dump config file
         config_file = os.path.join(scope_folder, "config.yml")
         with open(config_file, mode="w", encoding="utf-8") as configfile:
             configfile.write(content)
-            if using_platform_manifest:
-                configfile.write(ansible_content)
             operation.logger.info(f"Created config file for scope {scope}")
 
 def manifest(operation: Operation, deployment_mode):
