@@ -4,7 +4,12 @@
 
 - [Cloud Tiger](#cloud-tiger)
 	- [Cloud Tiger overview](#cloud-tiger-overview)
+		- [Input](#input)
+		- [Creation of a Terraform folder](#creation-of-a-terraform-folder)
+		- [Terraform Wrapper](#terraform-wrapper)
+		- [Ansible Wrapper](#ansible-wrapper)
 	- [Quickstart](#quickstart)
+		- [Get CloudTiger sources](#get-cloudtiger-sources)
 		- [Running CloudTiger through Docker](#running-cloudtiger-through-docker)
 		- [Execution of basic CloudTiger commands](#execution-of-basic-cloudtiger-commands)
 	- [Installation](#installation)
@@ -29,19 +34,31 @@ Cloud Tiger leverages :
 
 Cloud Tiger embeds scripts and wraps Terraform and Ansible commands to provide the mechanism illustrated below :
 
+### Input
+
 The main input of Cloud Tiger is a YAML file called `config.yml` describing the infrastructure you want to create and the software you want to install on this infrastructure.
+
+### Creation of a Terraform folder
 
 First, Cloud Tiger makes use of its internal Terraform templates to create a dedicated (and autonomous) Terraform folder with its .tf files, as illustrated below :
 
 ![cloud_tiger](./doc/schemas/cloudtiger_logic_1.drawio.png)
 
-Then, Cloud Tiger wraps the Terraform commands to call the infrastructure provider (public or private cloud provider) to instantiate the resources described in `config.yml`, and collect the obtained output (including IP addresses of created VMs), as illustrated below :
+### Terraform Wrapper
+
+Then, Cloud Tiger 
+- wraps the Terraform commands to call the infrastructure provider (public or private cloud provider) to instantiate the resources described in `config.yml`
+- collect the obtained output (including IP addresses of created VMs), as illustrated below :
+
+### Ansible Wrapper
 
 ![cloud_tiger](./doc/schemas/cloudtiger_logic_2.drawio.png)
 
-Once the infrastructures are created, Cloud Tiger wraps Ansible commands
+Once the infrastructures are created, Cloud Tiger wraps Ansible commands :
 
-First, Cloud Tiger parses the Terraform output to extract the IP addresses and generate the files needed by Ansible to operate (`envt.hosts`, `ssh.cfg`, `ansible.cfg`), as illustrated below. Cloud Tiger also creates a meta-Ansible playbook that will call all the playbooks and roles listed in `config.yml` on the VMs.
+First, Cloud Tiger
+- parses the Terraform output to extract the IP addresses and generate the files needed by Ansible to operate (`envt.hosts`, `ssh.cfg`, `ansible.cfg`), as illustrated below
+- creates a meta-Ansible playbook that will call all the playbooks and roles listed in `config.yml` on the VMs.
 
 ![cloud_tiger](./doc/schemas/cloudtiger_logic_3.drawio.png)
 
@@ -55,13 +72,24 @@ In order to run a quickstart of CloudTiger on a public cloud provider (AWS, Azur
 
 - the technical prerequisites for the chosen cloud provider, instructions [here](doc/prerequisites_cloud_credentials.md)
 - a Unix shell
-- Docker installed on your workstation
+- git and Docker installed on your workstation
+- a work folder
+
+### Get CloudTiger sources
+
+Go to your work folder, then run the following command to get CloudTiger's sources :
+
+```bash
+cd <YOUR_CHOSEN_WORKING_DIRECTORY>
+git clone https://github.com/Black-Tiger-Company/CloudTiger.git
+```
 
 ### Running CloudTiger through Docker
 
 Run the following command in the root folder of the CloudTiger project :
 
 ```bash
+cd CloudTiger
 docker build -t cloudtiger .
 ```
 
@@ -89,8 +117,8 @@ Then, we will setup the CloudTiger root project. Execute the following commands 
 ```bash
 cd /workdir
 cloudtiger gitops init folder
-cloudtiger gitops init config ### after this command, you will be asked for several credentials information. If you are not sure, do not use a Terraform backend for the demo
-cd /workdir/gitops
+cd gitops
+cloudtiger . init config ### after this command, you will be asked for several credentials information. If you are not sure, do not use a Terraform backend for the demo
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 0
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 1
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 2

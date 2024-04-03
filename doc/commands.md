@@ -9,8 +9,21 @@
 			- [Custom library path](#custom-library-path)
 			- [Custom output file](#custom-output-file)
 			- [Custom error file](#custom-error-file)
+		- [Configuration](#configuration)
+			- [Configure a scope](#configure-a-scope)
+			- [Configure a platform](#configure-a-platform)
 		- [Initialization](#initialization)
+			- [Bootstrap a root project](#bootstrap-a-root-project)
+			- [Setup root project credentials](#setup-root-project-credentials)
+			- [Check SSH key pair](#check-ssh-key-pair)
+			- [Collect IPs](#collect-ips)
+			- [Setup Terraform scope folder](#setup-terraform-scope-folder)
+			- [Register DNS](#register-dns)
 		- [Terraform](#terraform)
+			- [Init](#init)
+			- [Apply](#apply)
+			- [Plan, refresh, destroy](#plan-refresh-destroy)
+			- [Import](#import)
 		- [Ansible](#ansible)
 		- [API services](#api-services)
 
@@ -87,7 +100,37 @@ You can set a specific file for dumping errors like this :
 cloudtiger --error-file=<PATH_TO_ERROR_FILE> <SCOPE> <COMMAND> <SUBCOMMAND>
 ```
 
+### Configuration
+
+#### Configure a scope
+
+Generate a CloudTiger scope. This command will prompt many questions, with default answers being picked from `standard/standard.yml` file :
+
+```bash
+cloudtiger <PATH_TO_YOUR_ROOT_PROJECT> config G
+```
+
+#### Configure a platform
+
+Generate a CloudTiger scope for a whole "platform", i.e. a Kubernetes cluster with an optional exposition layer. This command will prompt many questions, with default answers being picked from `standard/standard.yml` file __AND__ from a `manifest` file, that can be picked by default from `manifest/default_platform_manifest.yml`, or from a folder of your choice:
+
+```bash
+cloudtiger <PATH_TO_YOUR_ROOT_PROJECT> config G --platform
+```
+
+Once the command above has finished, you will have a folder `scope/<SCOPE>` in your root Cloudtiger project, with a file `deploy.yml` inside it.
+
+Run this command to generate a `config.yml` from the `deploy.yml`:
+
+```bash
+cloudtiger <PATH_TO_YOUR_ROOT_PROJECT>/config/<SCOPE> config D
+```
+
+Now, you have a file `config/<SCOPE>/config.yml`. You can proceed with the next steps to create the associated environment with CloudTiger.
+
 ### Initialization
+
+#### Bootstrap a root project
 
 Create a bootstrap CloudTiger root project :
 
@@ -95,11 +138,15 @@ Create a bootstrap CloudTiger root project :
 cloudtiger <PATH_TO_YOUR_ROOT_PROJECT> init folder
 ```
 
+#### Setup root project credentials
+
 Setup the CloudTiger project configuration (will have many prompts) :
 
 ```bash
 cloudtiger <PATH_TO_YOUR_ROOT_PROJECT> init config
 ```
+
+#### Check SSH key pair
 
 Check if an SSH key pair is available :
 
@@ -107,11 +154,15 @@ Check if an SSH key pair is available :
 cloudtiger <SCOPE> init 0
 ```
 
+#### Collect IPs
+
 Collect IPs for VMs and store them into a file `config/scopes/<SCOPE>/config_ips.yml` :
 
 ```bash
 cloudtiger <SCOPE> init 1
 ```
+
+#### Setup Terraform scope folder
 
 Copy Terraform modules needed by your scope into `terraform` folder, and create a scope folder in `scopes/<SCOPE>/terraform`, based on templates in `cloudtiger/libraries/internal/terraform_providers` and .j2 files in `config/generic_terraform` :
 
@@ -119,7 +170,18 @@ Copy Terraform modules needed by your scope into `terraform` folder, and create 
 cloudtiger <SCOPE> init 2
 ```
 
+#### Register DNS
+
+Register VM names into the DNS server defined in `standard/standard.yml` 
+
+
+```bash
+cloudtiger <SCOPE> init 5
+```
+
 ### Terraform
+
+#### Init
 
 Run `terraform init ...` in `scopes/<SCOPE>/terraform` folder :
 
@@ -127,11 +189,15 @@ Run `terraform init ...` in `scopes/<SCOPE>/terraform` folder :
 cloudtiger <SCOPE> tf 1
 ```
 
+#### Apply
+
 same with `terraform apply ...`, combined with `terraform output` to `scopes/<SCOPE>/inventory/terraform_output.json`:
 
 ```bash
 cloudtiger <SCOPE> tf 2
 ```
+
+#### Plan, refresh, destroy
 
 You can also run `terraform plan`, `terraform refresh` and `terraform destroy` with :
 
@@ -140,6 +206,10 @@ cloudtiger <SCOPE> tf plan
 cloudtiger <SCOPE> tf refresh
 cloudtiger <SCOPE> tf destroy
 ```
+
+__WARNING__ : by default, `cloudtiger <SCOPE> tf destroy` will also *delete* the `config/<SCOPE>/config_ips.yml` file
+
+#### Import
 
 Remove all VMs from your current tfstate, then try to import all VMs listed into the `config.yml` into the tfstate :
 
@@ -193,7 +263,7 @@ Once it is done, you can run Ansible meta-playbook `execute_ansible.yml` :
 cloudtiger <SCOPE> ans 3
 ```
 
-WARNING : if you are trying to connect to newly created VMs with Ansible, you will have a warning that the fingerprint of the machine is unknown (or has changed, if you have changed the remote host), and will have a prompt to validate or reject the fingerprint.
+__WARNING__ : if you are trying to connect to newly created VMs with Ansible, you will have a warning that the fingerprint of the machine is unknown (or has changed, if you have changed the remote host), and will have a prompt to validate or reject the fingerprint.
 To avoid having to validate manually many fingerprint, you can add the option '--no-check/-n' :
 
 ```bash
