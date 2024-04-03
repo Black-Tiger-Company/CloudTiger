@@ -45,6 +45,7 @@ Let us configure some parameters for your CloudTiger project folder."""
     get_credentials(
         operation.logger,
         operation.libraries_path,
+        operation.project_root,
         provider_secrets_helper["root"],
         operation.scope
     )
@@ -63,8 +64,11 @@ Now, let us configure credentials for your chosen cloud provider."""
     ).execute()
 
     for chosen_provider in chosen_providers:
+        provider_secret_path = os.path.join(operation.project_root, "secrets", chosen_provider)
         get_credentials(
+            operation.logger,
             operation.libraries_path,
+            provider_secret_path,
             provider_secrets_helper[chosen_provider],
             os.path.join(operation.scope, "secrets", chosen_provider)
         )
@@ -78,6 +82,7 @@ Now, let us configure credentials for your chosen cloud provider."""
     if use_tf_backend:
         get_credentials(operation.logger,
                         operation.libraries_path,
+                        operation.project_root,
                         provider_secrets_helper["tf_backend"],
                         os.path.join(operation.scope, "secrets", chosen_provider),
                         append=True)

@@ -112,21 +112,104 @@ provider_secrets_helper = {
                 "helper" : "Please provide the local path to your private SSH key path",
                 "default": "~/.ssh/id_rsa",
                 "name" : "CLOUDTIGER_PRIVATE_SSH_KEY_PATH",
-                "check_path": True
+                "check_path": True,
+                "default_confirmation_status": True
             },
             {
-                "to_confirm": True,
-                "confirmation_helper": "Deploy associated public SSH key ?",
+                "conditional_variable": "CLOUDTIGER_PRIVATE_SSH_KEY_PATH",
                 "helper" : "Please provide the local path to your public SSH key path",
                 "default": "~/.ssh/id_rsa.pub",
-                "name" : "CLOUDTIGER_PUBLIC_SSH_KEY_PATH"
+                "name" : "CLOUDTIGER_PUBLIC_SSH_KEY_PATH",
             },
             {
                 "to_confirm": True,
                 "confirmation_helper": """Do you wish to provide your sudo password ? It will be stored locally in the .env file encoded in base64. 
 If no, you will be prompted to provide your SSH password when executing Ansible without private SSH key access""",
                 "helper" : "Please provide your sudo password",
-                "name" : "CLOUDTIGER_SSH_PASSWORD"
+                "name" : "CLOUDTIGER_SSH_PASSWORD",
+                "default_confirmation_status": False,
+                "sensitive": True
+            },
+            {
+                "to_confirm": True,
+                "confirmation_helper": """Do you wish to provide a password for a private Nexus repository ? It will be stored locally in the .env file encoded in base64.""",
+                "helper" : "Please provide your Nexus repository password",
+                "name" : "CLOUDTIGER_NEXUS_REPO_PASSWORD",
+                "default_confirmation_status": False,
+                "sensitive": True
+            },
+            {
+                "to_confirm": True,
+                "confirmation_helper": """Do you wish to provide a password for a private Docker repository ? It will be stored locally in the .env file encoded in base64.""",
+                "helper" : "Please provide your private Docker repository password",
+                "name" : "CLOUDTIGER_DOCKER_REPO_PASSWORD",
+                "default_confirmation_status": False,
+                "sensitive": True
+            },
+            {
+                "to_confirm": True,
+                "confirmation_helper": """Do you wish to provide a password for a private Helm repository ? It will be stored locally in the .env file encoded in base64.""",
+                "helper" : "Please provide your private Helm repository password",
+                "name" : "CLOUDTIGER_HELM_REPO_PASSWORD",
+                "default_confirmation_status": False,
+                "sensitive": True
+            },
+            {
+                "to_confirm": True,
+                "confirmation_helper": """Do you wish to provide the IP address of an internal DNS server ?""",
+                "helper" : "Please provide the address of the DNS server",
+                "name" : "CLOUDTIGER_DNS_ADDRESS",
+                "default_confirmation_status": False
+            },
+            {
+                "to_confirm": True,
+                "conditional_variable": "CLOUDTIGER_DNS_ADDRESS",
+                "confirmation_helper": """Do you wish to provide a login to the internal DNS server ?""",
+                "helper" : "Please provide the login to the DNS server",
+                "name" : "CLOUDTIGER_DNS_LOGIN",
+                "default_confirmation_status": True
+            },
+            {
+                "to_confirm": True,
+                "conditional_variable": "CLOUDTIGER_DNS_ADDRESS",
+                "confirmation_helper": """Do you wish to provide a password the internal DNS server ?""",
+                "helper" : "Please provide the password to the DNS server",
+                "name" : "CLOUDTIGER_DNS_PASSWORD",
+                "default_confirmation_status": True,
+                "sensitive": True
+            },
+            {
+                "to_confirm": True,
+                "confirmation_helper": """Do you wish to configure a LDAP domain to connect the machines to ?""",
+                "helper" : "Please provide the LDAP domain",
+                "name" : "TF_VAR_domain_ldap",
+                "default_confirmation_status": False
+            },
+            {
+                "conditional_variable": "TF_VAR_domain_ldap",
+                "helper" : "Please provide the OU of the LDAP",
+                "name" : "TF_VAR_ou_ldap"
+            },
+            {
+                "conditional_variable": "TF_VAR_domain_ldap",
+                "helper" : "Please provide the login to connect to the LDAP",
+                "name" : "TF_VAR_user_ldap_join"
+            },
+            {
+                "conditional_variable": "TF_VAR_domain_ldap",
+                "helper" : "Please provide the password to connect to the LDAP",
+                "name" : "TF_VAR_password_user_ldap_join",
+                "sensitive": True
+            },
+            {
+                "conditional_variable": "TF_VAR_domain_ldap",
+                "helper" : "Please provide the user search base for the LDAP",
+                "name" : "TF_VAR_ldap_user_search_base"
+            },
+            {
+                "conditional_variable": "TF_VAR_domain_ldap",
+                "helper" : "Please provide the sudo search base for the LDAP",
+                "name" : "TF_VAR_ldap_sudo_search_base"
             }
         ]
     },

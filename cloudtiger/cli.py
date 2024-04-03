@@ -115,7 +115,7 @@ def main(context, scope, project_root, libraries_path, output_file, error_file, 
         config_file = os.path.join(project_root, scope_elt, "config.yml")
         meta_config_file = os.path.join(project_root, scope_elt, "meta_config.yml")
         deploy_config_file = os.path.join(project_root, scope_elt, "deploy.yml")
-        if os.path.exists(root_dotenv) & (os.path.exists(config_file)|os.path.exists(meta_config_file)):
+        if (os.path.exists(config_file)|os.path.exists(meta_config_file)):
             operation.scope_setup()
             operation.secrets_setup()
             operation.logger.debug("Operations setup")

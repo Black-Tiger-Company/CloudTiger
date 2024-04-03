@@ -327,7 +327,7 @@ def create_ssh_keys(logger: Logger, private_ssh_folder: str, public_ssh_folder: 
     else:
         logger.debug("An SSH key pair already exists")
 
-def get_credentials(logger, libraries_path, provider_helper, credential_dir, append=False):
+def get_credentials(logger, libraries_path, secrets_path, provider_helper, credential_dir, append=False):
 
     """ This function will use multiple prompt to collect credentials for the 
     chosen cloud provider
@@ -349,29 +349,33 @@ def get_credentials(logger, libraries_path, provider_helper, credential_dir, app
 
     dotenv_content = {}
     for variable in provider_helper["keys"]:
-        # check if variable needs to be confirmed
-        variable_confirmation = True
-        if variable.get("to_confirm", False):
-            variable_confirmation =  inquirer.confirm(
-                message = variable.get("confirmation_helper", f"Empty confirmation helper for variable {variable['name']}"),
-                default = variable.get("default_confirmation_status", False)
-            ).execute()
+        # check if variable has a conditional variable
+        conditional_variable = variable.get("conditional_variable", "")
+        if (conditional_variable == "") | (conditional_variable in dotenv_content.keys()):
+            # check if variable needs to be confirmed
+            variable_confirmation = True
+            if variable.get("to_confirm", False):
+                variable_confirmation =  inquirer.confirm(
+                    message = variable.get("confirmation_helper", f"Empty confirmation helper for variable {variable['name']}"),
+                    default = variable.get("default_confirmation_status", False)
+                ).execute()
 
-        if variable_confirmation:
-            if variable.get("sensitive", False):
-                dotenv_content[variable['name']] = inquirer.secret(
-                    message = variable['helper']
-                ).execute()
-            else:
-                dotenv_content[variable['name']] = inquirer.text(
-                    message = variable['helper'],
-                    default=str(variable.get("default", ""))
-                ).execute()
-                
-        # check if path exists if necessary
-        # if variable.get("check_path", False):
-        #     if not os.path.exists(dotenv_content[variable['name']]):
-        #         logger.info(f"WARNING : the provided {variable.get("display_name", variable['name'])} path does not exists")
+            if variable_confirmation:
+                if variable.get("sensitive", False):
+                    dotenv_content[variable['name']] = inquirer.secret(
+                        message = variable['helper']
+                    ).execute()
+                else:
+                    dotenv_content[variable['name']] = inquirer.text(
+                        message = variable['helper'],
+                        default=str(variable.get("default", ""))
+                    ).execute()
+                    
+            # check if path exists if necessary
+            if variable.get("check_path", False):
+                if not os.path.exists(dotenv_content[variable['name']]):
+                    provided_path = variable.get("display_name", variable['name'])
+                    logger.info(f"WARNING : the provided {provided_path} path does not exists")
 
     dotenv_content = "\n".join(
         [format("export %s=%s" % (key, value)) for key, value in dotenv_content.items()])
@@ -383,7 +387,7 @@ def get_credentials(logger, libraries_path, provider_helper, credential_dir, app
     else:
         write_mode = "w"
 
-    with open(os.path.join(libraries_path, "internal", "gitops", credential_dir, ".env"), write_mode) as f:
+    with open(os.path.join(secrets_path, ".env"), write_mode) as f:
         f.write(dotenv_content)
 
     if "final_helper" in provider_helper.keys():

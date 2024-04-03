@@ -1,0 +1,54 @@
+##
+## list of system_images values available for config.yml
+system_images:
+  ## 
+  ## provider structure should be
+  ## for public cloud providers (aws, azure, gcp):
+  ## <name of the template in config.yml>:
+  ##   name: value associated with the name of the template in the dictionary set in `cloudtiger/libraries/internal/standard/vm_standard.yml`
+  ##   username: name of the base OS user defined in the template from the chosen provider's OS marketplace
+  ##
+  ## for vsphere:
+  ## <name of the template in config.yml>:
+  ##   name: value associated with the name of the template in the dictionary set in `cloudtiger/libraries/internal/standard/vm_standard.yml`
+  ##   username: name of the base OS user defined in the initial OVA template
+  ##
+  ## for nutanix:
+  ## <name of the template in config.yml>:
+  ##   name: value associated with the name of the template in the dictionary set in `cloudtiger/libraries/internal/standard/vm_standard.yml`
+  ##   username: name of the base OS user defined in the VM that will be cloned as a template
+  nutanix:
+    nutanix_template_name:
+      name: "nutanix_vm_template"
+      username: "ubuntu"
+      uuid: "AAAAaaaBBBB"
+  vsphere:
+    vsphere_template_name:
+      name: "vsphere_vm_template"
+      username: "ubuntu"
+  aws:
+    ubuntu_server_2204:
+      username: "ubuntu"
+      name: ubuntu_server_2204
+  azure:
+    ubuntu_server_2204:
+      username: "ubuntu"
+      name: ubuntu_server_2204
+  gcp:
+    ubuntu_server_2204:
+      username: "ubuntu"
+      name: ubuntu_server_2204
+
+##
+## @param size of the default root disk in Go when not provided
+default_root_volume_size: 16
+
+##
+## @param when your are deploying a platform on an external provider,
+## this domain will be the default domain used to reach the platform
+default_external_domain: mydomain.com
+
+##
+## @param when your are deploying a platform on an external provider,
+## this domain will be the default domain used to reach the platform
+default_external_domain: mydomain.com

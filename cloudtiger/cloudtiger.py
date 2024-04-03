@@ -321,7 +321,7 @@ class Operation:
         self.standard_config = merge_dictionaries(cloudtiger_standard_config, local_standard_config)
 
         # if we are running the command directly in the project root, we need a prompt to choose the provider's folder
-        if self.scope == ".":
+        if (self.scope == "."):
             # choose main cloud provider
             all_supported_providers = [
                     Choice(value=prov['name'], name=prov['common_name'], enabled=False) for prov in supported_providers["private"] + supported_providers["public"]
