@@ -940,7 +940,6 @@ def manifest(operation: Operation, deployment_mode):
     custom_credentials = {}
     for custom_credential_name, custom_credential in operation.standard_config.get("custom_credentials", {}).items():
         custom_credentials[custom_credential_name] = custom_credential
-        custom_credentials[custom_credential_name]['password'] = os.environ.get("CLOUDTIGER_" + custom_credential_name.upper(), "password_not_set")
 
     deploy_manifest = {
         "manifest" : platform_manifest,
@@ -1020,9 +1019,7 @@ def deploy(operation: Operation):
 
     # render config template
     content = config_template.render(template_data)
-    print(content)
     ansible_content = ansible_template.render(manifest_data)
-    print(ansible_content)
 
     # dump config file
     config_file = os.path.join(scope_folder, "config.yml")
