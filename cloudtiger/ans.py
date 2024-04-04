@@ -269,10 +269,17 @@ def set_vm_ansible_parameters(operation: Operation, vm_name: str) -> dict:
 
     ansible_ssh_port = operation.scope_config_dict["vm_ssh_params"][vm_name]["ssh_port"]
 
+    provider_name = next(iter(operation.scope_config_dict['vm']))
+    print(provider_name)
+    vlan_name = next(iter(operation.scope_config_dict['vm'][provider_name]))
+    print(vlan_name)
+    root_volume_size=operation.scope_config_dict['vm'][provider_name][vlan_name][vm_name]['root_volume_size']
+
     vm_ssh_parameters = {
         "ansible_ssh_host": vm_name,
         "ansible_user": ansible_user,
-        "private_ip": ansible_private_ip
+        "private_ip": ansible_private_ip,
+        "root_disk_size": root_volume_size
     }
 
     # add metadata if they exist
