@@ -75,16 +75,22 @@ write_files:
 
 runcmd:
 - hostnamectl hostname ${vm_name}
+- timedatectl set-timezone Europe/Paris
 - rm /etc/netplan/50-cloud-init.yaml
 - chmod -R go-rwx /etc/netplan
 - netplan apply
+- echo "waiting 10s"
+- sleep 10
+- service ssh stop
+- LANG=C sudo apt-file update && LANG=C sudo apt update && LANG=C sudo NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 apt-get dist-upgrade -y
 - echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}"
 - cp /root/temporary /etc/sssd/sssd.conf
-- sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart && service ssh restart
+- sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart
 - rm /root/temporary
 - userdel -r ubuntu
+- apt list --upgradable -a && if test -f /var/run/reboot-required ; then banner reboot && sync && sync && sync && sudo reboot ; else service ssh start ; fi
 
-package_update: true
-package_upgrade: true
-packages:
-  - apt-transport-https
+# package_update: true
+# package_upgrade: true
+# packages:
+#   - apt-transport-https

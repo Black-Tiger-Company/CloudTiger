@@ -1,0 +1,22 @@
+- name: "Increase Disk"
+  hosts: all
+  gather_facts: no
+  become: yes
+  become_method: sudo
+  tags: [always]
+  tasks:
+    - name: Increase Disk by {{ root_disk_size }}
+      debug: 
+        msg: "{{ inventory_hostname }}: size {{ root_disk_size }}"
+
+    - name: Run Python script to upgrade VM disk size
+      command: "python3 python_scripts/upgrade_disk_nutanix.py {{ inventory_hostname }} {{ root_disk_size }}"
+      become: false
+      delegate_to: localhost
+
+    - name: Grow disk on lvm
+      shell: |
+        echo 1 > /sys/block/$(pvdisplay | grep "PV Name" | awk '{print $NF}' | sed 's/[0-9]//g' | awk -F '/' '{print $NF}')/device/rescan  
+        growpart -v $(pvdisplay | grep "PV Name" | awk '{print $NF}' | sed 's/[0-9]//g') 3 
+        pvresize --verbose $(pvdisplay | grep "PV Name" | awk '{print $NF}') 
+        lvextend -v -r -l +100%FREE $(lvdisplay | grep "LV Path" | awk '{print $NF}')
