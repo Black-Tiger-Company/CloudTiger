@@ -864,7 +864,7 @@ def manifest(operation: Operation, deployment_mode):
     # browse manifest folder for a platform manifest
     platformManifestChoices = []
     for file in os.listdir(manifest_folder):
-        if (file.endswith(".json")) :
+        if (file.endswith(".yml")) :
             platformManifestChoices.append(Choice(value=file, name=file,enabled=False))
 
     platform_manifest_file = inquirer.select(
@@ -877,7 +877,7 @@ def manifest(operation: Operation, deployment_mode):
 
     platform_manifest = {}
     with open(platform_manifest_file, "r") as file:
-        platform_manifest = json.load(file)
+        platform_manifest = yaml.load(file, Loader=yaml.FullLoader)
 
     if "vm_types" in platform_manifest.get("infrastructure", {}).keys():
         operation.standard_config["vm_types"] = platform_manifest["infrastructure"]["vm_types"]
