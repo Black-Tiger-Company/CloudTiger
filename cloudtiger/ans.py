@@ -577,6 +577,16 @@ def install_ansible_playbooks(operation: Operation):
                 if file.split('.')[-1] in ["yaml", "yml"]:
                     dest_playbook = os.path.join(target_folder, file)
                     shutil.copyfile(src_playbook, dest_playbook)
+            # import python scripts too
+            if file == "python_scripts":
+                if os.path.isdir(src_playbook):
+                    local_python_scripts = os.listdir(src_playbook)
+                    for python_file in local_python_scripts:
+                        src_python = os.path.join(src_playbook, python_file)
+                        dest_python_folder = os.path.join(target_folder, "python_scripts")
+                        dest_python_file = os.path.join(dest_python_folder, python_file)
+                        os.makedirs(dest_python_folder, exist_ok=True)
+                        shutil.copyfile(src_python, dest_python_file)
 
 
 def prepare_ansible(operation: Operation, securize=False):

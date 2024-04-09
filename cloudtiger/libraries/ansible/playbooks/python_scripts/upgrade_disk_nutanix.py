@@ -6,10 +6,16 @@ import base64
 
 nutanix_user = os.environ.get('TF_VAR_nutanix_user')
 nutanix_password = os.environ.get('TF_VAR_nutanix_password')
+nutanix_endpoint = os.environ.get('TF_VAR_nutanix_endpoint')
+nutanix_port = os.environ.get('TF_VAR_nutanix_port')
+nutanix_insecure = os.environ.get('TF_VAR_nutanix_insecure')
 
 def upgrade_vm_disk(vm_name, new_disk_size_gb):
     # Nutanix Prism Central API endpoint
-    api_url = "https://prism.dataxc.biz:9440/api/nutanix/v3/vms" 
+    protocol = "https"
+    if nutanix_insecure:
+        protocol = "http"
+    api_url = f"{protocol}://{nutanix_endpoint}:{nutanix_port}/api/nutanix/v3/vms"
 
     token = base64.b64encode(f"{nutanix_user}:{nutanix_password}".encode('utf-8')).decode('utf-8')
 
