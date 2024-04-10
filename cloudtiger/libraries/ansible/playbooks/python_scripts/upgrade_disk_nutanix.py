@@ -13,7 +13,7 @@ nutanix_insecure = os.environ.get('TF_VAR_nutanix_insecure')
 def upgrade_vm_disk(vm_name, new_disk_size_gb):
     # Nutanix Prism Central API endpoint
     protocol = "https"
-    if nutanix_insecure:
+    if nutanix_insecure.lower() == "true":
         protocol = "http"
     api_url = f"{protocol}://{nutanix_endpoint}:{nutanix_port}/api/nutanix/v3/vms"
 
