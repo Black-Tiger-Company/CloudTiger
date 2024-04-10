@@ -1,0 +1,19 @@
+- name: "Wait ssh"
+  hosts: all
+  gather_facts: no
+  become: yes
+  become_method: sudo
+  tags: [always]
+  tasks:
+    - name: Wait 300 seconds that ssh -> available
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+
+# - commands:
+#   - name: wait ssh available
+#     params:
+#       become: true
+#     source: "time while true ; do nc -z datapool-ldap.btgroup.io 22 && break || : ; done ; ssh emeric.guibert@btgroup.io@datapool-ldap.btgroup.io"
+#   host: all
+#   type: command
