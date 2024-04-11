@@ -589,6 +589,23 @@ def install_ansible_playbooks(operation: Operation):
                         shutil.copyfile(src_python, dest_python_file)
 
 
+def install_ansible_roles(operation: Operation):
+
+    """ this function copy the needed internal ansible roles into the project root
+
+    :param operation: Operation, the current Operation
+
+    :return: empty return
+    """
+
+    ansible_roles = os.path.join(operation.libraries_path, "ansible", "roles")
+    local_ansible_roles = os.path.join(operation.project_root, "standard", "roles")
+    target_folder = os.path.join(operation.project_root, "ansible", "roles")
+    operation.logger.info("Creating Ansible folder from libraries folder : %s" % target_folder)
+    os.makedirs(target_folder, exist_ok=True)
+    shutil.copytree(ansible_roles, target_folder, dirs_exist_ok=True)
+
+
 def prepare_ansible(operation: Operation, securize=False):
 
     """ this function creates the Ansible meta playbook 'execute_ansible.yml' using inputs

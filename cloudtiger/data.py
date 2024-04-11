@@ -413,6 +413,8 @@ allowed_actions = {
         "D": "install_ansible_dependencies",
         "playbooks": "install_ansible_playbooks",
         "P": "install_ansible_playbooks",
+        "roles": "install_ansible_roles",
+        "R": "install_ansible_roles",
         "run_ansible": "execute_ansible",
         "3": "execute_ansible",
         "Z": "securize",

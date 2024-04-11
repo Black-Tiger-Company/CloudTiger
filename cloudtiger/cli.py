@@ -290,6 +290,7 @@ def ans(context, action, consolidated, default_user, restricted_vms,
 \n- securize (Z)         : set defined users, deactivate default user
 \n- setup (S)            : configure basic sysadmin features
 \n- playbooks (P)        : install Ansible playbooks catalog
+\n- roles (R)            : install Ansible roles catalog
 \n- dependencies (D)     : install Ansible dependencies (roles)
 \n- inventory (1)        : prepare Ansible inventory
 \n- prep_ansible (2)     : prepare Ansible meta-playbook
