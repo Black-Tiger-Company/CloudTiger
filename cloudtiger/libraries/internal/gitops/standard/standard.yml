@@ -1,5 +1,29 @@
 ##
-## list of system_images values available for config.yml
+## map of vm types values available for config.yml
+vm_types:
+  for public cloud provider, the type should be a VM type name recognized by the provider
+  aws:
+    <VM_TYPE>:
+      prod:
+        type: "t3.medium"
+      nonprod: # 'nonprod' will cover all environments that are not prod or one of the other environments defined in the map
+        type: "t3.medium"
+      <OTHER_ENVIRONMENT_TYPE>: # here you can define other environements than 'prod' or default 'nonprod'
+        type: "t3.medium"
+
+  all providers not listed in the 'vm_types' map will fall in the 'default' key:
+  default:
+    data_volume_size: 0 # size of first data volume
+    root_volume_size: 20 # size of root volume
+    memory: 1024 # memory in Mo
+    nb_sockets: 1 # number of CPU sockets
+    nb_vcpu_per_socket: 1 # CPUs per socker
+    ### total number of CPUs will be nb_sockets * nb_vcpu_per_socket
+    ### WARNING : only vSphere supports nb_sockets parameter, for all other providers it will be considered as '1'
+
+
+##
+## map of system_images values available for config.yml
 system_images:
   ## 
   ## provider structure should be
@@ -52,3 +76,111 @@ default_external_domain: mydomain.com
 ## @param when your are deploying a platform on an external provider,
 ## this domain will be the default domain used to reach the platform
 default_external_domain: mydomain.com
+
+##
+## these maps provide default values for the prompt 'cloudtiger . config G'
+# vsphere:
+#   default_cluster: # name of your default vSphere cluster
+#   default_datacenter: # name of your default vSphere datacenter
+#   default_datastore: # name of your default vSphere datastore
+#   default_vlan: # name of your default VLAN on vSphere
+#   secondary_providers: # list of names of your default secondary providers, when sharing VLAN with other providers
+#   - nutanix
+#   default_os_template: # name of your default vSphere VM OS template
+#   default_base_folder: # name of your default vSphere VM base folder
+#   single_disk_vm: True # are you using a single disk (root volume) for your VM ?
+
+# nutanix:
+#   default_cluster: # name of your default Nutanix cluster
+#   default_vlan: # name of your default VLAN on Nutanix
+#   secondary_providers: # list of names of your default secondary providers, when sharing VLAN with other providers
+#   - vsphere
+#   default_os_template: # name of your default Nutanix VM OS template
+#   single_disk_vm: True # are you using a single disk (root volume) for your VM ?
+
+# name of the default OS templates on public cloud providers
+# the names correspond to the value to set in config.yml
+aws:
+  default_os_template: ubuntu_server_2204
+azure:
+  default_os_template: ubuntu_server_2204
+gcp:
+  default_os_template: ubuntu_server_2204
+
+# suffixes of the extra disk on public cloud providers
+pvs_suffix:
+  aws: "p1"
+  azure: "1"
+  gcp: "1"
+
+# by default, do you want to add a 'public exposition layer' ? It means adding a public proxy in front of your private K8s cluster
+public_exposition_layer: True
+
+# list of available 'customers' for your deployments. 'custom' is automatically added to the list at prompt
+customers:
+- dev
+- dmo
+- xpo
+- ci
+- sys
+- internal
+
+# the URL where the ans Z command can fetch the list of authorized SSH keys
+artefacts_repository_public_key_url: http://nexus.com/authorized_keys
+
+# the URL where the ans Z command can fetch the list of authorized SSH users
+artefacts_repository_admin_user_list: http://nexus.com/ssh-userlist.yml
+
+# by default, do you want to add SSH users from these lists ?
+add_ssh_keys_from_repo: False
+
+# parameters of your default DNS server
+default_dns_server_type: windows # type of DNS server - windows or bind
+main_dns_server: 192.168.0.1 # address of main DNS server
+nameservers: 192.168.0.1,192.168.0.2 # comma-separated list of DNS servers (main and fallbacks)
+search: mydomain.com # default search domain for your VMs
+
+# list of common environments
+common_environments:
+- prod
+- preprod
+- staging
+- integration
+- qa
+- dev
+- test
+- demo
+
+##
+## the custom_credentials map allows you to inject secrets in your templates/XXX.yml.j2 template,
+## with the following format
+# custom_credentials:
+#   <NAME_OF_CUSTOM_CREDENTIAL>:
+#     name: # name of source
+#     source: # URL of source
+#     login: # login
+#     password: # password in format __CT_SECRET_START__XXX__CT_SECRET_STOP__
+
+##
+## the normalized_naming allows to cast environment, type and customer values to shorter values
+## when defining the name of the VMs, because some Active Directory systems do not support
+## names longer than 16 characters
+# normalized_naming:
+#   environment:
+#     prod: "prd"
+#     preprod: "ppr"
+#     staging: "stg"
+#     integration: "int"
+#     qa: "qa"
+#     dev: "dev"
+#     test: "tst"
+#     demo: "dmo"
+#   type:
+#     kubenode: "k8nod"
+#     kubenode_high_memory: "k8ram"
+#     kubenode_high_compute: "k8cpu"
+#     kubemaster: "k8mst"
+#     standard: "std"
+#   customer:
+#     dev: "dev"
+#     demo: "demo"
