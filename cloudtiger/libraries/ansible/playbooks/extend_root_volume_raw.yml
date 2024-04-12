@@ -1,0 +1,13 @@
+---
+- name: Extend root LVG to use all available disk space
+  hosts: "{{ hosts }}"
+  gather_facts: yes
+  become: true
+
+  tasks:
+    - name: Grow disk on lvm
+      shell: |
+        echo 1 > /sys/block/$(pvdisplay | grep "PV Name" | awk '{print $NF}' | sed 's/[0-9]//g' | awk -F '/' '{print $NF}')/device/rescan  
+        growpart -v $(pvdisplay | grep "PV Name" | awk '{print $NF}' | sed 's/[0-9]//g') 3 
+        pvresize --verbose $(pvdisplay | grep "PV Name" | awk '{print $NF}') 
+        lvextend -v -r -l +100%FREE $(lvdisplay | grep "LV Path" | awk '{print $NF}')
