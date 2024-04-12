@@ -1,0 +1,25 @@
+---
+# defaults file for k8s-rke
+version: 1.2.7
+# platform: linux
+ingress_http_port: 80
+ingress_https_port: 443
+ingress_provider: none
+service_node_port_range: 80-32767
+
+kubernetes_version: v1.23.7-rancher1-1
+
+# set to true if the executor of 'rke up' is not the current user (when executed through a Docker for example)
+root_exec: False
+
+# to prepull all necessary docker images
+pre_pull: true
+
+# cluster CIDR range
+cluster_cidr: 10.42.0.0/16
+
+# service cluster IP range
+service_cluster_ip_range: 10.43.0.0/16
+
+# cluster DNS server IP
+cluster_dns_server: 10.43.0.10

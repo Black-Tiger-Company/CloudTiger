@@ -1,0 +1,8 @@
+# variables needed for partition
+partitions:
+- disk_name: "{{ partition.disk_name | default('/dev/sdb') }}"
+  vg_name: "vg_data"
+  pvs_name: "{{ partition.pvs_name | default('/dev/sdb1') }}"
+  lv_name: "lv_data"
+  file_system: "{{ partition.filesystem | default('ext4') }}"
+  mount_point: "{{ partition.mount_point | default('/data') }}"

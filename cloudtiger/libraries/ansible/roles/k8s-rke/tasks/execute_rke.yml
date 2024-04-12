@@ -1,0 +1,67 @@
+- block:
+    - name: execute RKE - root
+      shell:
+        cmd: rke up
+      async: 2000
+      poll: 5
+      register: rke_up_result
+      args:
+        chdir: "{{ workdir }}/{{ cluster_name }}"
+      become: true
+      when:
+      - run_rke
+      - root_exec
+
+    - name: execute RKE - non root
+      shell:
+        cmd: rke up
+      async: 2000
+      poll: 5
+      register: rke_up_result
+      args:
+        chdir: "{{ workdir }}/{{ cluster_name }}"
+      when:
+      - run_rke
+      - root_exec == False
+
+  rescue:
+    - name: Set fact for retries
+      set_fact:
+        retry_count: "{{ retry_count | default(0) | int + 1 }}"
+
+    - name: Clear previous tries - root
+      shell:
+        cmd: rke remove --force
+      async: 2000
+      poll: 5
+      args:
+        chdir: "{{ workdir }}/{{ cluster_name }}"
+      become: true
+      when:
+      - run_rke
+      - root_exec
+      - retry_count|int >= 1
+
+    - name: Clear previous tries - non root
+      shell:
+        cmd: rke remove --force
+      async: 2000
+      poll: 5
+      args:
+        chdir: "{{ workdir }}/{{ cluster_name }}"
+      when:
+      - run_rke
+      - root_exec == False
+      - retry_count|int >= 1
+
+    - name: Fail after 5 retries
+      fail:
+        msg: "Reached maximum retries"
+      when: retry_count|int >= 5
+
+    - name: Wait for a moment before retrying
+      command: sleep 10  # Wait for 10 seconds (optional but can be useful)
+
+    - name: Retry the block
+      include_tasks: execute_rke.yml  # Retry the same playbook
+      when: retry_count|int < 5

@@ -1,0 +1,10 @@
+---
+# tasks file for dataplatform-helm
+
+- name: clean cluster
+  include_tasks: clean_cluster.yml
+  when: clean_cluster is true
+
+- name: configure cluster
+  include_tasks: configure_cluster.yml
+  when: configure_cluster is true

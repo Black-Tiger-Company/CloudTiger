@@ -1,0 +1,1583 @@
+---
+# defaults file for dataplatform-helm
+
+### address used to expose the ingresses
+external_proxy_address: "{{ proxy_address }}"
+
+### set to true if you want to remove all containers from the cluster
+### and clear folders of persistent data
+clean_cluster: false
+### launch installation of all services
+configure_cluster: True
+### workdir where dedicated files will be created (relative path starts in scope inventory)
+workdir: '.'
+
+### option to wait a bit between two helm deploy to avoid pod sandbox errors
+careful_deployment: true
+
+### will be used as a prefix to all namespaces of the deployment
+### in order to separate multiple platforms on the same cluster
+platform_id: "lambda"
+
+### set to false if you do not want to deploy 1st-level Helm charts
+deploy_first_layer: False
+### set to false if you do not want to deploy 2nd-level Helm charts
+deploy_second_layer: False
+### set to false if you do not want to deploy ingresses
+deploy_ingresses: False
+### set to true to recreate admin secrets of the deployment
+refresh_secrets: False
+### set to true to refresh the Helm repositories
+upgrade_helm_repo: False
+### set to true to recreate SSL secrets of the deployment
+refresh_ssl_secrets: False
+### set to true to dump a markdown file with all connection string at the end of the role
+### WARNING : the file will contains sensitive data
+dump_info: False
+### set to true to initialize Keycloak database
+initialize_keycloak: False
+### set to true to initialize Airflow database
+initialize_airflow: False
+### set to true to initialize Appsmith database
+initialize_appsmith: False
+### set to true to initialize Jupyterhub database
+initialize_jupyterhub: False
+### purge previous data from the Keycloak DB
+purge_keycloak_data: False
+### purge previous data from the Airflow DB
+purge_airflow_data: False
+### purge previous data from the Jupyterhub DB
+purge_jupyterhub_data: False
+### deploy a Persistent Volume for Jupyter notebooks
+### and Airflow DAGs
+use_pv_script: False
+pv_script_namespace: "{{ platform_id }}-compute"
+### deploy Longhorn chart ?
+deploy_longhorn: False
+### deploy Prometheus chart ?
+deploy_prometheus: False
+### deploy extra Ingress class chart ?
+deploy_proxy: False
+### deploy oathkeeper securization ?
+deploy_oathkeeper: False
+### deploy kubeapps chart ?
+deploy_kubeapps: False
+
+### base URL paths for UIs
+k8s_dashboard_base_url: /dashboard
+keycloak_base_url: /auth
+kibana_base_url: /dataviz/app/kibana
+grafana_base_url: /mon
+prometheus_base_url: /prometheus
+argocd_base_url: /argo
+spark_base_url: /spark
+airflow_base_url: /airflow
+appsmith_base_url: /admin
+longhorn_base_url: /disk
+jupyterhub_base_url: /hub
+kubeapps_base_url: /kubeapps
+minio_base_url: /minio
+
+### list of deployments incorporated in the Longhorn chart
+### used to check that the Longhorn deployment is successfully finished
+longhorn_deployments:
+- csi-attacher
+- csi-provisioner
+- csi-resizer
+- csi-snapshotter
+- longhorn-admission-webhook
+- longhorn-conversion-webhook
+- longhorn-driver-deployer
+- longhorn-recovery-backend
+- longhorn-ui
+
+### list of namespaces to avoid deletion when running clean_cluster option
+critical_namespaces:
+- default
+- kube-node-lease
+- kube-public
+- kube-system
+- longhorn-system
+- kubernetes-dashboard
+- ingress-nginx
+
+### list of charts to avoid deletion when running clean_cluster option
+critical_helms:
+- kubernetes-dashboard
+- longhorn
+
+### list of Helm repos to add
+default_helm_repos:
+- name: bitnami
+  address: https://charts.bitnami.com/bitnami
+- name: longhorn
+  address: https://charts.longhorn.io
+- name: rancher-stable
+  address: https://releases.rancher.com/server-charts/stable
+- name: haproxytech
+  address: https://haproxytech.github.io/helm-charts
+- name: emberstack
+  address: https://emberstack.github.io/helm-charts
+- name: stable-appsmith
+  address: http://helm.appsmith.com
+- name: ingress-nginx
+  address: https://kubernetes.github.io/ingress-nginx
+- name: jetstack
+  address: https://charts.jetstack.io
+- name: ory
+  address: https://k8s.ory.sh/helm/charts
+- name: argo
+  address: https://argoproj.github.io/argo-helm
+
+### published external ports of the cluster for various TCP services
+external_postgres_port: 5432
+external_mongo_port: 27017
+external_elastic_port: 9200
+external_redis_port: 6379
+### published external port of the public Ingress
+proxy_port: 80
+
+### username of the MongoDB amdin
+mongo_admin: root
+
+### print connection string to postgres at the end of the role
+debug_postgres: False
+
+### size of Persistent Volume that stores files for Airflow DAGS
+### and Jupyter notebooks
+scripts_pvc_size: 1Gi
+
+default_k8s_secrets_certificates: []
+
+### list of docker secrets to add, with the following format :
+# - name: <SECRET_NAME>
+#   namespace: "{{ platform_id }}-<COMPOSANT>"
+#   repo: <DOCKER_REPO_URL>
+#   username: <USERNAME>
+#   password: <PASSWORD>
+docker_repo_secrets: []
+
+### Fernet Key for Airflow (deprecated)
+# fernet_key: "{{ lookup('pipe', 'python -c \"from cryptography.fernet import Fernet; import base64; print(base64.urlsafe_b64encode(Fernet.generate_key()).decode('utf-8').replace('=', ''))\"') }}"
+# fernet_key: "{{ lookup('pipe', 'python -c \"from cryptography.fernet import Fernet; import base64; print(base64.urlsafe_b64encode(Fernet.generate_key()).decode(\'utf-8\').replace(\'=\', \'\'))\"') }}"
+
+### password of the Redis admin
+# redis_admin_password: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+
+### password of the Jupyterhub admin
+jupyterhub_admin_password: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+
+### list of K8s secrets to create, mostly to store admin credentials
+default_k8s_secrets:
+- name: mongo-admin
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  content:
+  - key: mongodb-root-password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+- name: postgres-admin
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  content:
+  - key: postgres-password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+# - name: redis-admin
+#   namespace: "{{ platform_id }}-data"
+#   type: generic
+#   content:
+#   - key: redis-password
+#     value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+# - name: redis-admin-monitoring
+#   namespace: "{{ platform_id }}-monitoring"
+#   type: generic
+#   content:
+#   - key: redis-password
+#     value: "{{ redis_admin_password }}"
+- name: keycloak-admin
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  content:
+  - key: admin-password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+- name: keycloak-postgres-secret
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  content:
+  - key: db-password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+- name: airflow-admin
+  namespace: "{{ platform_id }}-compute"
+  type: generic
+  content:
+  - key: airflow-password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+  - key: airflow-fernet-key
+    value: placeholder
+  - key: airflow-secret-key
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=48') }}"
+- name: airflow-postgres-secret
+  namespace: "{{ platform_id }}-compute"
+  type: generic
+  content:
+  - key: password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+- name: appsmith-mongodb-secret
+  namespace: "{{ platform_id }}-monitoring"
+  type: generic
+  content:
+  - key: password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+- name: grafana-admin
+  namespace: "{{ platform_id }}-monitoring"
+  type: generic
+  content:
+  - key: password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+- name: jupyterhub-secret
+  namespace: "{{ platform_id }}-compute"
+  type: generic
+  content:
+  - key: admin-password
+    value: "{{ jupyterhub_admin_password }}"
+- name: jupyterhub-postgres-secret
+  namespace: "{{ platform_id }}-compute"
+  type: generic
+  content:
+  - key: db-password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+- name: minio-secret
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  content:
+  - key: root-user
+    value: admin
+  - key: root-password
+    value: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+
+### list of TLS certificates to download
+default_download_certificates_list_archives: []
+
+### list of default certificates to use for ingresses
+# default_ingress_certificates:
+# - data/internal-ingress-certificate-secret
+# - data/public-ingress-certificate-secret
+
+### list of default certificates to use for k8s services
+default_ingress_certificates:
+- name: internal-ingress-certificate-secret
+  namespace: "{{ platform_id }}-data"
+  type: tls
+- name: public-ingress-certificate-secret
+  namespace: "{{ platform_id }}-data"
+  type: tls
+- name: mongo-certificate-secret
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  format:
+    tls_crt: mongodb-ca-cert
+    tls_key: mongodb-ca-key
+    tls_ca: ca.cert
+- name: elastic-certificate-secret
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  format:
+    tls_crt: tls.crt
+    tls_key: tls.key
+    tls_ca: ca.cert
+- name: kibana-certificate-secret
+  namespace: "{{ platform_id }}-data"
+  type: generic
+  format:
+    tls_crt: tls.crt
+    tls_key: tls.key
+    tls_ca: ca.cert
+
+### configmap for adding python packages to Airflow
+airflow_config_map:
+- name: airflow-extra-python
+  namespace: "{{ platform_id }}-compute"
+  filename: requirements.txt
+  filecontent: |
+    apache-airflow
+    apache-airflow-providers-apache-spark
+
+### default parameters of the longhorn chart
+pre_pull_longhorn: false
+longhorn_chart:
+- name: longhorn
+  source: longhorn/longhorn
+  chart_version: 1.5.1
+  namespace: "longhorn-system"
+  config:
+    defaultSettings:
+      defaultDataPath: /data/longhorn
+    longhornManager:
+      tolerations:
+      - key: "only"
+        value: "reserved"
+        effect: "NoSchedule"
+        operator: "Equal"
+    longhornDriver:
+      tolerations:
+      - key: "only"
+        value: "reserved"
+        effect: "NoSchedule"
+        operator: "Equal"
+    longhornUI:
+      tolerations:
+      - key: "only"
+        value: "reserved"
+        effect: "NoSchedule"
+        operator: "Equal"
+    # global:
+    #   cattle:
+    #     windowsCluster:
+    #       # Tolerate some taints
+    #       tolerations:
+    #       - key: "cattle.io/os"
+    #         value: "linux"
+    #         effect: "NoSchedule"
+    #         operator: "Equal"
+    #       - key: "only"
+    #         value: "reserved"
+    #         effect: "NoSchedule"
+    #         operator: "Equal"
+  deployments:
+  - csi-snapshotter
+  - csi-attacher
+  - csi-provisioner
+  - csi-resizer
+  - longhorn-driver-deployer
+  - longhorn-ui
+  daemonsets:
+  - longhorn-csi-plugin
+  - longhorn-manager
+
+### Experimental : k8s certificate manager
+# cert_manager_chart:
+# - name: cert-manager
+#   source: jetstack/cert-manager
+#   namespace: cert-manager
+#   version: v1.11.0
+
+### Experimental : Rancher chart
+# rancher_chart:
+# - name: rancher
+#   source: rancher-stable/rancher
+#   namespace: cattle-system
+
+### Experimental : KubeApps chart
+kubeapps_chart:
+- name: kubeapps
+  source: bitnami/kubeapps
+  chart_version: 14.0.2
+  namespace: "kubeapps"
+  config:
+    global:
+      storageClass: longhorn
+    frontend:
+      image:
+        tag: 1.25.2-debian-11-r8
+        debug: false
+    dashboard:
+      image:
+        tag: 2.8.0-debian-11-r50
+        debug: false
+  deployments:
+  - kubeapps
+  - kubeapps-internal-apprepository-controller
+  - kubeapps-internal-dashboard
+  - kubeapps-internal-kubeappsapis
+  statefulsets:
+  - kubeapps-postgresql
+
+prometheus_chart:
+- name: kube-prometheus
+  source: bitnami/kube-prometheus
+  chart_version: 8.21.6
+  namespace: "{{ platform_id }}-monitoring"
+  config:
+    global:
+      storageClass: longhorn
+    operator:
+      enabled: True
+      image:
+        tag: "0.65.1-debian-11-r0"
+      logLevel: "info"
+    prometheus:
+      enabled: True
+      image:
+        tag: "2.43.1-debian-11-r0"
+      retention: "1d"
+      retentionSize: "1GB"
+      replicaCount: 1
+      logLevel: "info"
+      persistence:
+        enabled: True
+        storageClass: longhorn
+        size: "2Gi"
+      externalUrl: "{{ proxy_address }}/prometheus"
+    ### AlertManager configuration is still experimental
+    # alertmanager:
+    #   enabled: True
+    #   image:
+    #     tag: "0.25.0-debian-11-r45"
+    #   service:
+    #     ports:
+    #       http: 9093
+    #   replicaCount: 1
+    #   logLevel: "info"
+    #   persistence:
+    #     enabled: True
+    #     storageClass: longhorn
+    #     size: "1Gi"
+    exporters:
+      node-exporter:
+        enabled: False
+  deployments:
+  - kube-prometheus-blackbox-exporter
+  - kube-prometheus-kube-state-metrics
+  - kube-prometheus-operator
+  statefulsets:
+  - alertmanager-kube-prometheus-alertmanager
+  - prometheus-kube-prometheus-prometheus
+
+### Nginx Ingress dedicated to TCP services (databases)
+ingress_chart:
+- name: ingress-nginx
+  source: ingress-nginx/ingress-nginx
+  chart_version: 4.8.2
+  namespace: "ingress-nginx"
+  config:
+    tcp:
+      5432: "{{ platform_id }}-data/postgresql:5432"
+      27017: "{{ platform_id }}-data/mongodb:27017"
+      9200: "{{ platform_id }}-data/elasticsearch:9200"
+      6379: "{{ platform_id }}-data/redis-master:6379"
+    controller:
+      allowSnippetAnnotations: true
+      kind: DaemonSet
+      ingressClassResource:
+        name: nginx
+      service:
+        type: NodePort
+        nodePorts:
+          http: 80
+          https: 443
+          tcp:
+            5432: 5432
+            27017: 27017
+            9200: 9200
+            6379: 6379
+        ports:
+          http: 80
+          https: 443
+        targetPorts:
+          http: http
+          https: https
+      # nodeSelector:
+      #   kubernetes.io/hostname: "{{ proxy_address }}"
+  daemonsets:
+  - ingress-nginx-controller
+
+oathkeeper_rules:
+- id: allow-admins-to-admin-area
+  upstream:
+    url: "https://{{ external_proxy_address }}/dashboard"
+  match:
+    url: "https://{{ external_proxy_address }}/dashboard"
+    methods:
+      - GET
+      - POST
+  authenticators:
+    - handler: jwt
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: allow-users-to-front
+  upstream:
+    url: "https://{{ external_proxy_address }}"
+  match:
+    url: "https://{{ external_proxy_address }}"
+    methods:
+      - GET
+      - POST
+  authenticators:
+    - handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+
+# - id: allows-admins-to-admin-services
+#   upstream:
+#     url: 
+#   match:
+#     url: "{{ external_proxy_address }}/dashboard"
+#     methods:
+#     - GET
+#     - POST
+#   authenticators:
+#   - handler: jwt
+#   authorizer:
+#     handler: remote_json
+#     config:
+#       check_url: http://keycloak.{{ platform_id }}-data/auth/realms/master/protocol/openid-connect/userinfo
+#   mutators:
+#   - handler: noop
+# - id: allows-users-to-platform-front
+#   upstream:
+#     url
+#   match:
+#     url: "{{ external_proxy_address }}"
+#     methods:
+#     - GET
+#     - POST
+#   authenticators:
+#   - handler: jwt
+#   authorizer:
+#     handler: allow
+#   mutators:
+#   - handler: noop
+
+oathkeeper_chart:
+- name: oathkeeper
+  source: ory/oathkeeper
+  chart_version: 0.37.0
+  namespace: "ingress-nginx"
+  config:
+    image:
+      tag: v0.40.6
+    oathkeeper:
+      config:
+        access_rules:
+          repositories:
+          # - "file://oathkeeper_rules.yml"
+          - "inline://{{ oathkeeper_rules | to_json | b64encode }}"
+        authenticators:
+          noop:
+            enabled: true
+          jwt:
+            enabled: true
+            config:
+              jwks_urls:
+                - "http://keycloak.{{ platform_id }}-data/auth/realms/master/protocol/openid-connect/certs"
+              # scope_strategy: exact
+              token_from:
+                header: "Authorization"
+        authorizers:
+          allow:
+            enabled: true
+            
+          deny:
+            enabled: true
+            
+        mutators:
+          noop:
+            enabled: true
+    replicaCount: 1
+
+### list of base services
+base_services:
+- longhorn
+- dashboard
+- prometheus
+- kubeapps
+- oathkeeper
+
+### list of charts to install behind the basic charts
+activated_services:
+- redis
+- mongodb
+- elasticsearch
+- postgresql
+- kibana
+- kafka
+- spark
+- jupyterhub
+- argocd
+- keycloak
+- airflow
+- grafana
+- appsmith
+
+### parameters of defaults Helm Charts to install
+default_charts:
+- name: minio
+  source: bitnami/minio
+  chart_version: 12.8.15
+  namespace: "{{ platform_id }}-data"
+  config:
+    global:
+      storageClass: longhorn
+    image:
+      tag: 2023.9.30-debian-11-r2
+    auth:
+      existingSecret: minio-secret
+    persistence:
+      storageClass: longhorn
+      size: 8Gi
+
+- name: redis
+  source: bitnami/redis
+  chart_version: 18.1.5
+  namespace: "{{ platform_id }}-data"
+  config:
+    global:
+      storageClass: longhorn
+    image:
+      tag: 7.0.11-debian-11-r20
+    auth:
+      enabled: True
+      existingSecret: redis-admin
+      existingSecretPasswordKey: redis-password
+    master:
+      count: 1
+      persistence:
+        enabled: true
+        size: 2Gi
+      service:
+        type: ClusterIP
+        ports:
+          redis: 6379
+    replica:
+      replicaCount: 2
+      persistence:
+        enabled: True
+        size: 2Gi
+    metrics:
+      enabled: True
+      image:
+        tag: 1.50.0-debian-11-r21
+      service:
+        port: 9121
+  statefulsets:
+  - redis-master
+  - redis-replicas
+
+- name: mongodb
+  source: bitnami/mongodb
+  chart_version: 14.0.10
+  namespace: "{{ platform_id }}-data"
+  config:
+    global:
+      storageClass: longhorn
+    image:
+      tag: 6.0.5-debian-11-r4
+    auth:
+      rootUser: root
+      existingSecret: mongo-admin
+    tls:
+      enabled: False
+      autoGenerated: False
+      existingSecret: mongo-certificate-secret
+    replicaCount: 2
+    persistence:
+      size: 2Gi
+    metrics:
+      enabled: True
+      image:
+        tag: 0.37.0-debian-11-r15
+      containerPort: 9216
+      service:
+        ports:
+          metrics: 9216
+      serviceMonitor:
+        enabled: True
+        namespace: "{{ platform_id }}-monitoring"
+        interval: 30s
+        # selector:
+        #   operated-prometheus: "true"
+  deployments:
+  - mongodb
+
+- name: elasticsearch
+  source: bitnami/elasticsearch
+  chart_version: 19.13.4
+  namespace: "{{ platform_id }}-data"
+  config:
+    global:
+      storageClass: longhorn
+      kibanaEnabled: False
+    plugins: ""
+    image:
+      tag: 8.7.0-debian-11-r0
+    security:
+      enabled: false
+      tls:
+        restEncryption: True
+        master:
+          existingSecret: elastic-certificate-secret
+        data:
+          existingSecret: elastic-certificate-secret
+        ingest:
+          existingSecret: elastic-certificate-secret
+    master:
+      replicaCount: 1
+      persistence:
+        size: 1Gi
+    data:
+      replicaCount: 1
+      persistence:
+        size: 2Gi
+    coordinating:
+      replicaCount: 1
+    ingest:
+      replicaCount: 1
+    metrics:
+      enabled: True
+      image:
+        tag: 1.5.0-debian-11-r85
+      service:
+        port: 9114
+      serviceMonitor:
+        enabled: True
+        namespace: "{{ platform_id }}-monitoring"
+        interval: 30s
+        # selector:
+        #   operated-prometheus: "true"
+  deployments:
+  - elasticsearch-metrics
+  statefulsets:
+  - elasticsearch-coordinating
+  - elasticsearch-data
+  - elasticsearch-ingest
+  - elasticsearch-master
+
+- name: postgresql
+  source: bitnami/postgresql
+  chart_version: 13.1.4
+  namespace: "{{ platform_id }}-data"
+  config:
+    global:
+      storageClass: longhorn
+      postgresql:
+        auth:
+          existingSecret: postgres-admin
+          database: admin
+          # username: admin
+          # secretKeys:
+          #   adminPasswordKey: postgres-password
+          #   userPasswordKey: postgres-password
+          #   replicationPasswordKey: postgres-password
+    image:
+      tag: 15.2.0-debian-11-r26
+    architecture: standalone
+    primary:
+      persistence:
+        enabled: true
+        size: 1Gi
+    readReplicas:
+      replicaCount: 1
+      persistence:
+        enabled: true
+        size: 1Gi
+    metrics:
+      enabled: True
+      image:
+        tag: "0.12.0-debian-11-r84"
+      containerPorts:
+        metrics: 9187
+      serviceMonitor:
+        enabled: True
+        namespace: "{{ platform_id }}-monitoring"
+        interval: 30s
+  statefulsets:
+  - postgresql
+
+- name: kibana
+  source: bitnami/kibana
+  chart_version: 10.5.9
+  namespace: "{{ platform_id }}-data"
+  postconfig: True
+  config:
+    global:
+      storageClass: longhorn
+    image:
+      tag: 8.7.0-debian-11-r0
+    replicaCount: 1
+    plugins: []
+    persistence:
+      size: 1Gi
+    tls:
+      enabled: false
+      existingSecret: kibana-certificate-secret
+    elasticsearch:
+      hosts:
+      - elasticsearch
+      port: 9200
+      security:
+        auth:
+          enabled: False
+        tls:
+          enabled: False
+    configuration:
+      server:
+        basePath: "{{ kibana_base_url }}"
+        rewriteBasePath: true
+  deployments:
+  - kibana
+
+- name: kafka
+  source: bitnami/kafka
+  chart_version: 26.3.2
+  namespace: "{{ platform_id }}-data"
+  config:
+    global:
+      storageClass: longhorn
+    image:
+      tag: 3.6.0-debian-11-r1
+    auth:
+      clientProtocol: plaintext
+      interBrokerProtocol: plaintext
+      controllerProtocol: plaintext
+    replicaCount: 1
+    persistence:
+      size: 1Gi
+    logPersistence:
+      size: 1Gi
+    zookeeper:
+      persistence:
+        size: 1Gi
+    metrics:
+      kafka:
+        enabled: True
+        image:
+          tag: 1.6.0-debian-11-r8
+        containerPorts:
+          metrics: 9308
+        service:
+          ports:
+            metrics: 9308
+      jmx:
+        enabled: True
+        image:
+          tag: 0.18.0-debian-11-r18
+        containerPorts:
+          metrics: 5556
+        service:
+          ports:
+            metrics: 5556
+      serviceMonitor:
+        enabled: True
+        namespace: "{{ platform_id }}-monitoring"
+        interval: 30s
+    listeners:
+      controller:
+        protocol: PLAINTEXT
+      client:
+        protocol: PLAINTEXT
+      interbroker:
+        protocol: PLAINTEXT
+      external:
+        protocol: PLAINTEXT
+    extraEnvVars:
+    - name: ALLOW_PLAINTEXT_LISTENER
+      value: "yes"
+  deployments:
+  - kafka-exporter
+  statefulsets:
+  - kafka-controller
+
+- name: spark
+  source: bitnami/spark
+  chart_version: 8.0.1
+  namespace: "{{ platform_id }}-compute"
+  config:
+    global:
+      storageClass: "longhorn"
+    image:
+      tag: 3.3.2-debian-11-r13
+    master:
+      nodeAffinityPreset:
+        type: "soft"
+        key: "spark_type"
+        values:
+        - spark_master
+      configOptions:
+        -Dspark.ui.reverseProxy=true
+        -Dspark.ui.reverseProxyUrl=http://{{ proxy_address }}:{{ proxy_port }}{{ spark_base_url }}
+    worker:
+      replicaCount: 2
+      nodeAffinityPreset:
+        type: "soft"
+        key: "spark_type"
+        values:
+        - spark_node
+      configOptions:
+        -Dspark.ui.reverseProxy=true
+        -Dspark.ui.reverseProxyUrl=http://{{ proxy_address }}:{{ proxy_port }}{{ spark_base_url }}
+    metrics:
+      enabled: True
+  statefulsets:
+  - spark-master
+  - spark-worker
+
+- name: jupyterhub
+  source: bitnami/jupyterhub
+  chart_version: 5.0.2
+  namespace: "{{ platform_id }}-compute"
+  postconfig: True
+  config:
+    global:
+      storageClass: "longhorn"
+    hub:
+      image:
+        tag: 4.0.2-debian-11-r17
+      adminUser: admin
+      password: "{{ jupyterhub_admin_password }}"
+    proxy:
+      image:
+        tag: 4.5.6-debian-11-r16
+        debug: false
+      service:
+        public:
+          type: ClusterIP
+    singleuser:
+      image:
+        tag: 4.0.2-debian-11-r16
+      persistence:
+        enabled: true
+        storageClass: longhorn
+        size: 1Gi
+      extraVolumes:
+      - name: scripts-volume
+        persistentVolumeClaim:
+          claimName: scripts-pvc
+      extraVolumeMounts:
+      - name: scripts-volume
+        mountPath: /opt/bitnami/jupyter_persistent
+    auxiliaryImage:
+      tag: 11-debian-11-r51
+    postgresql:
+      enabled: false
+    externalDatabase:
+      existingSecret: jupyterhub-postgres-secret
+      existingSecretPasswordKey: db-password
+      host: "postgresql.{{ platform_id }}-data"
+      port: 5432
+      user: jupyterhub
+      database: jupyterhub
+  deployments:
+  - jupyterhub-hub
+  - jupyterhub-proxy
+  daemonsets:
+  - jupyterhub-image-puller
+
+- name: argocd
+  source: argo/argo-cd
+  # chart_version: 6.7.10
+  chart_version: 6.7.3
+  namespace: "{{ platform_id }}-monitoring"
+  postconfig: True
+  config:
+    server:
+      ingress:
+        enabled: false
+        hostname: "{{ external_proxy_address }}"
+        ingressClassName: nginx
+        path: "/argo"
+    configs:
+      # secret:
+      #   argocdServerAdminPassword: admin
+      params:
+        "server.insecure": true
+        "server.rootpath": "{{ argocd_base_url }}"
+    redis:
+      # enabled: false
+      enabled: true
+    # externalRedis:
+    #   existingSecret: redis-admin-monitoring
+    #   # existingSecretPasswordKey: redis-password
+    #   host: "redis-master.{{ platform_id }}-data"
+    #   port: 6379
+  deployments:
+  - argocd-applicationset-controller 
+  - argocd-dex-server 
+  - argocd-notifications-controller 
+  # - argocd-redis 
+  - argocd-repo-server 
+  - argocd-server 
+  daemonsets: []
+
+# - name: argocd
+#   source: bitnami/argo-cd
+#   chart_version: 6.0.7
+#   namespace: "{{ platform_id }}-monitoring"
+#   postconfig: True
+#   config:
+#     global:
+#       storageClass: "longhorn"
+#     image:
+#       tag: 2.10.6-debian-12-r1
+#     replicaCount: 1
+#     persistence:
+#       size: 1Gi
+#     logPersistence:
+#       size: 1Gi
+#     config:
+#       secret:
+#         argocdServerAdminPassword: admin
+#       applicationSet:
+#         containerPorts:
+#           metrics: 8085
+#         metrics: 
+#           enabled: True
+#           service:
+#             port: 8085
+#           serviceMonitor:
+#             enabled: True
+#             namespace: "{{ platform_id }}-monitoring"
+#             interval: 30s
+#     server:
+#       insecure: true
+#       url: "{{ argocd_base_url }}"
+#     redis:
+#       enabled: False
+#     externalRedis:
+#       existingSecret: redis-admin-monitoring
+#       existingSecretPasswordKey: redis-password
+#       host: "redis-master.{{ platform_id }}-data"
+#       port: 6379
+#     # clusterCredentials:
+#     #   - name: local-cluster
+#     #     server: xxx
+#     #     labels: {}
+#     #     annotations: {}
+#     #     config:
+#     #       bearerToken: xxx
+#     #       tlsClientConfig:
+#     #         insecure: false
+#     #         caData: xxx
+#   deployments:
+#   - argocd-argo-cd-app-controller
+#   - argocd-argo-cd-repo-server
+#   - argocd-argo-cd-server 
+
+
+- name: keycloak
+  source: bitnami/keycloak
+  chart_version: 17.0.4
+  namespace: "{{ platform_id }}-data"
+  postconfig: True
+  config:
+    global:
+      storageClass: longhorn
+    image:
+      tag: 21.0.2-debian-11-r0
+    auth:
+      adminUser: admin
+      existingSecret: keycloak-admin
+    tls:
+      enabled: False
+      autoGenerated: False
+      existingSecret: keycloak-certificate-secret
+    replicaCount: 1
+    metrics:
+      enabled: True
+      service:
+        ports:
+          http: 8080
+      serviceMonitor:
+        enabled: True
+        namespace: "{{ platform_id }}-monitoring"
+        interval: 30s
+    postgresql:
+      enabled: False
+    externalDatabase:
+      existingSecret: keycloak-postgres-secret
+      host: "postgresql.{{ platform_id }}-data"
+      port: 5432
+      user: keycloak
+      database: keycloak
+    ### set the variable to true to avoid recreatgin admin
+    ### user when redeploying Keycloak with existing DB
+    extraEnvVars:
+    - name: "KEYCLOAK_CREATE_ADMIN_USER"
+      value: "false"
+    logging:
+      level: INFO
+    httpRelativePath: "{{ keycloak_base_url }}/"
+    proxy: passthrough
+  statefulsets:
+  - keycloak
+
+
+- name: airflow
+  source: bitnami/airflow
+  chart_version: 16.0.5
+  namespace: "{{ platform_id }}-compute"
+  postconfig: True
+  config:
+    global:
+      storageClass: "longhorn"
+    extraVolumeMounts:
+    - name: python-package-configmap
+      mountPath: /bitnami/python
+    - name: scripts-volume
+      mountPath: /opt/bitnami/airflow/dags/persistent
+    extraVolumes:
+    - name: python-package-configmap
+      configMap:
+        name:  airflow-extra-python-configmap
+        items:
+        - key: "requirements.txt"
+          path: "requirements.txt"
+    - name: scripts-volume
+      persistentVolumeClaim:
+        claimName: scripts-pvc
+    web:
+      image:
+        tag: 2.5.3-debian-11-r0
+      replicaCount: 1
+      baseUrl: "127.0.0.1{{ airflow_base_url }}"
+    service:
+      ports:
+        http: 80
+    worker:
+      image:
+        tag: 2.5.3-debian-11-r0
+      replicaCount: 1
+    scheduler:
+      image:
+        tag: 2.5.3-debian-11-r0
+      replicaCount: 1
+    postgresql:
+      enabled: False
+    externalDatabase:
+      host: "postgresql.{{ platform_id }}-data"
+      port: 5432
+      user: airflow
+      existingSecret: airflow-postgres-secret
+      database: airflow
+    auth:
+      username: admin
+      existingSecret: airflow-admin
+    executor: "LocalExecutor"
+    metrics:
+      enabled: True
+      image:
+        tag: "0.20220314.0-debian-11-r116"
+      containerPorts:
+        http: 9112
+      containerPorts:
+        http: 9112
+      service:
+        ports: 
+          http: 9112
+      serviceMonitor:
+        enabled: True
+        namespace: "{{ platform_id }}-monitoring"
+        interval: 30s
+  deployments:
+  - airflow-exporter
+  - airflow-scheduler 
+  - airflow-web 
+
+- name: grafana
+  source: bitnami/grafana
+  chart_version: 9.3.2
+  namespace: "{{ platform_id }}-monitoring"
+  config:
+    global:
+      storageClass: "longhorn"
+    image:
+      tag: 9.4.7-debian-11-r2
+    replicaCount: 1
+    persistence:
+      size: 1Gi
+    admin:
+      user: admin
+      existingSecret: grafana-admin
+    datasources:
+      secretDefinition:
+        apiVersion: 1
+        datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-operated.{{ platform_id }}-monitoring:9090
+          access: proxy
+          isDefault: true
+    grafana:
+      nodeSelector:
+        type: master
+      extraEnvVars:
+      - name: GF_SERVER_ROOT_URL
+        value: "http://127.0.0.1/mon/"
+  deployments:
+  - grafana
+
+- name: appsmith
+  source: stable-appsmith/appsmith
+  chart_version: 2.0.6
+  namespace: "{{ platform_id }}-monitoring"
+  postconfig: True
+  config:
+    global:
+      storageClass: "longhorn"
+    image:
+      tag: v1.9.31
+    persistence:
+      enabled: True
+      size: "1Gi"
+    service:
+      port: 80
+      portname: appsmith
+      nodePort: 8000
+    mongodb:
+      enabled: False
+    externalDatabase:
+      existingSecret: appsmith-mongodb-secret
+      existingSecretPasswordKey: password
+      host: "mongodb.{{ platform_id }}-data"
+      port: 27017
+      username: appsmith
+      database: appsmith
+    redis:
+      enabled: False
+    externalRedis:
+      existingSecret: redis-admin-monitoring
+      existingSecretPasswordKey: redis-password
+      host: "redis-master.{{ platform_id }}-data"
+      port: 6379
+    nodeSelector:
+      type: master
+  statefulsets:
+  - appsmith
+
+
+
+
+### Ingress configuration for TCP services
+default_tcp_ingress:
+  postgres:
+    internal_port: 5432
+    external_port: 5432
+    namespace: "{{ platform_id }}-data"
+    service: postgresql
+  mongo:
+    internal_port: 27017
+    external_port: 27017
+    namespace: "{{ platform_id }}-data"
+    service: mongodb
+  elastic:
+    internal_port: 9200
+    external_port: 9200
+    namespace: "{{ platform_id }}-data"
+    service: elasticsearch
+
+### Ingress configurations for HTTP services
+default_http_ingress:
+- name: longhorn
+  namespace: "longhorn-system"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ longhorn_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service:
+            name: longhorn-frontend
+            port:
+              number: 80
+- name: dashboard
+  namespace: "kubernetes-dashboard"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ k8s_dashboard_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service: 
+            name: kubernetes-dashboard
+            port:
+              number: 443
+- name: keycloak
+  namespace: "{{ platform_id }}-data"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ keycloak_base_url }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak
+            port:
+              number: 80
+  - host: "{{ proxy_address }}"
+    http:
+      paths:
+      - path: "{{ keycloak_base_url }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak
+            port:
+              number: 80
+- name: kibana
+  namespace: "{{ platform_id }}-data"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ kibana_base_url }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: kibana
+            port:
+              number: 5601
+- name: grafana
+  namespace: "{{ platform_id }}-monitoring"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ grafana_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
+### WARNING : Prometheus is not robust to edition of the base URL
+### needs special hack to allow a custom base URL
+- name: prometheus
+  namespace: "{{ platform_id }}-monitoring"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ prometheus_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /static/css/main.c7e0c1b2.css
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /static/js/main.de8f4ec3.js
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /graph(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /api/v1/query(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /api/v1/label/__name__/values(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /-/ready(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /favicon.ico(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: kube-prometheus-prometheus
+            port:
+              number: 9090
+### WARNING : Appsmith is not robust to edition of the base URL
+### needs special hack to allow a custom base URL
+- name: appsmith
+  namespace: "{{ platform_id }}-monitoring"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ appsmith_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service:
+            name: appsmith
+            port:
+              number: 80
+      - path: /api(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: appsmith
+            port:
+              number: 80
+      - path: /static(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: appsmith
+            port:
+              number: 80
+      - path: /rts(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: appsmith
+            port:
+              number: 80
+      - path: /applications(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: appsmith
+            port:
+              number: 80
+      - path: /setup(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: appsmith
+            port:
+              number: 80
+- name: argocd
+  namespace: "{{ platform_id }}-monitoring"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ argocd_base_url }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server 
+            # name: argocd-argo-cd-server 
+            port:
+              number: 80
+- name: spark
+  namespace: "{{ platform_id }}-compute"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ spark_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service:
+            name: spark-master-svc
+            port:
+              number: 80
+### WARNING : Jupyterhub base URL MUST BE /hub
+- name: jupyterhub
+  namespace: "{{ platform_id }}-compute"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "/hub"
+        pathType: Prefix
+        backend:
+          service:
+            name: jupyterhub-proxy-public 
+            port:
+              number: 80
+      - path: "/user"
+        pathType: Prefix
+        backend:
+          service:
+            name: jupyterhub-proxy-public 
+            port:
+              number: 80
+- name: airflow
+  namespace: "{{ platform_id }}-compute"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ airflow_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service:
+            name: airflow
+            port:
+              number: 80
+- name: kubeapps
+  namespace: kubeapps
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ kubeapps_base_url }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: kubeapps
+            port:
+              number: 80
+      - path: /apis
+        pathType: Prefix
+        backend:
+          service:
+            name: kubeapps
+            port:
+              number: 80
+      - path: /apple-touch-icon.png
+        pathType: Exact
+        backend:
+          service:
+            name: kubeapps
+            port:
+              number: 80
+      - path: /favicon-16x16.png
+        pathType: Exact
+        backend:
+          service:
+            name: kubeapps
+            port:
+              number: 80
+- name: minio
+  namespace: "{{ platform_id }}-data"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: "{{ minio_base_url }}(/|$)(.*)"
+        pathType: Prefix
+        backend:
+          service:
+            name: minio
+            port:
+              number: 9001
+- name: oathkeeper
+  namespace: "ingress-nginx"
+  rules:
+  - host: "{{ external_proxy_address }}"
+    http:
+      paths:
+      - path: /oathkeeper
+        pathType: Prefix
+        backend:
+          service:
+            name: oathkeeper
+            port:
+              number: 80

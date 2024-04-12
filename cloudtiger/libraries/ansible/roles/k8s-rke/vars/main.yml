@@ -1,0 +1,10 @@
+---
+# vars file for k8s-rke
+workdir: "."
+ssh_key_path: ~/.ssh/id_rsa
+cluster_name: k8s-cluster
+run_rke: False
+install_rke: False
+configure_cluster: True
+label_nodes: False
+user: "{{ lookup('env', 'USER') }}"

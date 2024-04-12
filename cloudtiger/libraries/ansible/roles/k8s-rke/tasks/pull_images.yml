@@ -1,0 +1,10 @@
+- name: Pull required Docker images - logs
+  debug:
+    var: item
+  loop: "{{ hostvars[jumpbox].system_images.stdout.splitlines()[1:] }}"
+
+- name: Pull required Docker images
+  shell: docker pull {{ item }}
+  loop: "{{ hostvars[jumpbox].system_images.stdout.splitlines()[1:] }}"
+  ignore_errors: true
+  become: true

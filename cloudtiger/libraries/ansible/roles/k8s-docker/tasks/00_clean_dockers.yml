@@ -1,0 +1,32 @@
+---
+
+# Task to install kuberenetes packages
+
+- name: Clean up stopped containers
+  command: docker container prune -f
+  become: yes
+  become_method: sudo
+
+- name: Clean up unused images
+  command: docker image prune -af
+  become: yes
+  become_method: sudo
+
+- name: Clean up unused volumes
+  command: docker volume prune -f
+  become: yes
+  become_method: sudo
+
+- name: Clean up Longhorn data volumes - default
+  file:
+    path: /var/lib/longhorn
+    state: absent
+  become: yes
+  become_method: sudo
+
+- name: Clean up Longhorn data volumes - custom path
+  file:
+    path: "{{ longhorn_directory }}"
+    state: absent
+  become: yes
+  become_method: sudo

@@ -1,0 +1,84 @@
+- name: Install prerequisites for partition formatting (ubuntu)
+  apt:
+    update_cache: yes
+    pkg:
+    - lvm2
+  become: yes
+  become_method: sudo
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Install prerequisites for partition formatting (debian)
+  apt: 
+    pkg:
+    - lvm2
+  become: yes
+  become_method: sudo
+  when: ansible_distribution == 'Debian'
+
+### single disk to add, autodetect name
+- block:
+      - name: Get disk name
+        shell: |
+          lsblk | grep -v $(lsblk -no PKNAME /dev/root) | grep disk | cut -d ' ' -f1
+        register: disk_name_output
+
+      - name: Create Partition for single extra disk file system
+        become: yes
+        become_method: sudo
+        shell:
+          /bin/echo -e "n\np\n1\n\n\nt\n8e\nw" | sudo fdisk "/dev/{{ disk_name_output.stdout }}" ## Create the partition on a disk.
+
+      - name: Create VG for vg_u01
+        become: yes
+        become_method: sudo
+        lvg:
+          vg: "{{ partitions[0].vg_name }}" ## Name of Volume group.
+          pvs: "/dev/{{ disk_name_output.stdout }}{{ partitions[0].pvs_suffix }}" ## Physical Volume created using partition eg (/dev/sdb1 or /dev/sdc1)
+  when: autodetect_single_data_disk is true
+
+### multiple disks, known physical disks' names
+- block:
+      - name: Create Partition for "{{ item.mount_point }}" file system
+        become: yes
+        become_method: sudo
+        shell:
+          /bin/echo -e "n\np\n1\n\n\nt\n8e\nw" | sudo fdisk "{{ item.disk_name }}" ## Create the partition on a disk.
+        with_items: "{{ partitions }}"
+          
+      - name: Create VG for vg_u01
+        become: yes
+        become_method: sudo
+        lvg:
+          vg: "{{ item.vg_name }}" ## Name of Volume group.
+          pvs: "{{ item.pvs_name }}" ## Physical Volume created using partition eg (/dev/sdb1 or /dev/sdc1)
+        with_items: "{{ partitions }}"
+  when: autodetect_single_data_disk is false
+
+- name: Create LVM lv_u01 for "{{ item.mount_point }}" file system.
+  become: yes
+  become_method: sudo
+  lvol:
+    vg: "{{ item.vg_name }}"
+    lv: "{{ item.lv_name }}" ## Name of Logical volume need to be created
+    size: 100%FREE ## All the PE's in Volume group will be used for creating the logical volume.
+  with_items: "{{ partitions }}"
+  ignore_errors: true
+
+- name: Create the file system on newly created Logical volume for "{{ item.mount_point }}".
+  become: yes
+  become_method: sudo
+  filesystem:
+    fstype: "{{ item.file_system }}" ## What type of filesystem required eg:(ext3, ext4, xfs etc.)
+    dev: "/dev/mapper/{{ item.vg_name | replace('-', '--') }}-{{ item.lv_name | replace('-', '--') }}" ## Full related path of device mapper to be created with creating FS.
+  with_items: "{{ partitions }}"
+
+- name: Mount the created filesystem ## This is to create the FSTAB entry and mount the Filesystem.
+  become: yes
+  become_method: sudo
+  mount:
+    path: "{{ item.mount_point }}" ## Mount point where to mount the FS.
+    src: "/dev/mapper/{{ item.vg_name | replace('-', '--') }}-{{ item.lv_name | replace('-', '--') }}" ## Full related path of device mapper to be mounted under mount point.
+    fstype: "{{ item.file_system }}" ## Filesystem type
+    opts: defaults ## Mount options
+    state: mounted
+  with_items: "{{ partitions }}"

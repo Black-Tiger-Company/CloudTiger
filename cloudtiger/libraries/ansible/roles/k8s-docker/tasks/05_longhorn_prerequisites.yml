@@ -1,0 +1,29 @@
+---
+
+# Task to install kuberenetes packages
+
+- name: "Install required packages"
+  apt:
+    pkg:
+    - nfs-common
+    - bash
+    - curl
+    - grep
+    - open-iscsi
+    state: present
+    update_cache: yes
+  become: yes
+  become_method: sudo
+
+- name: Create Longhorn directory
+  file:
+    path: "{{ longhorn_directory }}"
+    state: directory
+
+- name: "Start and enable iscsid"
+  systemd:
+    name: iscsid
+    state: started
+    enabled: yes
+  become: yes
+  become_method: sudo

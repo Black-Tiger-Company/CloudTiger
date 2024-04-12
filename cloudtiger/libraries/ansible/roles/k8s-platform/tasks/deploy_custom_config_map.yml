@@ -1,0 +1,22 @@
+# tasks to create custom ConfigMaps
+
+- name: get custom ConfigMap file
+  template:
+    src: custom_configmap.yml.j2
+    dest: "{{ workdir }}/{{ item.name }}_configmap.yml"
+
+- name: delete custom ConfigMap
+  shell:
+    cmd: kubectl delete configmap {{ item.name }}-configmap -n {{ item.namespace }} --ignore-not-found
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: create custom ConfigMap
+  shell:
+    cmd: kubectl apply -f {{ item.name }}_configmap.yml
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"

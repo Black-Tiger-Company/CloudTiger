@@ -1,0 +1,32 @@
+---
+
+# Task to install kuberenetes packages
+
+- name: "Add Kubernetes repository"
+  apt_repository:
+    repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+    filename: kubernetes.list
+    update_cache: yes
+  become: yes
+  become_method: sudo
+
+- name: "Install Kubernetes packages"
+  apt:
+    pkg:
+    - kubectl
+    - kubeadm
+    - kubelet
+    - kubernetes-cni
+    state: latest
+    update_cache: yes
+  become: yes
+  become_method: sudo
+
+- name: "Start and enable Kubernetes"
+  systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+  become: yes
+  become_method: sudo

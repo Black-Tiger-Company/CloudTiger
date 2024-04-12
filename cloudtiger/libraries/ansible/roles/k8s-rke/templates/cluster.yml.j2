@@ -1,0 +1,181 @@
+# If you intended to deploy Kubernetes in an air-gapped environment,
+# please consult the documentation on how to configure custom RKE images.
+nodes:
+{% for vm_name, vm in vms.items() if vm.group in ["master", "nodes"] %}- address: {{ hostvars[vm_name].private_ip }}
+  port: "22"
+  internal_address: ""
+  role:
+{% if vm.group == "master" %}
+  - controlplane
+{% endif %}
+  - etcd
+  - worker
+  hostname_override: "{{ vm_name }}{{ vm.suffix }}"
+  user: {{ user }}
+  docker_socket: /var/run/docker.sock
+  ssh_key: ""
+  ssh_key_path: "{{ ssh_key_path }}"
+  ssh_cert: ""
+  ssh_cert_path: ""
+  labels: {}
+  taints: []
+{% endfor %}
+services:
+  etcd:
+    image: ""
+    extra_args: {}
+    extra_args_array: {}
+    extra_binds: []
+    extra_env: []
+    win_extra_args: {}
+    win_extra_args_array: {}
+    win_extra_binds: []
+    win_extra_env: []
+    external_urls: []
+    ca_cert: ""
+    cert: ""
+    key: ""
+    path: ""
+    uid: 0
+    gid: 0
+    snapshot: null
+    retention: ""
+    creation: ""
+    backup_config: null
+  kube-api:
+    ignore-docker-network-rules: true
+    image: ""
+    extra_args: {}
+    extra_args_array: {}
+    extra_binds: []
+    extra_env: []
+    win_extra_args: {}
+    win_extra_args_array: {}
+    win_extra_binds: []
+    win_extra_env: []
+    service_cluster_ip_range: {{ service_cluster_ip_range }}
+    service_node_port_range: {{ service_node_port_range }}
+    pod_security_policy: false
+    always_pull_images: false
+    secrets_encryption_config: null
+    audit_log: null
+    admission_configuration: null
+    event_rate_limit: null
+  kube-controller:
+    image: ""
+    extra_args: {}
+    extra_args_array: {}
+    extra_binds: []
+    extra_env: []
+    win_extra_args: {}
+    win_extra_args_array: {}
+    win_extra_binds: []
+    win_extra_env: []
+    cluster_cidr: {{ cluster_cidr }}
+    service_cluster_ip_range: {{ service_cluster_ip_range }}
+  scheduler:
+    image: ""
+    extra_args: {}
+    extra_args_array: {}
+    extra_binds: []
+    extra_env: []
+    win_extra_args: {}
+    win_extra_args_array: {}
+    win_extra_binds: []
+    win_extra_env: []
+  kubelet:
+    image: ""
+    extra_args: {}
+    extra_args_array: {}
+    extra_binds: []
+    extra_env: []
+    win_extra_args: {}
+    win_extra_args_array: {}
+    win_extra_binds: []
+    win_extra_env: []
+    cluster_domain: cluster.local
+    infra_container_image: ""
+    cluster_dns_server: {{ cluster_dns_server }}
+    fail_swap_on: false
+    generate_serving_certificate: false
+  kubeproxy:
+    image: ""
+    extra_args: {}
+    extra_args_array: {}
+    extra_binds: []
+    extra_env: []
+    win_extra_args: {}
+    win_extra_args_array: {}
+    win_extra_binds: []
+    win_extra_env: []
+network:
+  plugin: canal
+  options: {}
+  mtu: 0
+  node_selector: {}
+  update_strategy: null
+  tolerations: []
+authentication:
+  strategy: x509
+  sans: []
+  webhook: null
+addons: ""
+addons_include: []
+kubernetes_version: {{ kubernetes_version }}
+ssh_key_path: ~/.ssh/id_rsa
+ssh_cert_path: ""
+ssh_agent_auth: false
+authorization:
+  mode: rbac
+  options: {}
+ignore_docker_version: null
+enable_cri_dockerd: null
+private_registries: []
+ingress:
+  provider: "{{ ingress_provider }}"
+  options:
+    use-forwarded-headers: "true"
+    http-port: {{ ingress_http_port }}
+    https-port: {{ ingress_https_port }}
+  extra_args: {}
+  dns_policy: ""
+  extra_envs: []
+  extra_volumes: []
+  extra_volume_mounts: []
+  update_strategy: null
+  http_port: 0
+  https_port: 0
+  network_mode: ""
+  tolerations: []
+  default_backend: null
+  default_http_backend_priority_class_name: ""
+  nginx_ingress_controller_priority_class_name: ""
+  default_ingress_class: null
+cluster_name: ""
+cloud_provider:
+  name: ""
+prefix_path: ""
+win_prefix_path: ""
+addon_job_timeout: 60
+bastion_host:
+  address: ""
+  port: ""
+  user: ""
+  ssh_key: ""
+  ssh_key_path: ""
+  ssh_cert: ""
+  ssh_cert_path: ""
+  ignore_proxy_env_vars: false
+monitoring:
+  provider: ""
+  options: {}
+  node_selector: {}
+  update_strategy: null
+  replicas: null
+  tolerations: []
+  metrics_server_priority_class_name: ""
+restore:
+  restore: false
+  snapshot_name: ""
+rotate_encryption_key: false
+dns: null

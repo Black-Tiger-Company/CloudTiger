@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ item.name }}-configmap
+  namespace: {{ item.namespace }}
+data:
+  {{ item.filename }}: |
+    {{ item.filecontent | indent(4) }}

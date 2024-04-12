@@ -1,0 +1,50 @@
+---
+# Subtask for multiple retries of apt install
+
+- block:
+
+    - name: "get 'full' docker-ce version from available versions"
+      shell: "apt-cache policy docker-ce | grep -v Install | grep -F '{{ docker_version }}'"
+      register: command_output
+      become: yes
+      become_method: sudo
+      ignore_errors: true
+
+    - set_fact:
+        docker_version_f: ""
+    - set_fact:
+        docker_version_f: "{{ command_output.stdout_lines[0] | split('500') | first | trim | split('*** ') | last }}"
+      when: command_output.rc == 0
+
+    - debug:
+        msg: "docker version to install: {{ docker_version_f | default('latest') }}"
+
+    - name: "Install required packages"
+      apt:
+        pkg:
+        - "docker-ce={{ docker_version_f }}"
+        - "docker-ce-cli"
+        - "containerd.io"
+        state: present
+        update_cache: yes
+        force: True
+        allow_downgrade: true
+      become: yes
+      become_method: sudo
+
+  rescue:
+    - name: Set fact for retries
+      set_fact:
+        retry_count: "{{ retry_count | default(0) | int + 1 }}"
+
+    - name: Fail after 2 retries
+      fail:
+        msg: "Reached maximum retries"
+      when: retry_count|int >= 2
+
+    - name: Wait for a moment before retrying
+      command: sleep 10  # Wait for 10 seconds (optional but can be useful)
+
+    - name: Retry the block
+      include_tasks: 02.5_apt.yml  # Retry the same playbook
+      when: retry_count|int < 2

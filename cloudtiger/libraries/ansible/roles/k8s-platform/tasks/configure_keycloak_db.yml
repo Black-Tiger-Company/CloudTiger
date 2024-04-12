@@ -1,0 +1,69 @@
+# tasks for configuring the backend DB for Keycloak
+
+- name: get keycloak info
+  set_fact:
+    keycloak_chart: "{{ charts|selectattr('name', '==', 'keycloak')| first }}"
+
+### we collect the admin password of Postgres
+- name: get postgres admin password
+  shell: 
+    cmd: echo $(kubectl get secret postgres-admin -n {{ platform_id }}-data -o json | jq -r .data)
+  register: postgres_admin_password
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: extract password - 1
+  set_fact:
+    postgres_admin_password: "{{ postgres_admin_password.stdout| from_json }}"
+
+- name: extract password - 2
+  set_fact:
+    postgres_admin_password: "{{ postgres_admin_password['postgres-password'] | b64decode }}"
+
+### we collect the password of the Keycloak DB of Postgres
+- name: get postgres keycloak DB admin password
+  shell: 
+    cmd: echo $(kubectl get secret {{ keycloak_chart.config.externalDatabase.existingSecret }} -n {{ platform_id }}-data -o json | jq -r .data)
+  register: keycloak_db_admin_password
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: extract password - 1
+  set_fact:
+    keycloak_db_admin_password: "{{ keycloak_db_admin_password.stdout| from_json }}"
+
+- name: extract password - 2
+  set_fact:
+    keycloak_db_admin_password: "{{ keycloak_db_admin_password['db-password'] | b64decode }}"
+
+### configuration of the Keycloak DB
+- name: Connect to postgres DB, create keycloak user, and grant access to database and products table
+  community.postgresql.postgresql_user:
+    login_host: "{{ proxy_address }}"
+    login_user: postgres
+    # login_user: admin
+    login_password: "{{ postgres_admin_password }}"
+    port: "{{ external_postgres_port }}"
+    name: "{{ keycloak_chart.config.externalDatabase.user }}"
+    password: "{{ keycloak_db_admin_password }}"
+
+- name: Purge keycloak database if exists
+  community.postgresql.postgresql_db:
+    login_host: "{{ proxy_address }}"
+    login_user: postgres
+    # login_user: admin
+    login_password: "{{ postgres_admin_password }}"
+    port: "{{ external_postgres_port }}"
+    name: "{{ keycloak_chart.config.externalDatabase.database }}"
+    state: absent
+  when: purge_keycloak_data
+
+- name: Create a new database with name keycloak
+  community.postgresql.postgresql_db:
+    login_host: "{{ proxy_address }}"
+    login_user: postgres
+    # login_user: admin
+    login_password: "{{ postgres_admin_password }}"
+    port: "{{ external_postgres_port }}"
+    name: "{{ keycloak_chart.config.externalDatabase.database }}"
+    owner: "{{ keycloak_chart.config.externalDatabase.user }}"

@@ -1,0 +1,29 @@
+---
+# tasks file for k8s_cluster_creation
+
+### We separate tasks in the role to enable specific execution of each task
+
+### This task will clear all Docker containers, images, and volumes, including
+### Longhorn volumes
+- include_tasks: 00_clean_dockers.yml
+  when: initial_cleaning or cleaning_only
+
+### This task will disable swap on future K8s nodes (necessary)
+- include_tasks: 01_disable_swap.yml
+  when: cleaning_only is false
+
+### This task will install/reinstall Docker itself
+- include_tasks: 02_install_docker.yml
+  when: cleaning_only is false
+
+### You can add insecure Docker registries
+- include_tasks: 03_set_daemon_file.yml
+  when: set_daemon_file and (cleaning_only is false)
+
+### Install Kubernetes prerequisites, outside Docker
+- include_tasks: 04_install_packages.yml
+  when: standard_install and (cleaning_only is false)
+
+### Install Longhorn prerequisites (optional)
+- include_tasks: 05_longhorn_prerequisites.yml
+  when: longhorn and (cleaning_only is false)

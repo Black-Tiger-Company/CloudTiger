@@ -1,0 +1,20 @@
+---
+# vars file for dataplatform-helm
+
+k8s_secret_creation_command: ""
+
+custom_helm_repos: []
+custom_k8s_secrets: []
+custom_k8s_secrets_certificates: []
+custom_charts: []
+custom_http_ingress: []
+custom_tcp_ingress: []
+
+helm_repos: "{{ default_helm_repos | community.general.lists_mergeby(custom_helm_repos, 'name') }}"
+k8s_secrets: "{{ default_k8s_secrets | community.general.lists_mergeby(custom_k8s_secrets, 'name') }}"
+k8s_secrets_certificates: "{{ default_k8s_secrets_certificates | community.general.lists_mergeby(custom_k8s_secrets_certificates, 'name') }}"
+charts: "{{ default_charts | community.general.lists_mergeby(custom_charts, 'name') }}"
+http_ingress: "{{ default_http_ingress | community.general.lists_mergeby(custom_http_ingress, 'name') }}"
+tcp_ingress: "{{ default_tcp_ingress | combine(custom_tcp_ingress, recursive=True) }}"
+
+all_activated_services: "{{ base_services + activated_services }}"

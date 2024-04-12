@@ -1,0 +1,46 @@
+# tasks fir creating the Airflow admin user
+
+- name: airflow has a complex secret
+  shell: 
+    cmd: echo $(kubectl get secret airflow-admin -n {{ platform_id }}-compute -o json | jq .data)
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+  register: airflow_secret
+
+- name: extract password - 1
+  set_fact:
+    airflow_secret: "{{ airflow_secret.stdout| from_json }}"
+
+- name: extract password - 2
+  set_fact:
+    airflow_secret: "{{ airflow_secret['airflow-password'] | b64decode }}"
+
+- name: Wait for the Airflow deployment to be ready
+  shell:
+    cmd: kubectl rollout status deployment/airflow-web -n {{ platform_id }}-compute
+  retries: 60
+  delay: 10
+  register: deployment_status
+  until: deployment_status.stdout.find("successfully rolled out") != -1
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Get Airflow Web pod name
+  shell: 
+    cmd: kubectl get pods -n {{ platform_id }}-compute | grep -E "airflow-web" | cut -d" " -f1
+  register: pod_name
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Delete airflow admin if it exists
+  shell: 
+    cmd: kubectl exec -it {{ pod_name.stdout }} -n {{ platform_id }}-compute -c airflow-web -- airflow users delete -u admin
+  ignore_errors: yes  # Ignore errors in case the user doesn't exist yet or other issues
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Reset airflow admin password
+  shell: 
+    cmd: kubectl exec -it {{ pod_name.stdout }} -n {{ platform_id }}-compute -c airflow-web -- airflow users  create --role Admin --username admin --email admin --firstname admin --lastname admin --password {{ airflow_secret }}
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"

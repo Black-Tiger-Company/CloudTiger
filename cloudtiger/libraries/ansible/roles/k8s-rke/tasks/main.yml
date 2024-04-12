@@ -1,0 +1,32 @@
+# tasks file for k8s-rke
+
+- name: install RKE exec
+  include_tasks: install_rke.yml
+  when: 
+  - install_rke
+  - inventory_hostname in jumpbox
+
+- name: configure cluster for RKE
+  include_tasks: configure_cluster.yml
+  when:
+  - configure_cluster
+  - inventory_hostname in jumpbox
+
+- name: pull docker images
+  include_tasks: pull_images.yml
+  when:
+  - configure_cluster
+  - pre_pull
+  - inventory_hostname in nodes
+
+- name: execute RKE
+  include_tasks: execute_rke.yml
+  when:
+  - run_rke
+  - inventory_hostname in jumpbox
+
+- name: label nodes
+  include_tasks: label_nodes.yml
+  when:
+  - label_nodes
+  - inventory_hostname in jumpbox

@@ -1,0 +1,63 @@
+# tasks for deploying a Helm chart
+
+- debug:
+    msg: "installing Chart {{ item.name }} from {{ item.source }} in namespace {{ item.namespace }}"
+
+- name: create temporary values.yml file
+  copy:
+    content: "{{ item.config | default({}) | to_nice_yaml(indent=2) }}"
+    dest: "{{ workdir }}/{{ item.name }}-values.yml"
+
+- debug: 
+    msg: "helm upgrade {{ item.name }} {{ item.source }} --install --namespace {{ item.namespace }} --create-namespace  -f {{ item.name }}-values.yml --version {{ item.chart_version }}"
+
+- name: deploy chart
+  shell:
+    cmd: helm upgrade {{ item.name }} {{ item.source }} --install --namespace {{ item.namespace }} --create-namespace  -f {{ item.name }}-values.yml --version {{ item.chart_version }}
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Wait for all Deployments to be ready
+  shell:
+    cmd: kubectl -n {{ item.namespace }} rollout status deployment/{{ deployment }}
+  loop: "{{ item.deployments }}"
+  loop_control:
+    loop_var: deployment
+  register: result
+  until: result is succeeded
+  retries: 50 # retry 50 times
+  delay: 30 # wait 30 seconds between retries
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+  when: item.deployments is defined
+
+- name: Wait for all DaemonSets to be ready
+  shell:
+    cmd: kubectl -n {{ item.namespace }} rollout status daemonset/{{ daemonset }}
+  loop: "{{ item.daemonsets }}"
+  loop_control:
+    loop_var: daemonset
+  register: result
+  until: result is succeeded
+  retries: 50 # retry 50 times
+  delay: 30 # wait 30 seconds between retries
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+  when: item.daemonsets is defined
+
+### Wait for all DaemonSets to be ready
+- name: Wait for all DaemonSets to be ready
+  include_tasks: check_daemonsets.yml
+  loop: "{{ item.statefulsets }}"
+  loop_control:
+    loop_var: statefulset
+  when: item.statefulsets is defined
+
+- name: wait a bit for pods deployment to avoid pod sandbox errors
+  ansible.builtin.pause:
+    seconds: 5
+  when: careful_deployment

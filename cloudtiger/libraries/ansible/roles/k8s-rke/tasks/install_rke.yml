@@ -1,0 +1,24 @@
+
+- name: download RKE binary
+  get_url:
+    url: https://github.com/rancher/rke/releases/download/v{{ version }}/rke_linux-amd64
+    dest: "{{ workdir }}/rke"
+    force: yes
+    timeout: 120
+  register: result
+  retries: 3
+  until: result is succeeded
+
+- name: move RKE binary to /usr/local/rke
+  shell: 
+    cmd: mv rke /usr/bin/rke
+  args:
+    chdir: "{{ workdir }}"
+  become: yes
+  become_method: sudo
+
+- name: make RKE executable
+  shell: 
+    cmd: chmod +x /usr/bin/rke
+  become: yes
+  become_method: sudo

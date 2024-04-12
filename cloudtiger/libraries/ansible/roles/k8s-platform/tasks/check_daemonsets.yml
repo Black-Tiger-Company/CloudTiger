@@ -1,0 +1,16 @@
+- name: get number of requested statefulsets
+  shell:
+    cmd: kubectl get statefulset {{ statefulset }} -n {{ item.namespace }} -o=jsonpath='{.status.replicas}'
+  register: requested_replicas
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Wait for all statefulsets to be ready
+  shell:
+    cmd: kubectl get statefulset {{ statefulset }} -n {{ item.namespace }} -o=jsonpath='{.status.readyReplicas}'
+  register: ready_replicas
+  until: ready_replicas.stdout == requested_replicas.stdout
+  retries: 50 # retry 50 times
+  delay: 30 # wait 30 seconds between retries
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"

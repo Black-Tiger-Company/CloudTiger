@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcpservices-configmap
+  namespace: haproxy-controller
+data:
+  haproxy.cfg: |
+    global
+      daemon
+      maxconn 256
+    defaults
+      mode tcp
+      timeout connect 5000ms
+      timeout client 50000ms
+      timeout server 50000ms
+{% for k, v in tcp_ingress.items() %}
+    frontend {{ k }}
+      bind *:{{ v.port }}
+      default_backend {{ k }}
+    backend {{ k }}
+      mode tcp
+      server {{ k }}1 {{ v.service }}.{{ v.namespace }}:{{ v.port }}
+      balance roundrobin
+{% endfor %}

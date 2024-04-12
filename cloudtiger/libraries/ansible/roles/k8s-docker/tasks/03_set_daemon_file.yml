@@ -1,0 +1,40 @@
+---
+# Task to add the insecure registry to pull images
+
+- name: Delete the Docker daemon.json file
+  file:
+    path: /etc/docker/daemon.json
+    state: absent
+    owner: root
+    group: root
+    mode: '0644'
+  # shell : rm /etc/docker/daemon.json
+  become: yes
+  become_method: sudo
+  # ignore_error: yes
+
+- name: Add the Docker daemon.json file
+  file:
+    path: /etc/docker/daemon.json
+    state: touch
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
+  become_method: sudo
+
+- name: Convert daemon variable to JSON
+  set_fact:
+    daemon_json: "{{ daemon_config | to_json }}"
+
+- name: Create daemon.json file
+  copy:
+    content: "{{ daemon_json }}"
+    dest: /etc/docker/daemon.json
+
+- name: "Restart Docker"
+  service:
+    name: docker
+    state: restarted
+  become: yes
+  become_method: sudo

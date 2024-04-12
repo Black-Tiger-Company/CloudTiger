@@ -1,0 +1,354 @@
+---
+# tasks file for dataplatform-helm
+
+### We install/upgrade the list of Helm repositories
+- block: ### add and refresh helm repos
+      - name: add helm repo
+        shell: 
+          cmd: helm repo add {{ item.name }} {{ item.address }}
+        loop: "{{ helm_repos }}"
+
+      - name: helm repo update
+        shell: 
+          cmd: helm repo update
+  when: upgrade_helm_repo is true
+
+### Creation of K8s secrets containing mostly software passwords
+- block: ### generate redis secretS if necessary
+      - name: generate redis passwords
+        set_fact:
+          redis_admin_password: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') }}"
+
+      - name: Create redis passwords - monitoring
+        set_fact:
+          redis_admin_monitoring:
+            name: "redis-admin-monitoring"
+            namespace: "{{ platform_id }}-monitoring"
+            type: generic
+            content:
+              - key: redis-password
+                value: "{{ redis_admin_password }}"
+
+      - name: Create redis passwords - data
+        set_fact:
+          redis_admin_data:
+            name: "redis-admin"
+            namespace: "{{ platform_id }}-data"
+            type: generic
+            content:
+              - key: redis-password
+                value: "{{ redis_admin_password }}"
+
+      - name: Add the new entry to the list
+        set_fact:
+          k8s_secrets: "{{ k8s_secrets + [redis_admin_monitoring] + [redis_admin_data]}}"
+
+      - name: Display the updated list
+        debug:
+          var: k8s_secrets
+  when:
+  - "'redis' in all_activated_services"
+
+- name: create kubernetes secrets
+  include_tasks: kubernetes_secret_literal.yml
+  loop: "{{ k8s_secrets }}"
+  when: refresh_secrets
+
+### Creation of K8s secrets containing SSL certificates
+- name: create kubernetes SSL secrets
+  include_tasks: kubernetes_secret_tls.yml
+  loop: "{{ k8s_secrets_certificates }}"
+  when: refresh_ssl_secrets
+
+### Longhorn installation
+
+### OBSOLETE
+# - name: install volume snapshot class
+#   shell:
+#     cmd: kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/master/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+#   args:
+#     chdir: "{{ workdir }}"
+#   environment:
+#     KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: get nodes' list
+  # shell: kubectl get nodes --output=jsonpath='{range .items[?(@.spec.taints[?(@.key=="only")])]}{.metadata.name}{"\n"}{end}'
+  shell: kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.taints[*].key}{"\n"}{end}' | grep only | cut -f1
+  register: taint_node_names_output
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Split node names into a list
+  set_fact:
+    taint_node_names: "{{ taint_node_names_output.stdout_lines  }}"
+
+- name: remove taint temporarily (for the installation of Longhorn on specific nodes)
+  shell: kubectl taint nodes "{{ item }}" only:NoSchedule-
+  loop: "{{ taint_node_names }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: get nodes' taints
+  # shell: kubectl get nodes --output=jsonpath='{range .items[?(@.spec.taints[?(@.key=="only")])]}{.metadata.name}{"\n"}{end}'
+  shell: kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.taints[*].key}{"\n"}{end}'
+  register: untainted
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: deploy helm charts - Longhorn
+  include_tasks: deploy_helm_chart.yml
+  loop: "{{ longhorn_chart }}"
+  when: deploy_longhorn
+
+- name: reset taint
+  shell: kubectl taint nodes "{{ item }}" only=reserved:NoSchedule
+  loop: "{{ taint_node_names }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+### OBSOLETE
+# - name: Wait for all Longhorn Deployments to be ready
+#   command: >
+#     kubectl -n longhorn-system rollout status deployment/{{ item }}
+#   loop:
+#     - csi-snapshotter
+#     - csi-attacher
+#     - csi-provisioner
+#     - csi-resizer
+#     - longhorn-driver-deployer
+#     - longhorn-ui
+#   register: result
+#   until: result is succeeded
+#   retries: 50 # retry 50 times
+#   delay: 30 # wait 30 seconds between retries
+#   environment:
+#     KUBECONFIG : "{{ kubeconfig_path }}"
+#   when: deploy_longhorn
+
+### OBSOLETE
+# - name: Wait for all Longhorn DaemonSets to be ready
+#   command: >
+#     kubectl -n longhorn-system rollout status daemonset/{{ item }}
+#   loop:
+#     - longhorn-csi-plugin
+#     - longhorn-manager
+#   register: result
+#   until: result is succeeded
+#   retries: 50 # retry 50 times
+#   delay: 30 # wait 30 seconds between retries
+#   environment:
+#     KUBECONFIG : "{{ kubeconfig_path }}"
+#   when: deploy_longhorn
+
+### OBSOLETE
+# - name: Wait for Longhorn pods to be ready
+#   shell: kubectl wait pod --all --for=condition=Ready -n longhorn-system --timeout=600s  >/dev/null 2>&1
+#   changed_when: false
+#   retries: 30
+#   delay: 10
+#   args:
+#     chdir: "{{ workdir }}"
+#   environment:
+#     KUBECONFIG : "{{ kubeconfig_path }}"
+#   when: deploy_longhorn
+
+### Prometheus installation
+- name: deploy helm charts - Prometheus
+  include_tasks: deploy_helm_chart.yml
+  loop: "{{ prometheus_chart }}"
+  when: deploy_prometheus
+
+- name: Wait for Prometheus pods to be ready
+  shell: kubectl wait pod --all --for=condition=Ready -n {{ platform_id }}-monitoring --timeout=600s  >/dev/null 2>&1
+  changed_when: false
+  retries: 50
+  delay: 10
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+  when: deploy_prometheus
+
+### Kubeapps installation
+- name: deploy Kubeapps
+  include_tasks: deploy_helm_chart.yml
+  loop: "{{ kubeapps_chart }}"
+  when: deploy_kubeapps
+
+### Installation of 1st layer of "service" charts
+### (those not needing a DB backend)
+- name: deploy helm charts - 1st layer
+  include_tasks: deploy_helm_chart.yml
+  loop: "{{ charts }}"
+  when:
+  - item.postconfig | default(false) is false
+  - item.name in all_activated_services
+  - deploy_first_layer
+
+### Installation of Nginx chart for TCP access
+- name: deploy helm charts - Nginx Ingress
+  include_tasks: deploy_helm_chart.yml
+  loop: "{{ ingress_chart }}"
+  when: deploy_proxy
+
+### Oathkeeper rules
+- name: create oahthkeeper rules files
+  include_tasks: configure_oathkeeper_rules.yml
+  when: 
+  - deploy_oathkeeper
+  - "'oathkeeper' in all_activated_services"
+
+### Installation of Oathkeeper
+- name: deploy helm charts - ORY Oathkeeper
+  include_tasks: deploy_helm_chart.yml
+  loop: "{{ oathkeeper_chart }}"
+  when: 
+  - deploy_oathkeeper
+  - "'oathkeeper' in all_activated_services"
+
+### Waiting for databases to be ready before installing 2nd layer
+### of services
+- name: Wait for MongoDB to be ready if mongo chart exists
+  wait_for:
+    host: "{{ proxy_address }}"
+    port: "{{ external_mongo_port }}"
+    state: started
+    delay: 5
+    timeout: 300
+  when: "'mongodb' in all_activated_services"
+
+- name: Wait for Postgres to be ready if postgres chart exists
+  wait_for:
+    host: "{{ proxy_address }}"
+    port: "{{ external_postgres_port }}"
+    state: started
+    delay: 5
+    timeout: 300
+  when: "'postgresql' in all_activated_services"
+
+- name: Wait for Elasticsearch to be ready if ES chart exists
+  wait_for:
+    host: "{{ proxy_address }}"
+    port: "{{ external_elastic_port }}"
+    state: started
+    delay: 5
+    timeout: 300
+  when: "'elasticsearch' in all_activated_services"
+
+- name: Wait for Redis to be ready if redis chart exists
+  wait_for:
+    host: "{{ proxy_address }}"
+    port: "{{ external_redis_port }}"
+    state: started
+    delay: 5
+    timeout: 300
+  when: "'redis' in all_activated_services"
+
+### Custom DB configuration as prerequisites for various softwares
+- name: Configure Keycloak DB in Postgres
+  include_tasks: configure_keycloak_db.yml
+  when: initialize_keycloak
+
+- name: Configure Airflow DB in Postgres
+  include_tasks: configure_airflow_db.yml
+  when: initialize_airflow
+
+- name: Configure Appsmith DB in Postgres
+  include_tasks: configure_appsmith_db.yml
+  when: initialize_appsmith
+
+- name: Configure Jupyterhub DB in Postgres
+  include_tasks: configure_jupyterhub_db.yml
+  when: initialize_jupyterhub
+
+### Creation of a persistent volume for Jupyter & Airflow data
+- name: configure persistent volume for storing Jupyter Notebooks & airflow DAGs
+  include_tasks: configure_pv_scripts.yml
+  when: use_pv_script
+
+### configure a custom config maps for Airflow extra python packages
+- name: deploy custom config maps for Airflow
+  include_tasks: deploy_custom_config_map.yml
+  loop: "{{ airflow_config_map }}"
+  when: "'airflow' in all_activated_services"
+
+### we collect the admin password of Jupyterhub and reinject it in its config - otherwise hard to set in a secret
+- block:
+      - name: get Jupyterhub admin password
+        shell: 
+          cmd: echo $(kubectl get secret jupyterhub-secret -n {{ platform_id }}-compute -o json | jq -r .data)
+        register: jupyterhub_admin_temp_password
+        environment:
+          KUBECONFIG : "{{ kubeconfig_path }}"
+
+      - name: extract password - 1
+        set_fact:
+          jupyterhub_admin_temp_password: "{{ jupyterhub_admin_temp_password.stdout| from_json }}"
+
+      - name: extract password - 2
+        set_fact:
+          jupyterhub_admin_temp_password: "{{ jupyterhub_admin_temp_password['admin-password'] | b64decode }}"
+
+      - name: Save the jupyterhub config
+        set_fact:
+          jupyterhub_config: "{{ item }}"
+        with_items: "{{ charts }}"
+        when: "item.name == 'jupyterhub'"
+
+      - name: update the jupyterhub config
+        set_fact:
+          jupyterhub_config: "{{ jupyterhub_config | combine({'config': {'hub': {'password': jupyterhub_admin_temp_password}}},recursive=True) }}"
+
+      - name: Pop the jupyterhub entry
+        set_fact:
+          charts_updated: "{{ charts_updated | default([]) + [item] }}"
+        with_items: "{{ charts }}"
+        when: "item.name != 'jupyterhub'"
+
+      - name: Update the original 'charts' variable
+        set_fact:
+          charts: "{{ charts_updated + [jupyterhub_config] }}"
+  when: "'jupyterhub' in all_activated_services"
+
+### Installation of 2nd layer of "service" charts
+### (those needing a DB backend)
+- name: deploy helm charts - 2nd layer
+  include_tasks: deploy_helm_chart.yml
+  loop: "{{ charts }}"
+  when:
+  - item.postconfig | default(false) is true
+  - item.name in all_activated_services
+  - deploy_second_layer
+
+### The creation of the Airflow admin user needs an extra step
+- name: set Airflow admin user
+  include_tasks: set_airflow_admin.yml
+  when: 
+  - initialize_airflow
+  - "'airflow' in all_activated_services"
+
+### Create Ingresses for HTTP access to all services
+- name: deploy HTTP ingress
+  include_tasks: deploy_http_ingress.yml
+  loop: "{{ http_ingress }}"
+  when:
+  - item.name in all_activated_services
+  - deploy_ingresses
+
+### Dump a markdown containing all connection info for all services
+### WARNING : will contain sensitive information
+- name: dump dataplatform info
+  include_tasks: dump_info.yml
+  when: dump_info is true
+
+- block: ## dump dataplatform info
+      - debug:
+          msg: export POSTGRES_PASSWORD=$(kubectl get secret -n {{ platform_id }}-data postgres-admin -o jsonpath="{.data.postgres-password}" | base64 -d)
+
+      - debug:
+          msg: kubectl run bitnami-postgresql-client --rm --tty -i --restart='Never' -n {{ platform_id }}-data --image docker.io/bitnami/postgresql:15.2.0-debian-11-r11 --env="PGPASSWORD=$POSTGRES_PASSWORD" --command -- psql --host postgresql -U admin -d admin -p 5432
+  when: debug_postgres is true

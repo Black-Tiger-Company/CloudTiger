@@ -1,0 +1,89 @@
+---
+# Task to install docker.
+
+- name: "Install required packages"
+  apt:
+    pkg:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg-agent
+    - software-properties-common
+    state: present
+    update_cache: yes
+  become: yes
+  become_method: sudo
+
+- name: "Uninstall old versions of Docker"
+  apt:
+    pkg:
+    - docker
+    - docker-engine
+    - docker.io
+    - containerd
+    - runc
+    state: absent
+    update_cache: yes
+  become: yes
+  become_method: sudo
+
+- name: "Add Docker GPG Key according to Linux distro"
+  apt_key:
+    url: https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg
+    state: present
+  become: yes
+  become_method: sudo
+
+- name: "Add Docker repository according to Linux distro"
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }} {{ ansible_facts['distribution_release'] }} stable
+    state: present
+  become: yes
+  become_method: sudo
+
+- name: install docker package
+  include_tasks: 02.5_apt.yml
+
+- name: "Start and enable Docker"
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+  become: yes
+  become_method: sudo
+
+- name: "Add user to Docker group"
+  user:
+    name: "{{ item }}"
+    groups: docker
+    append: yes
+  become: yes
+  become_method: sudo
+  with_items: "{{ docker_users }}"
+
+- block: ### add admin users to docker group
+      - name: Download YAML userlist
+        uri:
+          url: "{{ users_list_url }}"
+          return_content: yes
+        register: downloaded_yaml
+        delegate_to: localhost
+        retries: 10
+        delay: 10
+        become: no
+        until: downloaded_yaml.status == 200
+
+      - name: Decode YAML userlist
+        set_fact:
+          users: "{{ downloaded_yaml.content | from_yaml }}"
+
+      - name: Add admin users to group sudo
+        user:
+          name: "{{ item.name }}"
+          groups: docker
+          append: yes
+          shell: /bin/bash
+        loop: "{{ users }}"
+        become: yes
+        become_method: sudo
+  when: all_admin_in_docker_group is true

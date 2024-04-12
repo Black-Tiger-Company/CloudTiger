@@ -1,0 +1,28 @@
+- name: Create dedicated cluster folder
+  local_action: "shell mkdir -p {{ workdir }}/{{ cluster_name }}"
+
+- name: Create cluster directory
+  file:
+    path: "{{ workdir }}/{{ cluster_name }}"
+    state: directory
+
+- name: generate cluster.yml from template
+  template:
+    src: cluster.yml.j2
+    dest: "{{ workdir }}/{{ cluster_name }}/cluster.yml"
+
+- name: Get list of required images
+  command: rke config --system-images
+  register: system_images
+  changed_when: false
+
+- name: Save system images to buffer file
+  copy:
+    content: "{{ system_images.stdout }}"
+    dest: "{{ workdir }}/{{ cluster_name }}/images_list.txt"
+
+- debug:
+    msg: "Command to run to execute RKE : cd {{ workdir }}/{{ cluster_name }}; rke up"
+
+
+

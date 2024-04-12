@@ -1,0 +1,17 @@
+---
+# Task to disable swap.
+
+- name: "Disable Swap"
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+  become: yes
+  become_method: sudo
+
+- name: "Disable swap in fstab file"
+  lineinfile:
+    path: /etc/fstab
+    regexp: '(.*)swap(.*)'
+    line: '# \1swap\2'
+    backrefs: yes
+  become: yes
+  become_method: sudo

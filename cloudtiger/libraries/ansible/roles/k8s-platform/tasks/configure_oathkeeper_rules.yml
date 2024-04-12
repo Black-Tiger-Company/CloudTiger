@@ -1,0 +1,6 @@
+# configure oathkeeper rules
+- name: dump file with oathkeeper rules
+  copy:
+    content: |
+      {{ oathkeeper_rules | to_nice_json }}
+    dest: "{{ workdir }}/oathkeeper_rules.json"

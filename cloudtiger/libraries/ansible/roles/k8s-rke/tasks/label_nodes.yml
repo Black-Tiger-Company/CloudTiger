@@ -1,0 +1,19 @@
+- name: label nodes
+  shell: 
+    cmd: kubectl label nodes {{ item.key }}{{ item.value.suffix }} {{ item.value.labels }} --overwrite
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ workdir }}/{{ cluster_name }}/kube_config_cluster.yml"
+  loop: "{{ vms | dict2items }}"
+  when: '"labels" in item["value"].keys()'
+
+- name: taint nodes
+  shell: 
+    cmd: kubectl taint nodes {{ item.key }}{{ item.value.suffix }} {{ item.value.taints }} --overwrite
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ workdir }}/{{ cluster_name }}/kube_config_cluster.yml"
+  loop: "{{ vms | dict2items }}"
+  when: '"taints" in item["value"].keys()'

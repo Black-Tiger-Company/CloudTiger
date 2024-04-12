@@ -1,0 +1,75 @@
+# tasks for dumping all connection information for the services of the platform
+- block: ### generate redis secretS if necessary
+      - name: Create redis passwords - monitoring
+        set_fact:
+          redis_admin_monitoring:
+            name: "redis-admin-monitoring"
+            namespace: "{{ platform_id }}-monitoring"
+
+      - name: Create redis passwords - data
+        set_fact:
+          redis_admin_data:
+            name: "redis-admin"
+            namespace: "{{ platform_id }}-data"
+
+      - name: Add the new entry to the list
+        set_fact:
+          k8s_secrets: "{{ k8s_secrets + [redis_admin_monitoring] + [redis_admin_data]}}"
+  when:
+  - "'redis' in all_activated_services"
+
+- name: collect passwords from secrets
+  shell: 
+    cmd: echo $(kubectl get secret {{ item.name }} -n {{ item.namespace }} -o json | jq .data)
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+  register: secret_data
+  loop: "{{ k8s_secrets }}"
+
+- name: register secrets to dictionary
+  set_fact:
+    secret_data_dict: "{{ secret_data_dict | default({}) | combine({ item.item.name: {item.stdout | from_json | list | first : item.stdout | from_json | dict2items | map(attribute='value') | list | first | b64decode }}) }}"
+  loop: "{{ secret_data.results }}"
+
+- block:
+      - name: airflow has a complex secret
+        shell: 
+          cmd: echo $(kubectl get secret airflow-admin -n {{ platform_id }}-compute -o json | jq .data)
+        environment:
+          KUBECONFIG : "{{ kubeconfig_path }}"
+        register: airflow_secret
+
+      - name: extract password - 1
+        set_fact:
+          airflow_secret: "{{ airflow_secret.stdout| from_json }}"
+
+      - name: extract password - 2
+        set_fact:
+          airflow_secret: "{{ airflow_secret['airflow-password'] | b64decode }}"
+  when:
+  - "'airflow' in all_activated_services"
+
+- block:
+      - name: argocd has a complex secret too
+        shell: 
+          cmd: echo $(kubectl get secret argocd-initial-admin-secret -n {{ platform_id }}-monitoring -o json | jq .data.password)
+          # cmd: echo $(kubectl get secret argocd-secret -n {{ platform_id }}-monitoring -o json | jq .data)
+        environment:
+          KUBECONFIG : "{{ kubeconfig_path }}"
+        register: argocd_secret
+
+      - name: extract password - 1
+        set_fact:
+          argocd_secret: "{{ argocd_secret.stdout| from_json }}"
+
+      - name: extract password - 2
+        set_fact:
+          argocd_secret: "{{ argocd_secret | b64decode }}"
+
+  when:
+  - "'argocd' in all_activated_services"
+
+- name: dump info
+  template:
+    src: dataplatform.md.j2
+    dest: "{{ workdir }}/dataplatform.md"

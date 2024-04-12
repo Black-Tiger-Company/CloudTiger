@@ -1,0 +1,17 @@
+# tasks to deploy Persistent Volume for Airflow and Jupyter scripts
+
+- name: get custom PV file
+  template:
+    src: pv_script.yml.j2
+    dest: "{{ workdir }}/pv_script.yml"
+
+- debug: 
+    msg: kubectl apply -f pv_script.yml -n "{{ pv_script_namespace }}"
+
+- name: create custom PV file
+  shell:
+    cmd: kubectl apply -f pv_script.yml -n "{{ pv_script_namespace }}"
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"

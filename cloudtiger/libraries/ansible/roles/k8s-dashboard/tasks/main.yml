@@ -1,0 +1,59 @@
+---
+# tasks file for k8s-dashboard
+- name: check if helm exist
+  shell: helm version
+  register: helm_version
+  ignore_errors: true
+
+- name: install helm if not existing
+  when: helm_version.failed
+  shell: |
+    curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+    sudo apt-get install apt-transport-https --yes
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+    sudo apt-get update
+    sudo apt-get install helm
+
+- name: Add kubernetes-dashboard repository
+  shell: helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart and expose it as a NodePort
+  shell: helm upgrade kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard -n kubernetes-dashboard --install --create-namespace --set token.ttl={{ token_duration }} --set service.type=NodePort --set service.nodePort="{{ exposed_port }}" {% if node_selector_type != "" %}--set nodeSelector.type=master{% endif %} --version "{{ chart_version }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: get Dashboard port
+  shell: kubectl get -n kubernetes-dashboard -o jsonpath="{.spec.ports[0].nodePort}" services kubernetes-dashboard
+  register: "kubernetesdashboardport"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: get Dashboard address
+  shell: kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}"
+  register: "kubernetesdashboardaddress"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: dump Dashboard port + address
+  shell: "echo https://{{ kubernetesdashboardaddress.stdout }}:{{ kubernetesdashboardport.stdout }} > {{ workdir }}/kubernetes-dashboard-address.txt"
+
+- name: Upload admin user file
+  copy:
+    src: "dashboard-adminuser.yml"
+    dest: "{{ workdir }}/dashboard-adminuser.yml"
+
+- name: create admin user
+  shell: kubectl -n kubernetes-dashboard apply -f {{ workdir }}/dashboard-adminuser.yml
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: create a Bearer token
+  shell: kubectl get secret/admin-token -n kubernetes-dashboard -o json | jq -r .data.token
+  register: "kubernetesdashboardtoken"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: dump Bearer token
+  shell: echo {{ kubernetesdashboardtoken.stdout }} | base64 --decode > {{ workdir }}/kubernetes-dashboard-token.txt

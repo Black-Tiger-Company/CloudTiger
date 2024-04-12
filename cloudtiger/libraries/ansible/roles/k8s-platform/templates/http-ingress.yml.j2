@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ item.name }}-ingress
+  annotations:
+{% if item.name in ['dashboard', 'longhorn', 'spark', 'grafana', 'minio'] %}
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+{% endif %}
+{% if item.name == 'dashboard' %}
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Accept-Encoding "";
+      sub_filter '<base href="/">' '<base href="/dashboard/">';
+      sub_filter_once on;
+{% endif %}
+{% if item.name == 'minio' %}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Accept-Encoding "";
+      sub_filter '<base href="/"/>' '<base href="/minio/"/>';
+      sub_filter_once on;
+{% endif %}
+{% if item.name == 'jupyterhub' %}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Accept-Encoding "";
+      sub_filter 'base_url: "/"' 'base_url: "/hub/"';
+      sub_filter 'href="/home"' 'href="/hub/home"';
+      sub_filter 'href="/token"' 'href="/hub/token"';
+      sub_filter 'href="/admin"' 'href="/hub/admin"';
+      sub_filter_once on;
+{% endif %}
+{% if item.name == 'argocd' %}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Accept-Encoding "";
+      sub_filter '<base href="/">' '<base href="/argo/">';
+      sub_filter_once on;
+{% endif %}
+spec:
+  ingressClassName: nginx
+  rules:
+  {{ item.rules | to_nice_yaml(indent=2) | indent(2)}}

@@ -1,0 +1,22 @@
+# tasks to deploy a kubernetes ingress
+
+- name: clear Ingress if exists
+  shell:
+    cmd: kubectl --namespace {{ item.namespace }} delete ingress {{ item.name }}-ingress --ignore-not-found=true
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: get Ingress config file
+  template:
+    src: "http-ingress.yml.j2"
+    dest: "{{ workdir }}/{{ item.name }}-ingress.yml"
+
+- name: install http Ingress k8s config
+  shell: 
+    cmd: kubectl --namespace {{ item.namespace }} apply -f {{ item.name }}-ingress.yml
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"

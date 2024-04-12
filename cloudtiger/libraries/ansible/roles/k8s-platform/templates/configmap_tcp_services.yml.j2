@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcp-services
+  namespace: ingress-nginx
+data:
+{% for k, v in tcp_ingress.items() %}
+  {{ v.external_port }}: "{{ v.namespace }}/{{ v.service }}:{{ v.internal_port }}"
+{% endfor %}

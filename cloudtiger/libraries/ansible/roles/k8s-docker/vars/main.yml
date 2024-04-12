@@ -1,0 +1,32 @@
+docker_version: "20.10.23"
+docker_users: ["{{ lookup('env', 'USER') }}"]
+
+# The folder that will be used to store containers
+base_disk: /data
+
+# The non-TLS (insecure) registries to allow
+insecure_registries: []
+daemon_config:
+  data-root: "{{ base_disk }}/docker"
+  insecure-registries: "{{ insecure_registries }}"
+
+# set to true if you want a direct K8s installation, otherwise the install targets a RKE K8s installation
+standard_install: false
+
+# Do you want to install prerequisites for Longhorn PV driver
+longhorn: true
+# Where Longhorn PV will be stored
+longhorn_directory: /data/longhorn
+
+# Delete previous docker data
+initial_cleaning: false
+# Set to true if you just want to clean previous docker data
+cleaning_only: false
+
+# The list of users to allow in the docker group by default
+users_list_url: https://nexus.com/userlist.yml
+# add all admins to docker group ?
+all_admin_in_docker_group: true
+
+# Do you want a custom /etc/docker/daemon.json ?
+set_daemon_file: false

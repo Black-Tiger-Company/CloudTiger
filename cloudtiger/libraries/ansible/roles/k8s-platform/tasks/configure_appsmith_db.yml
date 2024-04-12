@@ -1,0 +1,55 @@
+# tasks for configuring the backend DB for Appsmith
+
+- name: get appsmith info
+  set_fact:
+    appsmith_chart: "{{ charts|selectattr('name', '==', 'appsmith')| first }}"
+
+### we collect the admin password of MongoDB
+- name: get mongo admin password
+  shell: 
+    cmd: echo $(kubectl get secret mongo-admin -n {{ platform_id }}-data -o json | jq -r .data)
+  register: mongo_admin_password
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: extract password - 1
+  set_fact:
+    mongo_admin_password: "{{ mongo_admin_password.stdout| from_json }}"
+
+- name: extract password - 2
+  set_fact:
+    mongo_admin_password: "{{ mongo_admin_password['mongodb-root-password'] | b64decode }}"
+
+### we collect the password of the Appsmith DB of MongoDB
+- name: get mongo appsmith DB admin password
+  shell: 
+    cmd: echo $(kubectl get secret {{ appsmith_chart.config.externalDatabase.existingSecret }} -n {{ platform_id }}-monitoring -o json | jq -r .data)
+  register: appsmith_db_admin_password
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: extract password - 1
+  set_fact:
+    appsmith_db_admin_password: "{{ appsmith_db_admin_password.stdout| from_json }}"
+
+- name: extract password - 2
+  set_fact:
+    appsmith_db_admin_password: "{{ appsmith_db_admin_password['password'] | b64decode }}"
+
+### configuration of the Appsmith DB
+- name: Clear Appsmith user if necessary
+  shell:
+    cmd: "mongosh mongodb://{{ mongo_admin }}:{{ mongo_admin_password }}@{{ proxy_address }}:{{ external_mongo_port }}/{{ item.db }}?authSource=admin --eval 'db.dropUser(\"{{ item.user }}\");'"
+  with_items:
+  - db: appsmith
+    password: "{{ appsmith_db_admin_password }}"
+    user: appsmith
+  ignore_errors: True
+
+- name: Create appsmith DB on Mongo
+  shell:
+    cmd: "mongosh mongodb://{{ mongo_admin }}:{{ mongo_admin_password }}@{{ proxy_address }}:{{ external_mongo_port }}/{{ item.db }}?authSource=admin --eval 'db.createUser({user:\"{{ item.user }}\",pwd:\"{{ item.password }}\",roles:[{role:\"readWrite\",db:\"{{ item.db }}\"}]});'"
+  with_items:
+  - db: appsmith
+    password: "{{ appsmith_db_admin_password }}"
+    user: appsmith

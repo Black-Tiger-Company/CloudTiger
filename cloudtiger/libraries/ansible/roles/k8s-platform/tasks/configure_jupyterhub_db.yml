@@ -1,0 +1,70 @@
+
+# tasks for configuring the backend DB for Jupyterhub
+
+- name: get jupyterhub info
+  set_fact:
+    jupyterhub_chart: "{{ charts|selectattr('name', '==', 'jupyterhub')| first }}"
+
+### we collect the admin password of Postgres
+- name: get postgres admin password
+  shell: 
+    cmd: echo $(kubectl get secret postgres-admin -n {{ platform_id }}-data -o json | jq -r .data)
+  register: postgres_admin_password
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: extract password - 1
+  set_fact:
+    postgres_admin_password: "{{ postgres_admin_password.stdout| from_json }}"
+
+- name: extract password - 2
+  set_fact:
+    postgres_admin_password: "{{ postgres_admin_password['postgres-password'] | b64decode }}"
+
+### we collect the password of the Jupyterhub DB of Postgres
+- name: get postgres jupyterhub DB admin password
+  shell: 
+    cmd: echo $(kubectl get secret {{ jupyterhub_chart.config.externalDatabase.existingSecret }} -n {{ platform_id }}-compute -o json | jq -r .data)
+  register: jupyterhub_db_admin_password
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: extract password - 1
+  set_fact:
+    jupyterhub_db_admin_password: "{{ jupyterhub_db_admin_password.stdout| from_json }}"
+
+- name: extract password - 2
+  set_fact:
+    jupyterhub_db_admin_password: "{{ jupyterhub_db_admin_password['db-password'] | b64decode }}"
+
+### configuration of the Jupyterhub DB
+- name: Purge jupyterhub database if exists
+  community.postgresql.postgresql_db:
+    login_host: "{{ proxy_address }}"
+    login_user: postgres
+    # login_user: admin
+    login_password: "{{ postgres_admin_password }}"
+    port: "{{ external_postgres_port }}"
+    name: "{{ jupyterhub_chart.config.externalDatabase.database }}"
+    state: absent
+  when: purge_jupyterhub_data
+
+- name: Connect to postgres DB, create jupyterhub user, and grant access to database and products table
+  community.postgresql.postgresql_user:
+    login_host: "{{ proxy_address }}"
+    login_user: postgres
+    # login_user: admin
+    login_password: "{{ postgres_admin_password }}"
+    port: "{{ external_postgres_port }}"
+    name: "{{ jupyterhub_chart.config.externalDatabase.user }}"
+    password: "{{ jupyterhub_db_admin_password }}"
+
+- name: Create a new database with name jupyterhub
+  community.postgresql.postgresql_db:
+    login_host: "{{ proxy_address }}"
+    login_user: postgres
+    # login_user: admin
+    login_password: "{{ postgres_admin_password }}"
+    port: "{{ external_postgres_port }}"
+    name: "{{ jupyterhub_chart.config.externalDatabase.database }}"
+    owner: "{{ jupyterhub_chart.config.externalDatabase.user }}"

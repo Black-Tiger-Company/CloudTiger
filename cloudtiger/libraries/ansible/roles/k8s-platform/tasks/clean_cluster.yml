@@ -1,0 +1,63 @@
+# tasks for cleaning namespaces
+
+### We list all existing Helm charts, then remove all of those that are not listed
+### in the list of 'critical_helms' charts
+- name: List Helm releases
+  shell:
+    cmd: helm list --all-namespaces
+  register: helm_releases
+  changed_when: false
+  ignore_errors: true
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: extract output
+  set_fact:
+    helm_releases: "{{ helm_releases.stdout_lines }}"
+
+- name: trim first line
+  set_fact:
+    helm_releases: "{{ helm_releases[1:] }}"
+  when: helm_releases | length > 1
+
+- name: Delete Helm releases
+  command:
+    cmd: helm delete {{ item.split()[0] }} -n {{ item.split()[1] }}
+  loop: "{{ helm_releases }}"
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+  when: (item.split() | length > 1) and (helm_releases | length > 1) and item not in critical_helms
+
+### We list all existing K8s namespaces, then remove all of those that are not listed
+### in the list of 'critical_namespaces' namespaces
+- name: Get list of namespaces
+  command:
+    cmd: kubectl get namespaces --output=jsonpath='{.items[*].metadata.name}'
+  register: namespaces
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+
+- name: Format list of namespaces
+  set_fact:
+    namespaces: "{{ namespaces.stdout_lines[0].split(' ') }}"
+
+- debug:
+    msg: "Namespace set to be deleted : {{ item }}"
+  loop: "{{ namespaces }}"
+  when: item not in critical_namespaces
+
+- name: Delete namespaces
+  command:
+    cmd: kubectl delete namespace {{ item }}
+  loop: "{{ namespaces }}"
+  args:
+    chdir: "{{ workdir }}"
+  environment:
+    KUBECONFIG : "{{ kubeconfig_path }}"
+  when: item not in critical_namespaces

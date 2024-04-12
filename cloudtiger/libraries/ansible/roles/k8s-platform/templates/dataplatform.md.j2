@@ -1,0 +1,175 @@
+# Dataplatform
+
+{% if 'dashboard' in all_activated_services %}
+## Kubernetes Dashboard
+
+URL : https://{{ external_proxy_address }}{{ k8s_dashboard_base_url }}/
+
+Provide the kubeconfig token
+
+{% endif %}
+{% set proxy_chart = ingress_chart | selectattr('name', 'equalto', 'ingress-nginx') | list | first %}
+{% if 'longhorn' in all_activated_services %}
+## Longhorn UI
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ longhorn_base_url }}/
+
+{% endif %}
+{% if 'kubeapps' in all_activated_services %}
+## KubeApps
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ kubeapps_base_url }}/
+
+Provide the kubeconfig token
+
+{% endif %}
+{% if 'mongodb' in all_activated_services %}
+## MongoDB
+{% set mongodb_chart = charts | selectattr('name', 'equalto', 'mongodb') | list | first %}
+
+MongoDB version :
+{{ mongodb_chart.config.image.tag }}
+{% set mongo_tcp_port = external_mongo_port %}
+
+```bash
+mongosh mongodb://{{ mongodb_chart.config.auth.rootUser }}:{{ secret_data_dict['mongo-admin']['mongodb-root-password'] }}@{{ external_proxy_address }}:{{  mongo_tcp_port }}
+```
+{% endif %}
+
+{% if 'postgresql' in all_activated_services %}
+## Postgres
+{% set postgresql_chart = charts | selectattr('name', 'equalto', 'postgresql') | list | first %}
+
+postgresql version :
+{{ postgresql_chart.config.image.tag }}
+{% set postgres_tcp_port = external_postgres_port %}
+
+```bash
+echo {{ secret_data_dict['postgres-admin']['postgres-password']}} | psql -U postgres -h {{ external_proxy_address }} -p {{ postgres_tcp_port }} -d admin -W
+```
+
+{% endif %}
+{% if 'elasticsearch' in all_activated_services %}
+## Elastic
+{% set elasticsearch_chart = charts | selectattr('name', 'equalto', 'elasticsearch') | list | first %}
+
+elasticsearch version :
+{{ elasticsearch_chart.config.image.tag }}
+{% set elastic_tcp_port = external_elastic_port %}
+
+```bash
+curl http://{{ external_proxy_address }}:{{ elastic_tcp_port }}
+```
+
+{% endif %}
+{% if 'redis' in all_activated_services %}
+## Redis
+{% set redis_chart = charts | selectattr('name', 'equalto', 'redis') | list | first %}
+
+redis version :
+{{ redis_chart.config.image.tag }}
+{% set redis_tcp_port = external_redis_port %}
+
+```bash
+redis-cli -a {{ secret_data_dict['redis-admin']['redis-password']}} -c -h {{ external_proxy_address }} -p {{ redis_tcp_port }}
+```
+
+{% endif %}
+{% if 'keycloak' in all_activated_services %}
+## Keycloak
+{% set keycloak_chart = charts | selectattr('name', 'equalto', 'keycloak') | list | first %}
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ keycloak_chart.config.httpRelativePath | default("") }}
+
+login : {{ keycloak_chart.config.auth.adminUser }}
+
+password : {{ secret_data_dict['keycloak-admin']['admin-password']}}
+
+```bash
+echo {{ secret_data_dict['keycloak-postgres-secret']['db-password']}} | psql -U {{ keycloak_chart.config.externalDatabase.user }} -h {{ external_proxy_address }} -p {{ postgres_tcp_port }} -d {{ keycloak_chart.config.externalDatabase.database }} -W
+```
+
+{% endif %}
+{% if 'kibana' in all_activated_services %}
+## Kibana
+{% set kibana_chart = charts | selectattr('name', 'equalto', 'kibana') | list | first %}
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ kibana_base_url }}
+
+{% endif %}
+{% if 'airflow' in all_activated_services %}
+## Airflow
+{% set airflow_chart = charts | selectattr('name', 'equalto', 'airflow') | list | first %}
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ airflow_base_url }}/
+
+login : {{ airflow_chart.config.auth.username }}
+
+password : {{ airflow_secret }}
+
+```bash
+echo {{ secret_data_dict['airflow-postgres-secret']['password']}} | psql -U {{ airflow_chart.config.externalDatabase.user }} -h {{ external_proxy_address }} -p {{ postgres_tcp_port }} -d {{ airflow_chart.config.externalDatabase.database }} -W
+```
+
+{% endif %}
+{% if 'grafana' in all_activated_services %}
+## Grafana
+{% set grafana_chart = charts | selectattr('name', 'equalto', 'grafana') | list | first %}
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ grafana_base_url }}/
+
+login : {{ grafana_chart.config.admin.user }}
+
+password : {{ secret_data_dict['grafana-admin']['password']}}
+
+{% endif %}
+{% if 'argocd' in all_activated_services %}
+## ArgoCD
+{% set argocd_chart = charts | selectattr('name', 'equalto', 'argocd') | list | first %}
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ argocd_base_url }}/
+
+login : admin
+
+password : {{ argocd_secret }}
+
+{% endif %}
+{% if 'prometheus' in all_activated_services %}
+## Prometheus
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ prometheus_base_url }}/
+
+{% endif %}
+{% if 'spark' in all_activated_services %}
+## Spark
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ spark_base_url }}/
+
+{% endif %}
+{% if 'appsmith' in all_activated_services %}
+## Appsmith
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ appsmith_base_url }}/
+
+{% endif %}
+{% if 'jupyterhub' in all_activated_services %}
+{% set jupyterhub_chart = charts | selectattr('name', 'equalto', 'jupyterhub') | list | first %}
+## Jupyterhub
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ jupyterhub_base_url }}/
+
+login : {{ jupyterhub_chart.config.hub.adminUser }}
+
+password : {{ jupyterhub_admin_temp_password }}
+
+{% endif %}
+{% if 'minio' in all_activated_services %}
+## MinIO
+
+URL : http://{{ external_proxy_address }}:{{ proxy_port }}{{ minio_base_url }}/
+
+login : admin
+
+password : {{ secret_data_dict['minio-secret']['root-password'] }}
+
+{% endif %}
