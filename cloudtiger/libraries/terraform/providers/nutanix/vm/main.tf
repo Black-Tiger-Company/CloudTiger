@@ -94,6 +94,13 @@ resource "nutanix_virtual_machine" "virtual_machine" {
     }
   }
 
+  dynamic "nic_list" {
+    for_each = local.subnet_has_managed_ips ? [] : [1]
+    content {
+      subnet_uuid = data.nutanix_subnet.subnets.metadata.uuid
+    }
+  }
+
 
   num_vcpus_per_socket = var.vm.instance_type.nb_vcpu_per_socket
   num_sockets          = var.vm.instance_type.nb_sockets
