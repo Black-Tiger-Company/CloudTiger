@@ -9,6 +9,10 @@ services_account:
   {{ secondary_provider }}: ""
 {% endfor %}
 {% endif %}
+{% if use_proxy is defined %}
+
+use_proxy: {{ use_proxy }}
+{% endif %}
 {% if artefacts_repository_public_key_url is defined %}
 
 artefacts_repository_public_key_url: {{ artefacts_repository_public_key_url }}
@@ -41,6 +45,11 @@ network:
 {% endfor %}
 {% if provider == "vsphere" %}
     datacenter: {{ network_content['datacenter']}}
+{% endif %}
+{% if provider in ["aws", "azure", "gcp", "ovh"] %}
+    private_subnets_escape_public_subnet: {{ network_content['private_subnets_escape_public_subnet']}}
+    prefix: {{ network_content['prefix'] }}
+    network_cidr: {{ network_content['network_cidr'] }}
 {% endif %}
 {% endfor %}
 
