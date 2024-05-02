@@ -269,11 +269,17 @@ def set_vm_ansible_parameters(operation: Operation, vm_name: str) -> dict:
 
     ansible_ssh_port = operation.scope_config_dict["vm_ssh_params"][vm_name]["ssh_port"]
 
-    provider_name = next(iter(operation.scope_config_dict['vm']))
-    print(provider_name)
-    vlan_name = next(iter(operation.scope_config_dict['vm'][provider_name]))
-    print(vlan_name)
-    root_volume_size=operation.scope_config_dict['vm'][provider_name][vlan_name][vm_name]['root_volume_size']
+    network_name = ""
+    vlan_name = ""
+    for network_iter_name, network_content in operation.scope_config_dict['vm'].items():
+        for vlan_iter_name, vlan_content in network_content.items():
+            for vm_iter_name, vm_content in vlan_content.items():
+                if vm_iter_name == vm_name:
+                    network_name = network_iter_name
+                    vlan_name = vlan_iter_name
+                    break
+
+    root_volume_size=operation.scope_config_dict['vm'][network_name][vlan_name][vm_name]['root_volume_size']
 
     vm_ssh_parameters = {
         "ansible_ssh_host": vm_name,
@@ -633,7 +639,13 @@ def prepare_ansible(operation: Operation, securize=False):
     # if the ansible key is not 'ansible', we need to reinject the ansible key content into
     # operation.scope_config_dict['ansible']
     if operation.ansible_key != 'ansible':
-        operation.scope_config_dict["ansible"] = operation.scope_config_dict.get(operation.ansible_key, [])
+        operation.scope_config_dict["ansible"] = []
+        ansible_keys = operation.ansible_key.split(',')
+        for ansible_key in ansible_keys:
+            if ansible_key not in operation.scope_config_dict.keys():
+                operation.logger.error(f"Error : ansible key {ansible_key} does not exist in config.yml, aborting")
+                sys.exit()
+            operation.scope_config_dict["ansible"] += operation.scope_config_dict.get(ansible_key, [])
 
     # if we have an 'ansible_params' key in the config.yml,
     # it means we need to interprete some variables
