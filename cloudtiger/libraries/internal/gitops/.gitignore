@@ -1,0 +1,57 @@
+# scopes
+scopes/*
+
+### services
+config/*/services.yml
+
+# secrets
+secrets/*/*.env
+secrets/*/*.json
+secrets/*/*.yml
+secrets/ssh/*
+secrets/gitlab/*
+
+# ansible resources
+ansible
+
+# terraform
+terraform
+
+.env
+
+cloudtiger.log
+test.log
+test.sh
+
+.vscode/*.json
+networks.json
+vms.json
+
+# custom build
+tools/binaries/*
+
+*.log
+
+*.sh
+!tools/nexus/*.sh
+
+# admin scope
+config/admin/*
+
+# .conf files
+*.conf
+
+# SSL certificates
+*.pem
+*.key
+
+# Ansible Vault secret
+secrets/ansible-vault/*
+
+LOCAL/*
+
+# archive
+*.gz
+
+# custom orchestration playbooks
+orchestration/playbooks/*
