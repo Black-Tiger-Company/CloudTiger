@@ -1,13 +1,13 @@
 # Ansible playbooks and roles development guidelines
 
-CloudTiger is bundled with a short list of embedded Ansible playbooks, located in `cloudtiger/libraries/ansible/playbooks`
+CloudTiger is bundled with a short list of embedded Ansible playbooks, located in `cloudtiger/libraries/ansible/playbooks`, and embedded Ansible roles, located i `cloudtiger/libraries/ansible/roles`
 
 There is also a list of standard Ansible roles from Ansible Galaxy located in `cloudtiger/libraries/ansible/requirements`
 
 There are several ways to develop/edit roles and playbooks for CloudTiger :
 
 - create/edit an embedded playbook
-- create/edit a role
+- create/edit a role, embedded or non embedded
 
 Prerequisites :
 

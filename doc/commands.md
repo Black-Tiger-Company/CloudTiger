@@ -162,6 +162,27 @@ Collect IPs for VMs and store them into a file `config/scopes/<SCOPE>/config_ips
 cloudtiger <SCOPE> init 1
 ```
 
+You can disable SSH fingerprint checks done by Ansible by using the `-nc` (for "no check") option :
+
+```bash
+cloudtiger <SCOPE> init 1 -nc
+```
+
+It will create a `ansible.cfg` file for your scope with the extra lines:
+
+```cfg
+[defaults]
+host_key_checking = False
+```
+
+By default, CloudTiger use the username set in the root `.env` file at environment variable `CLOUDTIGER_SSH_USERNAME` to connect to your remote hosts. You can override this value and use the default SSH user associated with the OS image of every VM by using the `-d` (for "default user") option :
+
+```bash
+cloudtiger <SCOPE> init 1 -d
+```
+
+It will add a line `User <DEFAULT_OS_USER>` in the `ssh.cfg` file of your scope for every host.
+
 #### Setup Terraform scope folder
 
 Copy Terraform modules needed by your scope into `terraform` folder, and create a scope folder in `scopes/<SCOPE>/terraform`, based on templates in `cloudtiger/libraries/internal/terraform_providers` and .j2 files in `config/generic_terraform` :
@@ -172,8 +193,15 @@ cloudtiger <SCOPE> init 2
 
 #### Register DNS
 
-Register VM names into the DNS server defined in `standard/standard.yml` 
+Register VM names into the DNS server defined in `standard/standard.yml`.
 
+You must have configured these variables in the `.env` file at the root of your project folder for this command to work:
+
+```env
+export CLOUDTIGER_DNS_ADDRESS='x.x.x.x' ### address of the DNS server
+export CLOUDTIGER_DNS_LOGIN='login' ### login to the DNS server
+export CLOUDTIGER_DNS_PASSWORD='base64_encoded_password ### base64-encoded password for the DNS server
+```
 
 ```bash
 cloudtiger <SCOPE> init 5
@@ -186,7 +214,13 @@ cloudtiger <SCOPE> init 5
 Run `terraform init ...` in `scopes/<SCOPE>/terraform` folder :
 
 ```bash
-cloudtiger <SCOPE> tf 1
+cloudtiger <SCOPE> tf init
+```
+
+If you get a warning message from Terraform asking you that you need to migrate the tfstate to go further, you can emulate the native `terraform init -migrate` command with the command :
+
+```bash
+cloudtiger <SCOPE> tf --migrate
 ```
 
 #### Apply
@@ -194,7 +228,7 @@ cloudtiger <SCOPE> tf 1
 same with `terraform apply ...`, combined with `terraform output` to `scopes/<SCOPE>/inventory/terraform_output.json`:
 
 ```bash
-cloudtiger <SCOPE> tf 2
+cloudtiger <SCOPE> tf apply
 ```
 
 #### Plan, refresh, destroy

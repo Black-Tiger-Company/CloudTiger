@@ -97,10 +97,18 @@ Once you have built and/or pulled the docker, move into a dedicated working dire
 
 ```bash
 cd <YOUR_CHOSEN_WORKING_DIRECTORY>
-docker run -v "$(pwd)":/workdir -it cloudtiger bash
+docker run -it -e USER=$USER -v $(pwd):/workdir -v /$HOME/.ssh:/root/.ssh cloudtiger bash
 ```
 
 The command above will prompt you a shell command inside the CloudTiger Docker. You can then proceed with the next instructions :
+
+For details :
+
+- `-e USER=$USER` is necessary to ensure that the `USER` environment variable is set to the current user, in order to SSH inside the remote hosts using your current user login
+- `-v $(pwd):/workdir` mount local `gitops` folder inside the container
+- `-v /$HOME/.ssh:/root/.ssh` mount the access to your SSH keys inside the container
+
+You will get a bash prompt directly inside the docker. You local directory is mapped as the directory `workdir` inside the docker.
 
 ### Execution of basic CloudTiger commands
 
@@ -117,8 +125,22 @@ Then, we will setup the CloudTiger root project. Execute the following commands 
 ```bash
 cd /workdir
 cloudtiger gitops init folder
+```
+
+You have just created a `gitops` folder that you populated with all the folders and configuration files necessary to start a CloudTiger project.
+
+Now it is time to set your cloud provider credentials :
+
+```bash
 cd gitops
-cloudtiger . init config ### after this command, you will be asked for several credentials information. If you are not sure, do not use a Terraform backend for the demo
+cloudtiger . init C ### after this command, you will be asked for several credentials information. If you are not sure, do not use a Terraform backend for the demo
+```
+
+The command will prompt you a series of question about your chosen cloud provider credentials, and create a `.env` file inside the `gitops` folder, as well as `secrets/<YOUR_PROVIDER>/.env` files containing secrets for managing access to your provider.
+
+You can now proceed to the creation of the infrastructure :
+
+```bash
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 0
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 1
 cloudtiger config/<CHOSEN_CLOUD_PROVIDER>/demo init 2
@@ -182,7 +204,8 @@ You can find a detailed description of CloudTiger's commands and how to use them
 If you want to develop Terraform and Ansible modules for CloudTiger, development guidelines are available :
 
 - for [Terraform](./doc/iac_guidelines.md)
-- for [Ansible](./doc/cm_guidelines.md)
+- for [Ansible](./doc/ansible_guidelines.md)
+- for [Helm](./doc/helm_guidelines.md)
 
 ### CLI
 

@@ -1,25 +1,27 @@
 # Terraform modules guidelines
 
 - [Terraform modules guidelines](#terraform-modules-guidelines)
-	- [Development quickstart](#development-quickstart)
-	- [How to write your code](#how-to-write-your-code)
-		- [How Terraform works](#how-terraform-works)
-			- [Provider](#provider)
-			- [Variables](#variables)
-			- [Data and resources](#data-and-resources)
-			- [Outputs](#outputs)
-			- [Modules](#modules)
-		- [Structure of Terraform code inside CloudTiger](#structure-of-terraform-code-inside-cloudtiger)
-			- [Main Terraform folder](#main-terraform-folder)
-			- [Terraform modules folder](#terraform-modules-folder)
-		- [Adding a new module](#adding-a-new-module)
-	- [Important notice](#important-notice)
-		- [Terminology digression](#terminology-digression)
-		- [Length of names and labels](#length-of-names-and-labels)
-		- [Map vs list](#map-vs-list)
-		- [Looping on modules](#looping-on-modules)
-		- [Interoperability between cloud providers](#interoperability-between-cloud-providers)
-		- [Readability and simplicity of the architecture](#readability-and-simplicity-of-the-architecture)
+  - [Development quickstart](#development-quickstart)
+  - [Development and debugging inside a scope](#development-and-debugging-inside-a-scope)
+  - [How to write your code](#how-to-write-your-code)
+    - [How Terraform works](#how-terraform-works)
+      - [Provider](#provider)
+      - [Variables](#variables)
+      - [Data and resources](#data-and-resources)
+      - [Outputs](#outputs)
+      - [Modules](#modules)
+    - [Structure of Terraform code inside CloudTiger](#structure-of-terraform-code-inside-cloudtiger)
+      - [Main Terraform folder](#main-terraform-folder)
+      - [Terraform modules folder](#terraform-modules-folder)
+    - [Adding a new module](#adding-a-new-module)
+    - [Adding a new service](#adding-a-new-service)
+  - [Important technical points](#important-technical-points)
+    - [Terminology digression](#terminology-digression)
+    - [Length of names and labels](#length-of-names-and-labels)
+    - [Map vs list](#map-vs-list)
+    - [Looping on modules](#looping-on-modules)
+    - [Interoperability between cloud providers](#interoperability-between-cloud-providers)
+    - [Readability and simplicity of the architecture](#readability-and-simplicity-of-the-architecture)
 
 This document aims at describing code writing guidelines for developing Terraform architectures and modules.
 
@@ -44,6 +46,36 @@ Every time you want to test your code, do the following operations :
 - `cloudtiger config/<YOUR_DEVELOPMENT_SCOPE> init 2` (it will copy your modifications of Terraform files into `<YOUR_GITOPS_FOLDER/terraform` and update the content of the folder `<YOUR_GITOPS_FOLDER/scopes/<YOUR_DEVELOPMENT_SCOPE>/terraform` which is the folder actually used by the Terraform executable)
 - `cloudtiger config/<YOUR_DEVELOPMENT_SCOPE> tf plan` (if you only wish to show the plan)
 - `cloudtiger config/<YOUR_DEVELOPMENT_SCOPE> tf apply` (if you wish to apply your modifications)
+
+## Development and debugging inside a scope
+
+You can use a custom CloudTiger scope to develop and debug CloudTiger's Terraform module.
+
+Once you have generated a scope with the command :
+
+```bash
+cloudtiger config/<SCOPE> init 2
+```
+
+move to your terraform folder :
+
+```bash
+cd scopes/<SCOPE>/terraform
+```
+
+then launch the `terraform console` command :
+
+```bash
+terraform console --var-file=services/network.tfvars --var-file=services/vm.tfvars
+```
+
+Update the previous command if you need to add more `.tfvars` files from your `services` folder.
+
+Once you are in the terraform console, you can then print the path of variables to display their content. For example, to display the content of `local.formatted_vm` simply type
+
+```tf
+local.formatted_vm
+```
 
 ## How to write your code
 

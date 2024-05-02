@@ -32,3 +32,4 @@ network:
         - yyy
         search: # DNS search domain configured for this VLAN
         - mydomain.com
+```
