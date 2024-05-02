@@ -9,8 +9,10 @@
     {% for extra_var in actions_batch.extra_vars  %}- {{ extra_var }} : {{ extra_var }}{% endfor  %}{% endif %}
 
   roles:{% for role in actions_batch.roles  %}
-    - { role : {{ role.source }}{% if "params" in role.keys() %}{% for param_key, param_value in role.params.items() %}, {{ param_key }}: {{ param_value}} {% endfor  %}{% endif %} }{% endfor  %}
-{% for role in actions_batch.internal_roles  %}
+    - { role : {{ role.source }}{% if "params" in role.keys() %}{% for param_key, param_value in role.params.items() %}, {{ param_key }}: {{ param_value}} {% endfor  %}{% endif %} }{% endfor  %}{% endif %}{% if actions_batch.type == "internal_role" %}{%if "extra_vars" in actions_batch.keys() %}
+    {% for extra_var in actions_batch.extra_vars  %}- {{ extra_var }} : {{ extra_var }}{% endfor  %}{% endif %}
+
+  roles:{% for role in actions_batch.roles  %}
     - { role : {{ ''.join(["../"] * (scope.split('/')|length + 2)) }}ansible/roles/{{ role.source }}{% if "params" in role.keys() %}{% for param_key, param_value in role.params.items() %}, {{ param_key }}: {{ param_value}} {% endfor  %}{% endif %} }{% endfor  %}{% endif %}
 {% if actions_batch.type == "playbook" %}  vars:
     ansible_sudo_pass: {% raw %}"{{ b64_ansible_ssh_pass | b64decode }}"{% endraw %}
