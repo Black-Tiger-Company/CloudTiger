@@ -71,7 +71,23 @@ data "vsphere_datastore" "datastore_datadisks" {
 
 }
 
+# locals {
+#   # Split the folder path
+#   folder_paths = split("/", var.vm.folder)
+
+#   full_paths = [for i in range(length(local.folder_paths)) : join("/", slice(local.folder_paths, 0, i + 1))]
+# }
+
+# resource "vsphere_folder" "folders" {
+#   for_each      = { for idx, path in local.full_paths : path => idx }
+#   path          = each.key
+#   type          = "vm"
+#   datacenter_id = data.vsphere_datacenter.datacenter.id
+
+# }
+
 resource "vsphere_virtual_machine" "virtual_machine" {
+  #depends_on    = [vsphere_folder.folders]
 
   ### added to avoid messing with cdrom reader or very specific settings on imported machines
   lifecycle {
