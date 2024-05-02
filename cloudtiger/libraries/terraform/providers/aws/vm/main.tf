@@ -4,15 +4,15 @@
 
 locals {
   ami = {
-    "debian-10" = {
+    "debian_10" = {
       "owner" : "136693071363",
       "query" : "debian-10-amd64-20*"
     }
-    "ubuntu-2004" = {
+    "ubuntu_server_2004" = {
       "owner" : "099720109477",
       "query" : "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
     }
-    "ubuntu-2204" = {
+    "ubuntu_server_2204" = {
       "owner" : "099720109477",
       "query" : "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
     }
@@ -140,7 +140,9 @@ resource "aws_instance" "virtual_machine" {
   )
 
   lifecycle {
-    ignore_changes = []
+    ignore_changes = [
+      ami
+    ]
   }
 
 }
