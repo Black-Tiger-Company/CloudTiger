@@ -240,6 +240,17 @@ def generate(operation: Operation):
                 default=artefacts_repository_public_key_url
             ).execute()
 
+    ##########################
+    # Here, all default values for the prompt
+    ##########################
+    nameservers_list = operation.standard_config.get("nameservers", "")
+    search_domain_list = operation.standard_config.get("search", "")
+    default_os = operation.standard_config.get(provider, {}).get("default_os_template", None)
+    default_folder = os.path.join(chosen_customer, chosen_environment)
+    if provider == "vsphere":
+        default_base_folder = operation.standard_config[provider].get("default_base_folder", "")
+    ##########################
+
     # do you want to provide nameservers to the VMs ?
     add_nameservers = inquirer.confirm(
         message="Do you want to add nameservers ?",
@@ -249,7 +260,6 @@ def generate(operation: Operation):
     nameservers_list = []
     if add_nameservers:
         # provide list of nameservers
-        nameservers_list = operation.standard_config.get("nameservers", "")
         nameservers_list = inquirer.text(
                 message="Provide a comma-separated list of addresses for your nameservers",
                 default=nameservers_list
@@ -264,14 +274,12 @@ def generate(operation: Operation):
     search_domain_list = []
     if add_search_domain:
         # provide list of nameservers
-        search_domain_list = operation.standard_config.get("search", "")
         search_domain_list = inquirer.text(
                 message="Provide a comma-separated list of search domains for your nameservers",
                 default=search_domain_list
             ).execute()
 
     # define a default OS for VMs
-    default_os = operation.standard_config.get(provider, {}).get("default_os_template", None)
     os_choices = operation.standard_config['system_images'].get(provider, {}).keys()
     set_default_os = inquirer.confirm(
         message="Do you want to set default OS for all the VMs of your scope ?",
@@ -284,11 +292,10 @@ def generate(operation: Operation):
             multiselect=False,
             default = default_os
         ).execute()
+    default_os_user = operation.standard_config['system_images'].get(default_os, {}).get("username", "ubuntu")
 
     # define a default folder for VMs - for vsphere provider only
-    default_folder = os.path.join(chosen_customer, chosen_environment)
     if provider == "vsphere":
-        default_base_folder = operation.standard_config[provider].get("default_base_folder", "")
         default_folder = os.path.join(default_base_folder, default_folder)
         set_default_folder = inquirer.confirm(
             message="Do you want to set default vsphere folder for all the VMs of your scope ?",
@@ -377,9 +384,14 @@ def generate(operation: Operation):
     ]
 
     subnet_iterator = 0
-    a_public_subnet_exists = False
+    subnet_is_public = False
+
+    # map of VMs
+    vm = {}
+
     while add_subnet:
 
+        subnet_is_public = False
         vm_subnet_count = 0
         
         # do we create a new subnet, or add VMs on an existing one ?
@@ -396,6 +408,8 @@ def generate(operation: Operation):
             not_terraform_managed = False
 
             network_name = list(network.keys())[0]
+            if network_name not in vm.keys():
+                vm[network_name] = {}
             default_subnet = worldwide_cloud_default_network["subnets"][subnet_iterator]
 
             subnet_name = inquirer.text(
@@ -424,10 +438,12 @@ def generate(operation: Operation):
             if az_suffix_len < 2:
                 az_suffix = "-" + az_suffix
 
+            az_name = region + az_suffix
+
             added_subnet = {
                 "name" : subnet_name,
                 "cidr_block" : cidr_block,
-                "availability_zone" : region + az_suffix
+                "availability_zone" : az_name
             }
 
             default_public = inquirer.confirm(
@@ -436,22 +452,23 @@ def generate(operation: Operation):
             ).execute()
 
             if default_public:
-                a_public_subnet_exists = True
+                subnet_is_public = True
                 added_subnet["public"] = "true"
+
                 network[network_name]["private_subnets_escape_public_subnet"] = default_subnet["name"]
             network[network_name]['subnets'][subnet_name] =  added_subnet
 
-            added_subnet = subnet_name
+            added_subnet_name = subnet_name
 
         else:
-            added_subnet = inquirer.select(
+            added_subnet_name = inquirer.select(
                 message = "Choose an existing subnet for your scope",
                 choices = subnet_choices,
                 multiselect = False,
                 default = default_subnet
             ).execute()
 
-            network[network_name]['subnets'][added_subnet] = subnet_data[added_subnet]
+            network[network_name]['subnets'][added_subnet_name] = subnet_data[added_subnet_name]
 
 
 
@@ -461,26 +478,26 @@ def generate(operation: Operation):
                 default=True
             ).execute()
 
-            network[network_name]['subnets'][added_subnet]['managed_ips'] = no_dhcp_ip_attribution
+            network[network_name]['subnets'][added_subnet_name]['managed_ips'] = no_dhcp_ip_attribution
         
         # we define if the subnet should be managed by Terraform in the current scope
-        network[network_name]['subnets'][added_subnet]['unmanaged'] = not_terraform_managed
+        network[network_name]['subnets'][added_subnet_name]['unmanaged'] = not_terraform_managed
 
         # get subnet kind
-        subnet_is_public = network[network_name]['subnets'][added_subnet].get("public", False)
         subnet_kind = "private"
         if subnet_is_public:
             subnet_kind = "public"
 
         # add VMs on subnet
         add_vm = True
-        vm = { network_name : {added_subnet : {}}}
+        vm[network_name][added_subnet_name] = {}
+        # vm = { network_name : {added_subnet : {}}}
         vm_type_choices = [
             Choice(value=vm_type_name, name=vm_type_name) for vm_type_name in operation.standard_config["vm_types"].get(provider, operation.standard_config["vm_types"]["default"]).keys()
         ]
 
         vm_type_manifest_iterator = 0
-        vm_count = 0
+        # vm_count = 0
 
         # choose IP addresses for the VM ?
         choose_ip_addresses = inquirer.confirm(
@@ -546,9 +563,10 @@ def generate(operation: Operation):
 
             if vm_sizing in ["prod", "nonprod"]:
                 vm_standard_values = operation.standard_config["vm_types"].get(provider, operation.standard_config["vm_types"]["default"])[added_vm_type][vm_sizing]
-                nb_sockets = vm_standard_values["nb_sockets"]
-                nb_vcpu_per_socket = vm_standard_values["nb_vcpu_per_socket"]
-                memory = vm_standard_values["memory"]
+                if provider not in ["aws", "azure", "gcp"]:
+                    nb_sockets = vm_standard_values["nb_sockets"]
+                    nb_vcpu_per_socket = vm_standard_values["nb_vcpu_per_socket"]
+                    memory = vm_standard_values["memory"]
                 if provider in ["nutanix", "vsphere"]:
                     root_volume_size = vm_standard_values.get("root_volume_size", operation.standard_config.get("default_root_volume_size", "16"))
                     data_volume_size = 0
@@ -557,24 +575,25 @@ def generate(operation: Operation):
                     root_volume_size = operation.standard_config.get("default_root_volume_size", "16")
                 vm_group = added_vm_type
             else:
-                nb_sockets = inquirer.number(
-                    message="Enter number of sockets:",
-                    min_allowed=1,
-                    max_allowed=16,
-                    default=1,
-                ).execute()
-                nb_vcpu_per_socket = inquirer.number(
-                    message="Enter number of vCPUs per socket:",
-                    min_allowed=1,
-                    max_allowed=16,
-                    default=1,
-                ).execute()
-                memory = inquirer.number(
-                    message="Enter number of Mo of RAM:",
-                    min_allowed=1024,
-                    max_allowed=65536,
-                    default=1024,
-                ).execute()
+                if provider not in ["aws", "azure", "gcp"]:
+                    nb_sockets = inquirer.number(
+                        message="Enter number of sockets:",
+                        min_allowed=1,
+                        max_allowed=16,
+                        default=1,
+                    ).execute()
+                    nb_vcpu_per_socket = inquirer.number(
+                        message="Enter number of vCPUs per socket:",
+                        min_allowed=1,
+                        max_allowed=16,
+                        default=1,
+                    ).execute()
+                    memory = inquirer.number(
+                        message="Enter number of Mo of RAM:",
+                        min_allowed=1024,
+                        max_allowed=65536,
+                        default=1024,
+                    ).execute()
                 root_volume_size = inquirer.number(
                     message="Enter number of Go of root disk:",
                     min_allowed=0,
@@ -592,15 +611,15 @@ def generate(operation: Operation):
                     default = added_vm_type
                 ).execute()
             vm_values = {
-                "size": {
-                    "nb_sockets": nb_sockets,
-                    "nb_vcpu_per_socket": nb_vcpu_per_socket,
-                    "memory": memory,
-                },
                 "data_volume_size": data_volume_size,
                 "root_volume_size": root_volume_size,
                 "group": vm_group
             }
+            if provider not in ["aws", "azure", "gcp"]:
+                vm_values["size"] = {}
+                vm_values["size"]["nb_sockets"] = nb_sockets
+                vm_values["size"]["nb_vcpu_per_socket"] = nb_vcpu_per_socket
+                vm_values["size"]["memory"] = memory
 
             # set VM's OS
             vm_os = default_os
@@ -616,6 +635,8 @@ def generate(operation: Operation):
                     default = default_os
                 ).execute()
 
+            vm_values['system_image'] =  vm_os
+
             if provider == "nutanix":
                 vm_values['availability_zone'] = default_cluster
 
@@ -623,8 +644,6 @@ def generate(operation: Operation):
                 available_clone_uuid = operation.standard_config.get("system_images", {}).get("nutanix", {}).get(vm_os, {}).get("uuid", "unset_template_vm_uuid")
                 vm_values['extra_parameters'] = vm_values.get("extra_parameters", {})
                 vm_values['extra_parameters']["source_image_uuid"] = available_clone_uuid
-
-                vm_values['system_image'] =  vm_os
 
             # vsphere specific - set resources
             if provider == "vsphere":
@@ -650,7 +669,6 @@ def generate(operation: Operation):
                             default = vsphere_specific_resources[resource]
                         ).execute() 
                         vsphere_vm_specific_resources[resource] = vm_resource
-                vm_values['system_image'] =  vm_os
 
                 vm_values['folder'] =  vsphere_vm_specific_resources['folder']
                 vm_values['extra_parameters'] = vm_values.get('extra_parameters', {})
@@ -658,6 +676,28 @@ def generate(operation: Operation):
                 vm_values['extra_parameters']['resource_pool'] = "/" + "/".join([vsphere_vm_specific_resources['datacenter'], "host", vsphere_vm_specific_resources['cluster']])
                 vm_values['datacenter'] = vsphere_vm_specific_resources['datacenter']
                 vm_values['availability_zone'] = vsphere_vm_specific_resources['host']
+
+            # values for public cloud providers
+            if provider in ["aws", "azure", "gcp"]:
+                # availability zone
+                vm_values['availability_zone'] = az_name
+                # belongs to public or private VLAN/subnet
+                if subnet_is_public:
+                    vm_values['subnet_type'] = "public"
+                else:
+                    vm_values['subnet_type'] = "private"
+
+                vm_type_parameters = operation.standard_config["vm_types"].get(provider, operation.standard_config["vm_types"]["default"])[added_vm_type]
+
+                vm_values['ingress_rules'] = copy.deepcopy(vm_type_parameters.get("ingress_rules", []))
+                vm_values['ingress_cidr'] = copy.deepcopy(vm_type_parameters.get("ingress_cidr", {}))
+                vm_values['egress_rules'] = copy.deepcopy(vm_type_parameters.get("egress_rules", []))
+                vm_values['egress_cidr'] = copy.deepcopy(vm_type_parameters.get("egress_cidr", {}))
+                vm_values['instance_profile'] = copy.deepcopy(vm_type_parameters.get("instance_profile", "default"))
+                vm_values["vm_type"] = added_vm_type
+                vm_values["root_volume_type"] = vm_type_parameters.get("root_volume_type", "small_root")
+                vm_values["data_volume_type"] = vm_type_parameters.get("data_volume_type", "small_data")
+
 
             # prepare VM default name
             normalized_naming = operation.standard_config.get("normalized_naming", {})
@@ -674,14 +714,14 @@ def generate(operation: Operation):
                         default = vm_name
                     ).execute()
                     if choose_ip_addresses:
-                        cidr_prefix = network[network_name]['subnets'][added_subnet].get("cidr_block", "10.0.0.0/16")
+                        cidr_prefix = network[network_name]['subnets'][added_subnet_name].get("cidr_block", "10.0.0.0/16")
                         cidr_prefix = '.'.join(cidr_prefix.split('.')[:3])
                         private_ip = inquirer.text(
                             message = "Please provide the private IP address of your VM",
-                            default = cidr_prefix + "." + int_to_two_char_string(i+10)
+                            default = cidr_prefix + "." + int_to_two_char_string(vm_subnet_count + i +10)
                         ).execute()
                         vm_values['private_ip'] = private_ip
-                    vm[network_name][added_subnet][vm_name] = copy.deepcopy(vm_values)
+                    vm[network_name][added_subnet_name][vm_name] = copy.deepcopy(vm_values)
 
             else:
                 vm_name = ''.join([normalized_environment, normalized_vm_type, normalized_customer])
@@ -690,14 +730,14 @@ def generate(operation: Operation):
                     default = vm_name
                 ).execute()
                 if choose_ip_addresses:
-                    cidr_prefix = network[network_name]['subnets'][added_subnet].get("cidr_block", "10.0.0.0/16")
+                    cidr_prefix = network[network_name]['subnets'][added_subnet_name].get("cidr_block", "10.0.0.0/16")
                     cidr_prefix = '.'.join(cidr_prefix.split('.')[:3])
                     private_ip = inquirer.text(
                         message = "Please provide the private IP address of your VM",
                         default = cidr_prefix + "." + int_to_two_char_string(vm_subnet_count+10)
                     ).execute()
                     vm_values['private_ip'] = private_ip
-                vm[network_name][added_subnet][vm_name] = vm_values
+                vm[network_name][added_subnet_name][vm_name] = vm_values
 
             # check if we are using a platform manifest
             if "sizing" in manifest_data.get("manifest", {}).get("infrastructure", {}).keys():
@@ -714,9 +754,9 @@ def generate(operation: Operation):
 
             # increase vm count for subnet
             if vm_set:
-                vm_count += nb_vms
+                vm_subnet_count += nb_vms
             else:
-                vm_count += 1
+                vm_subnet_count += 1
 
         # do you want to add an extra subnet
         add_subnets = False
@@ -747,6 +787,9 @@ def generate(operation: Operation):
         "vm" : vm,
         "use_tf_backend" : use_tf_backend
     }
+
+    if public_exposition_layer:
+        template_data["use_proxy"] = True
 
     if len(secondary_providers) > 0:
         template_data["secondary_providers"] = secondary_providers
