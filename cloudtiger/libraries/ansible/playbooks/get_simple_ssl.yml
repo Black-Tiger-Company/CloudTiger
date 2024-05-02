@@ -1,0 +1,82 @@
+- name: Install Certbot and dependencies
+  hosts: "{{ hosts }}"
+  become: true
+  tasks:
+    - name: Install Certbot and required packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - certbot
+        - python3-certbot-nginx
+        - python3-certbot-dns-cloudflare
+        - python3-certbot-dns-route53  # Replace with appropriate DNS plugin if needed
+
+    - name: Create SSL directory
+      file:
+        path: /etc/ssl
+        state: directory
+        mode: '0755'
+
+    - name: Stop HAProxy service
+      systemd:
+        name: haproxy
+        state: stopped
+
+    - name: Start NGINX service
+      systemd:
+        name: nginx
+        state: started
+
+- name: Obtain Let's Encrypt SSL certificate
+  hosts: "{{ hosts }}"
+  become: true
+  tasks:
+    - name: Generate SSL certificate with Certbot
+      command: certbot certonly --non-interactive --email {{ certbot_email }} --nginx -d {{ simple_url }} --agree-tos
+
+    - name: Copy SSL certificate to /etc/ssl
+      copy:
+        src: "/etc/letsencrypt/live/{{ simple_url }}/fullchain.pem"
+        dest: "/etc/ssl/{{ simple_url }}.pem"
+        mode: '0644'
+        remote_src: true
+        # validate: "sudo certbot certificates | grep -q {{ simple_url }}"
+      become: true
+
+    - name: Copy SSL private key to /etc/ssl
+      copy:
+        src: "/etc/letsencrypt/live/{{ simple_url }}/privkey.pem"
+        dest: "/etc/ssl/{{ simple_url }}.pem.key"
+        mode: '0600'
+        remote_src: true
+        # validate: "sudo certbot certificates | grep -q {{ simple_url }}"
+      become: true
+
+    - name: Stop NGINX service
+      systemd:
+        name: nginx
+        state: stopped
+
+    - name: Restart HAProxy service
+      systemd:
+        name: haproxy
+        state: restarted
+
+- name: Configure HAProxy
+  hosts: "{{ hosts }}"
+  become: true
+  tasks:
+    - name: Configure HAProxy SSL frontend
+      blockinfile:
+        path: "/etc/haproxy/haproxy.cfg"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - DO NOT EDIT"
+        block: |
+          frontend https_frontend
+            bind *:443 ssl crt /etc/ssl/{{ simple_url }}.pem
+
+    - name: Restart HAProxy
+      service:
+        name: haproxy
+        state: restarted
+      ignore_errors: true

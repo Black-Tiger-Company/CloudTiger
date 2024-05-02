@@ -1,0 +1,28 @@
+---
+- name: Get Longhorn dockers list
+  hosts: "{{ hosts }}"
+
+  vars:
+    longhorn_chart: "{{ longhorn_chart }}"
+    dest: "{{ dest }}"
+
+  tasks:
+  - name: add helm repo
+    shell: 
+      cmd: helm repo add {{ longhorn_chart.name }} {{ longhorn_chart.address }}
+
+  - name: helm repo update
+    shell: 
+      cmd: helm repo update
+
+  - name: Get list of required images
+    shell: 
+      cmd: "helm template --validate=false {{ longhorn_chart.source }} --version {{ longhorn_chart.chart_version }} --kube-version v1.23.2 | grep longhornio"
+    register: system_images
+    changed_when: false
+
+  - name: Dump list to a local file
+    copy:
+      content: "{{ system_images.stdout.split('\n') | map('regex_replace', '.*(?=longhornio)', '') | map('regex_replace', '\"$', '') | list | unique | join('\n') }}"
+      dest: "{{ dest }}"
+    delegate_to: localhost

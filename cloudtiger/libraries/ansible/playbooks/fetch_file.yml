@@ -1,0 +1,14 @@
+---
+- name: Transfer Kubernetes config
+  hosts: "{{ hosts }}"
+
+  vars:
+    source_path: "{{ source_path }}"
+    dest: "{{ dest }}"
+
+  tasks:
+    - name: Fetch k8s dashboard token
+      ansible.builtin.fetch:
+        src: "{{ source_path }}"
+        dest: "{{ dest }}"
+        flat: yes

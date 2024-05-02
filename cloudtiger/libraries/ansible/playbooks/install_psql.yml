@@ -1,0 +1,24 @@
+---
+- name: Install PostgreSQL 15
+  hosts: "{{ hosts }}"
+  become: yes
+
+  tasks:
+    - name: Add PostgreSQL apt repository key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_lsb.codename }}-pgdg main"
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install PostgreSQL
+      apt:
+        name: postgresql-15
+        state: present

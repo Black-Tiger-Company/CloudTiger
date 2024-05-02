@@ -1,0 +1,41 @@
+---
+- name: Install kubectl on Ubuntu
+  hosts: "{{ hosts }}"
+  become: true
+
+  tasks:
+    - name: Update package list
+      apt:
+        update_cache: yes
+
+    - name: Install apt-transport-https package
+      apt:
+        name: apt-transport-https
+        state: present
+
+    - name: Add GPG key for Kubernetes repository
+      apt_key:
+        state: present
+        url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+
+    - name: Add Kubernetes repository to package sources
+      apt_repository:
+        repo: deb https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /
+        state: present
+
+    - name: Update package list
+      apt:
+        update_cache: yes
+
+    - name: Install kubectl
+      apt:
+        name: kubectl={{ kubectl_version }}
+        state: present
+
+    - name: Verify kubectl installation
+      command: kubectl version --client
+      register: kubectl_version
+
+    - name: Display kubectl version
+      debug:
+        var: kubectl_version.stdout_lines

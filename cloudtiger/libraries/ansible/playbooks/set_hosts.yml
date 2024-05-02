@@ -1,0 +1,15 @@
+# this playbook set custom /etc/hosts
+- name: set custom /etc/hosts
+  hosts: "{{ hosts }}"
+  become: true
+
+  vars:
+    custom_dns: "{{ custom_dns }}"
+
+  tasks:
+    - name: Ensure entries are in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ item.ip }} {{ item.name }}"
+        regexp: '.*{{ item.name }}$'  # This ensures the entry for the hostname is replaced if it exists
+      loop: "{{ custom_dns }}"

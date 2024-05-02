@@ -1,0 +1,24 @@
+---
+- name: Install PostgreSQL 15
+  hosts: "{{ hosts }}"
+  become: yes
+
+  tasks:
+    - name: Add Mongo apt repository key
+      apt_key:
+        url: https://www.mongodb.org/static/pgp/server-7.0.asc
+        state: present
+
+    - name: Add Mongo repository
+      apt_repository:
+        repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu {{ ansible_lsb.codename }}/mongodb-org/7.0 multiverse"
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install PostgreSQL
+      apt:
+        name: mongodb-mongosh
+        state: present

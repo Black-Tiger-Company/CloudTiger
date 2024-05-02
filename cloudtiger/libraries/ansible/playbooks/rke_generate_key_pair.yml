@@ -1,0 +1,50 @@
+---
+- name: create and propagate SSH key pair for RKE connection
+  hosts: "{{ jumpbox }}"
+  gather_facts: false
+
+  tasks:
+  - name: clear previous SSH key if necessary
+    file:
+      path: ~/.ssh/{{ key_name }}
+      state: absent
+
+  - name: clear previous SSH key if necessary
+    file:
+      path: ~/.ssh/{{ key_name }}.pub
+      state: absent
+
+  - name: Generate ed25519 SSH key
+    command:
+      cmd: ssh-keygen -t ed25519 -f ~/.ssh/{{ key_name }} -N ""
+    register: ssh_keygen_result
+    changed_when: "'Generating public/private ed25519 key pair.' in ssh_keygen_result.stdout"
+
+  - name: Fetch public key content
+    slurp:
+      src: /home/{{ user }}/.ssh/{{ key_name }}.pub
+    register: public_key_content
+
+  - name: Save public key to a file
+    copy:
+      content: "{{ public_key_content['content'] | b64decode }}"
+      dest: /home/{{ lookup('env', 'USER') }}/.ssh/{{ key_name }}.pub
+      mode: '0600'
+    delegate_to: localhost
+
+- name: Copy SSH public key to target hosts
+  hosts: "{{ nodes }}"
+  gather_facts: false
+  tasks:
+    - name: Fetch public key from localhost
+      fetch:
+        src: /home/{{ lookup('env', 'USER') }}/.ssh/{{ key_name }}.pub
+        dest: /tmp/{{ key_name }}.pub
+        flat: yes
+      delegate_to: localhost
+
+    - name: Copy public key to target hosts
+      authorized_key:
+        user: "{{ user }}"
+        key: "{{ lookup('file', '/tmp/{{ key_name }}.pub') }}"
+        state: present

@@ -1,0 +1,41 @@
+---
+- name: Install Helm on Ubuntu
+  hosts: "{{ hosts }}"
+  become: true
+
+  tasks:
+    - name: Download Helm
+      get_url:
+        url: "https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+        dest: "/tmp/helm.tar.gz"
+
+    - name: Remove tmp folder
+      file:
+        path: "/tmp/linux-amd64"
+        state: absent
+
+    - name: Extract Helm
+      become: true
+      command: "tar -zxvf /tmp/helm.tar.gz -C /tmp"
+      args:
+        creates: "/tmp/linux-amd64"
+
+    - name: Move Helm binary to /usr/local/bin
+      become: true
+      command: "mv /tmp/linux-amd64/helm /usr/local/bin/helm"
+
+    - name: Set Helm permissions
+      become: true
+      file:
+        path: /usr/local/bin/helm
+        mode: "+x"
+
+    - name: Verify Helm installation
+      command: "helm version --short"
+      register: helm_version_output
+
+    - name: Display Helm version
+      debug:
+        var: helm_version_output.stdout
+
+

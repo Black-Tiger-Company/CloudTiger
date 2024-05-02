@@ -1,0 +1,21 @@
+---
+- name: Pull Longhorn dockers
+  hosts: "{{ hosts }}"
+
+  vars:
+    longhorn_list: "{{ longhorn_list }}"
+
+  tasks:
+    - name: Read the content of the file from localhost
+      local_action:
+        module: slurp
+        src: "{{ longhorn_list }}"
+      register: file_content
+
+    - name: Decode the file content
+      set_fact:
+        images: "{{ (file_content['content'] | b64decode).split('\n') | select() | list }}"
+
+    - name: Docker pull for each image
+      command: "docker pull {{ item }}"
+      loop: "{{ images }}"

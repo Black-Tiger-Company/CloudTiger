@@ -1,0 +1,28 @@
+# this playbook run update & upgrade then reboot hosts
+- name: Update apt repositories
+  hosts: "{{ hosts }}"
+  become: true
+  tasks:
+  - name: Update apt cache
+    apt:
+      update_cache: yes
+
+  - name: Upgrade all packages to the latest version
+    apt:
+      upgrade: dist
+
+  - name: Rebooting
+    ansible.builtin.command: shutdown -r now removes=/var/run/reboot-required
+    become: yes
+    become_method: sudo
+    async: 0
+    poll: 0
+    ignore_errors: true
+    register: restarted
+
+  - name: Wait for SSH to come up
+    wait_for_connection:
+      connect_timeout: 10
+      sleep: 5
+      delay: 5
+      timeout: 500

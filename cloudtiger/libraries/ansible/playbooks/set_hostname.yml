@@ -1,0 +1,8 @@
+# this playbook update hostnames
+- name: Set hostnames
+  hosts: "{{ hosts }}"
+  become: true
+  tasks:
+  - name: Update hostname to inventory hostname
+    ansible.builtin.shell: hostnamectl set-hostname {{ vm_names[inventory_hostname] | default(inventory_hostname) }}
+    become: true

@@ -1,0 +1,66 @@
+---
+- name: check K8s cluster
+  hosts: "{{ hosts }}"
+
+  vars:
+    data_dir: "{{ data_dir }}"
+    data_dir_fs: "{{ data_dir_fs }}"
+
+  tasks:
+  - name: Filter ansible_mounts for data dir
+    set_fact:
+      mountpoint_info: "{{ ansible_mounts | selectattr('mount', '==', data_dir) | list }}"
+    ignore_errors: yes  # Ignore errors if there are no matches
+
+  - name: Fail if no items for data dir
+    fail:
+      msg: "No items found for data dir in ansible_mounts"
+    when: mountpoint_info | length == 0
+
+  - name: Check if {{ data_dir }} is mounted as ext4
+    fail:
+      msg: "{{ data_dir }} is not mounted as {{ data_dir_fs }}"
+    when: mountpoint_info[0].fstype != 'ext4'
+
+  - name: Check Docker service status
+    systemd:
+      name: docker
+      state: started
+    register: docker_service_status
+
+  - name: Fail if Docker service is not running
+    fail:
+      msg: "Docker service is not running"
+    when: docker_service_status.failed
+
+  - name: Check iscsid service status
+    systemd:
+      name: iscsid
+      state: started
+    register: iscsid_service_status
+
+  - name: Fail if iscsid service is not running
+    fail:
+      msg: "iscsid service is not running"
+    when: iscsid_service_status.failed
+
+  - name: Read daemon.json file
+    ansible.builtin.slurp:
+      src: /etc/docker/daemon.json
+    register: daemon_json_contents
+
+  - name: Convert JSON contents to dictionary
+    set_fact:
+      daemon_json_data: "{{ daemon_json_contents.content | b64decode | from_json }}"
+
+  - name: Check for the presence of data-root key
+    assert:
+      that:
+        - daemon_json_data['data-root'] is defined
+      msg: "The 'data-root' key is not defined in daemon.json file."
+
+  - name: Check the value of data-root key
+    assert:
+      that:
+        - daemon_json_data['data-root'] == "/data/docker"
+      msg: "The 'data-root' key value is not '/data/docker' in daemon.json file."
