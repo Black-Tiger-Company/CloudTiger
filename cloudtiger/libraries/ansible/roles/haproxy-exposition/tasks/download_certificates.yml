@@ -1,0 +1,70 @@
+- name: Create SSL certificates folder
+  file: 
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: yes
+  become_method: sudo
+  with_items: "{{ certificate_folders }}"
+
+- name: Download SSL certificates
+  get_url:
+    url: "{{ nexus_url }}/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0644
+  with_items: "{{ download_certificates_list }}"
+  become: yes
+  become_method: sudo
+  retries: 10
+  delay: 10
+
+- name: Download SSL certificates - archives
+  get_url:
+    url: "{{ nexus_url }}/{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items: "{{ download_certificates_list_archives }}"
+  become: yes
+  become_method: sudo
+  retries: 10
+  delay: 10
+
+- name: delete previous SSL folder
+  file:
+    path: "{{ item.dest }}/{{ item.internal_folder }}"
+    state: absent
+  with_items: "{{ download_certificates_list_archives }}"
+  become: yes
+  become_method: sudo
+
+- name: untar SSL archives
+  shell:
+    cmd: tar -xvzf {{ item.src | basename }}
+  args:
+    chdir: "{{ item.dest }}"
+  with_items: "{{ download_certificates_list_archives }}"
+  become: yes
+  become_method: sudo
+
+- name: set ACLs for certificates folder
+  file:
+    path: "{{ item.dest }}/{{ item.internal_folder }}"
+    mode: '0755'
+  with_items: "{{ download_certificates_list_archives }}"
+  become: yes
+  become_method: sudo
+
+- name: set ACLs for certificates - fullchain
+  file:
+    path: "{{ item.dest }}/{{ item.internal_folder }}/fullchain.pem"
+    mode: 0644
+  with_items: "{{ download_certificates_list_archives }}"
+  become: yes
+  become_method: sudo
+
+- name: set ACLs for certificates - privkey
+  file:
+    path: "{{ item.dest }}/{{ item.internal_folder }}/fullchain.pem.key"
+    mode: 0644
+  with_items: "{{ download_certificates_list_archives }}"
+  become: yes
+  become_method: sudo

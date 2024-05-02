@@ -1,0 +1,9 @@
+---
+# vars file for haproxy
+configure_datastack: false
+configure_platform: false
+
+install_haproxy: true
+configure_haproxy: true
+certifs_acl: true
+restart_haproxy: true

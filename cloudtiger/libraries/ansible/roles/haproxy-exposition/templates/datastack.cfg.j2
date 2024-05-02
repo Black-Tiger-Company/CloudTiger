@@ -1,0 +1,104 @@
+frontend brennus_mongo
+  bind *:27017
+  mode tcp
+
+{% if auto_ip_filter %}
+  acl allow_ip src {{ ip_whitelist }}
+  tcp-request content accept if allow_ip
+  tcp-request content reject if !allow_ip
+{% endif %}
+
+  use_backend mongo if backend_mongo is_internal
+
+frontend brennus_postgres
+  bind *:5432
+  mode tcp
+
+{% if auto_ip_filter %}
+  acl allow_ip src {{ ip_whitelist }}
+  tcp-request content accept if allow_ip
+  tcp-request content reject if !allow_ip
+{% endif %}
+
+  use_backend postgres if backend_postgres is_internal
+
+frontend brennus_elastic
+  bind *:9200
+  mode tcp
+
+{% if auto_ip_filter %}
+  acl allow_ip src {{ ip_whitelist }}
+  tcp-request content accept if allow_ip
+  tcp-request content reject if !allow_ip
+{% endif %}
+
+  use_backend elastic if backend_elastic is_internal
+
+frontend brennus_keycloak
+  bind *:8080
+  mode tcp
+
+{% if auto_ip_filter %}
+  acl allow_ip src {{ ip_whitelist }}
+  tcp-request content accept if allow_ip
+  tcp-request content reject if !allow_ip
+{% endif %}
+
+  use_backend keycloak if backend_keycloak is_internal
+
+frontend brennus_kibana
+  bind *:5601
+  mode tcp
+
+{% if auto_ip_filter %}
+  acl allow_ip src {{ ip_whitelist }}
+  tcp-request content accept if allow_ip
+  tcp-request content reject if !allow_ip
+{% endif %}
+
+  use_backend kibana if backend_kibana is_internal
+
+backend mongo
+  mode tcp
+  balance roundrobin
+{% for node in datastack.nodes %}
+  server {{ node.name }} {{ node.address }}:{{ datastack.mongo_nodeport }}
+{% endfor %}
+  timeout connect 10s
+  timeout server  1m
+
+backend postgres
+  mode tcp
+  balance roundrobin
+{% for node in datastack.nodes %}
+  server {{ node.name }} {{ node.address }}:{{ datastack.postgres_nodeport }}
+{% endfor %}
+  timeout connect 10s
+  timeout server  1m
+
+backend elastic
+  mode tcp
+  balance roundrobin
+{% for node in datastack.nodes %}
+  server {{ node.name }} {{ node.address }}:{{ datastack.elastic_nodeport }}
+{% endfor %}
+  timeout connect 10s
+  timeout server  1m
+
+backend keycloak
+  mode tcp
+  balance roundrobin
+{% for node in datastack.nodes %}
+  server {{ node.name }} {{ node.address }}:{{ datastack.keycloak_nodeport }}
+{% endfor %}
+  timeout connect 10s
+  timeout server  1m
+
+backend kibana
+  mode tcp
+  balance roundrobin
+{% for node in datastack.nodes %}
+  server {{ node.name }} {{ node.address }}:{{ datastack.kibana_nodeport }}
+{% endfor %}
+  timeout connect 10s
+  timeout server  1m

@@ -1,0 +1,115 @@
+
+- name: Mkdir /etc/haproxy/haproxy.conf.d
+  file:
+    path: /etc/haproxy/haproxy.conf.d
+    state: directory
+  become: true
+  become_method: sudo
+
+- name: Move haproxy.cfg to /etc/haproxy/haproxy.conf.d
+  copy:
+    remote_src: yes
+    src: /etc/haproxy/haproxy.cfg
+    dest: /etc/haproxy/haproxy.conf.d/0-common.cfg
+  become: true
+  become_method: sudo
+  ignore_errors: true
+
+
+- name: Save haproxy.service file for safety purpose
+  copy: 
+    remote_src: yes
+    src: /lib/systemd/system/haproxy.service
+    dest: /etc/haproxy/haproxy.service.bkp
+  become: true
+  become_method: sudo
+  ignore_errors: true
+
+- name: Reconfigure haproxy.service systemd file to use folder instead of cfg file
+  replace:
+    path: /lib/systemd/system/haproxy.service
+    regexp: 'CONFIG=/etc/haproxy/haproxy.cfg'
+    replace: 'CONFIG=/etc/haproxy/haproxy.conf.d'
+  become: true
+  become_method: sudo
+
+- name: Template and upload config files
+  template:
+    src: ha.cfg.j2
+    dest: "/etc/haproxy/haproxy.conf.d/{{ item.service }}.cfg"
+  loop: "{{ routes }}"
+  become: true
+  become_method: sudo
+
+- debug:
+    var: item.content
+  loop: "{{ local_conf }}"
+
+- name: Create custom config files
+  copy:
+    content: "{{ item.content }}"
+    dest: "/etc/haproxy/haproxy.conf.d/{{ item.filename }}.cfg"
+  loop: "{{ local_conf }}"
+  become: true
+  become_method: sudo
+
+- name: Replace "\\n" with line breaks
+  lineinfile:
+    path: /etc/haproxy/haproxy.conf.d/{{ item.filename }}.cfg
+    regexp: '\\n'
+    line: ""
+  register: replace_result
+  loop: "{{ local_conf }}"
+  become: true
+  become_method: sudo
+
+- name: Get localhost's public IP
+  command: curl -s https://ifconfig.me/ip
+  changed_when: false
+  register: public_ip_result
+  ignore_errors: true  # Ignore errors if curl fails
+  when:
+  - ip_whitelist is not defined
+  - auto_ip_filter is true
+  delegate_to: localhost
+
+- name: Set ip_whitelist if not already set
+  set_fact:
+    ip_whitelist: "{{ public_ip_result.stdout }}"
+  when:
+  - ip_whitelist is not defined
+  - auto_ip_filter is true
+
+- name: Debug output
+  debug:
+    var: ip_whitelist
+  when:
+  - auto_ip_filter is true
+
+- name: Configure default routing
+  template:
+    src: ha.cfg.j2
+    dest: "/etc/haproxy/haproxy.conf.d/{{ item.service }}.cfg"
+  loop: "{{ default_route }}"
+  when: 
+  - local_conf|length<1 
+  - (routes|length<1)
+  - configure_default_routing
+  become: true
+  become_method: sudo
+
+- name: Configure datastack routing
+  template:
+    src: datastack.cfg.j2
+    dest: "/etc/haproxy/haproxy.conf.d/datastack.cfg"
+  when: configure_datastack
+  become: true
+  become_method: sudo
+
+- name: Configure Platform routing
+  template:
+    src: platform.cfg.j2
+    dest: "/etc/haproxy/haproxy.conf.d/platform.cfg"
+  when: configure_platform
+  become: true
+  become_method: sudo

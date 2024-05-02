@@ -1,0 +1,75 @@
+frontend platform_http
+  bind *:80
+  redirect scheme https code 301
+
+frontend platform_https
+  bind *:443 ssl {% for a_cert in certificates %} crt {{ a_cert }}{% endfor %}
+
+{% if auto_ip_filter %}
+  acl allow_ip src {{ ip_whitelist }}
+  http-request deny if !allow_ip
+{% endif %}
+{% for svc in blocked_services %}
+  acl block_subpath path_beg -i /{{ svc.path }}
+{% endfor %}
+  
+  default_backend platform_backend
+
+frontend platform_dashboard_https
+  bind *:8080 ssl {% for a_cert in certificates %} crt {{ a_cert }}{% endfor %}
+
+{% for svc in blocked_services %}
+  acl block_subpath path_beg -i /{{ svc.path }}
+{% endfor %}
+  
+  default_backend dashboard_backend
+
+frontend platform_mongo
+  bind *:27017
+  mode tcp
+  option tcplog
+
+  use_backend mongo
+
+frontend platform_postgres
+  bind *:5432
+  mode tcp
+  option tcplog
+
+  use_backend postgres
+
+frontend platform_elastic
+  bind *:9200
+  mode tcp
+  option tcplog
+
+  use_backend elastic
+
+frontend platform_redis
+  bind *:6379
+  mode tcp
+  option tcplog
+
+  use_backend redis
+
+backend platform_backend
+  server main_server {{ platform_internal_master }}:{{ platform_internal_port_ingress }}
+
+backend dashboard_backend
+  server main_server {{ platform_internal_master }}:{{ platform_internal_port_dashboard }} check ssl verify none
+
+backend mongo
+  mode tcp
+  server platform_internal_master {{ platform_internal_master }}:{{ platform_internal_ports.mongo }}
+
+backend postgres
+  mode tcp
+  server platform_internal_master {{ platform_internal_master }}:{{ platform_internal_ports.postgres }}
+
+backend elastic
+  mode tcp
+  server platform_internal_master {{ platform_internal_master }}:{{ platform_internal_ports.elastic }}
+
+backend redis
+  mode tcp
+  server platform_internal_master {{ platform_internal_master }}:{{ platform_internal_ports.redis }}

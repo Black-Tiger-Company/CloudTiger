@@ -1,0 +1,31 @@
+
+frontend {{ item.service }}_{{ item.bind_port }}
+  bind *:{{ item.bind_port }}
+  {% if "secure_port" in item.keys() %}
+  redirect scheme {{ item.secure_protocol }} code 301
+
+frontend {{ item.service }}_{{ item.secure_port }}
+  bind *:{{ item.secure_port }} ssl {% for a_cert in item.certificates %} crt {{ a_cert }}{% endfor %}
+  {% endif %}
+
+  mode {{ item.mode }}
+{% if "path" in item.keys() %}
+  acl is_{{ item.service }} path_beg {{ item.path }}
+{% endif %}
+  use_backend back_{{ item.service }} {% if "path" in item.keys() %}if is_{{ item.service }}{% endif %}
+
+backend back_{{ item.service }}
+  mode {{ item.mode }}
+  timeout connect 10s
+  timeout server  1m
+{% if item.mode == "http" %}
+  http-request set-header X-Forwarded-Host %[req.hdr(host)]
+  http-request set-header X-Forwarded-Port %[dst_port]
+  http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
+  http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  http-request set-header X-Forwarded-For %[src]
+{% endif %}
+  server {{ item.service }} {{ item.target_ip }}:{{ item.target_port }}{% if item.ssl_backend %} ssl verify none
+{% endif %}
+
+

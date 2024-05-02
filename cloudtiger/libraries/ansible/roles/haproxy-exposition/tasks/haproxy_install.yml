@@ -1,0 +1,19 @@
+- name: Install software-properties-common
+  apt:
+    pkg:
+      - software-properties-common
+  become: yes
+  become_method: sudo
+
+
+- name: Add HAProxy apt Repository
+  apt_repository:
+    repo: ppa:vbernat/haproxy-{{ haproxy_version }}
+    state: present
+  become: yes
+  become_method: sudo
+
+- name: Install haproxy
+  command: apt install haproxy={{ haproxy_version }}.\* -y
+  become: yes
+  become_method: sudo

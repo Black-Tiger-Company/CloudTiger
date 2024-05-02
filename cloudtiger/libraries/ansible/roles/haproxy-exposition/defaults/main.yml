@@ -1,0 +1,53 @@
+---
+# defaults file for haproxy
+haproxy_version: 2.4
+upload_certificates: False
+download_certificates: True
+certificate_folders:
+- /etc/ssl/platform
+upload_certificates_list:
+- src: ~/.ssl/cert.pem
+  dest: /etc/ssl/platform
+download_certificates_list:
+- src: repository/certificates.txt
+  dest: /etc/ssl/platform/platform.tech.pem
+download_certificates_list_archives:
+- src: repository/certificates.tgz
+  dest: /etc/ssl
+  internal_folder: platform.tech
+
+# SSL certificate source
+nexus_url: http://nexus.com:8081
+
+default_route:
+  - service: example
+    target_port: 8080
+    bind_port: 80
+    secure_port: 443
+    secure_protocol: https
+    mode: http
+    target_ip: 127.0.0.1
+    certificates: 
+      - /etc/ssl/platform/platform.tech.pem
+
+platform_internal_master: localhost
+platform_internal_port_ingress: 80
+platform_internal_ports:
+  mongo: 27017
+  postgres: 5432
+  elastic: 9200
+  redis: 6379
+platform_internal_port_dashboard: 30080
+
+# blocked_services: []
+blocked_services:
+- name: dashboard
+  path: dashboard
+
+local_conf: []
+routes: []
+
+configure_default_routing: false
+
+# filter by IP
+auto_ip_filter: false

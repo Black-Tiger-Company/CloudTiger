@@ -1,0 +1,14 @@
+- name: Create SSL certificates folder
+  file: 
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items: "{{ certificate_folders }}"
+
+- name: Upload SSL certificates if necessary
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  become: true
+  become_method: sudo
+  with_items: "{{ upload_certificates_list }}"

@@ -1,0 +1,34 @@
+---
+# tasks file for haproxy
+- include_tasks: upload_certificates.yml
+  when: upload_certificates is true
+
+- include_tasks: download_certificates.yml
+  when: download_certificates is true
+
+- include_tasks: haproxy_install.yml
+  when: install_haproxy is true
+- include_tasks: haproxy_setup.yml
+  when: configure_haproxy is true
+
+- name: Set SSL certificates folders ownership
+  file: 
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: haproxy
+    recurse: true
+  become: true
+  become_method: sudo
+  with_items: "{{ certificate_folders }}"
+  when: certifs_acl is true
+
+- name : Restart HAProxy
+  systemd:
+    name: haproxy.service
+    daemon-reload: yes
+    state: restarted
+  become: true
+  become_method: sudo
+  ignore_errors: yes # we assume that configurations may need updates to be valid
+  when: restart_haproxy is true
