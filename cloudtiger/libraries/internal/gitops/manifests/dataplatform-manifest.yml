@@ -1,0 +1,404 @@
+### Modules for a Data Platform
+# Base - base services for a Kubernetes Platform
+# Datases - set of databases (MongoDB, PostgreSQL, etc)
+# Dataflow - tools for data ingestion and ETLs
+# Monitoring and Synchronization - tools for monitoring the K8s cluster and synchronization with a versioning tool
+# High Memory Stack - for memory intensive jobs (ML especially)
+# Spark Compute Stack
+# Spark Compute Stack
+# Dev CI Stack - set of tools for a Development platform (code versioning, publishing and testing)
+# Frontend Stack - GUI and data visualization tools
+modules:
+- id: base
+  name: Base
+- id: databases
+  name: Databases
+- id: dataflow
+  name: Dataflow
+- id: monitoring
+  name: Monitoring and Synchronization
+- id: high_memory
+  name: High Memory Stack
+- id: compute
+  name: Spark Compute Stack
+- id: lab
+  name: Spark Compute Stack
+- id: ci
+  name: Dev CI Stack
+- id: front
+  name: Frontend Stack
+components:
+- name: Longhorn
+    version: 1.5.1
+    id: longhorn
+    module: base
+  - name: Kubeapps
+    version: 14.0.2
+    id: kubeapps
+    module: monitoring
+  - name: Prometheus
+    version: 8.21.6
+    id: prometheus
+    module: monitoring
+  - name: Ingress Nginx
+    version: 4.8.2
+    id: nginx
+    module: base
+  - name: MongoDB
+    version: 6.0.5
+    id: mongodb
+    module: databases
+  - name: ElasticSearch
+    version: 8.7.0
+    id: elasticsearch
+    module: databases
+  - name: PostgreSQL
+    version: 15.2.0
+    id: postgresql
+    module: databases
+  - name: Redis
+    version: 7.0.11
+    id: redis
+    module: databases
+  - name: Kibana
+    version: 8.7.0
+    id: front
+    module: base
+  - name: Kafka
+    version: 3.4.0
+    id: kafka
+    module: dataflow
+  - name: Spark
+    version: 3.3.2
+    id: spark
+    module: compute
+  - name: Jupyterhub
+    version: 4.0.2
+    id: jupyterhub
+    module: lab
+  - name: ArgoCD
+    version: 2.6.7
+    id: argocd
+    module: monitoring
+  - name: KeyCloak
+    version: 21.0.2
+    id: keycloak
+    module: base
+  - name: Airflow
+    version: 2.6.1
+    id: airflow
+    module: compute
+  - name: Grafana
+    version: 9.4.7
+    id: grafana
+    module: monitoring
+  - name: Appsmith
+    version: v1.9.31
+    id: appsmith
+    module: front
+    default: false
+  - name: Oathkeeper
+    version: v0.40.6
+    id: oathkeeper
+    module: base
+
+infrastructure:
+  vm_types:
+    aws:
+      kubemaster:
+        prod: 
+          type: "m7g.xlarge"
+        nonprod: 
+          type: "m7g.xlarge"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        root_volume_type: large_root
+        data_volume_type: large_k8s
+      kubenode:
+        prod: 
+          type: "m7g.xlarge"
+        nonprod: 
+          type: "m7g.xlarge"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        root_volume_type: large_root
+        data_volume_type: large_k8s
+      kubenode_high_memory:
+        prod: 
+          type: "m7g.4xlarge"
+        nonprod: 
+          type: "m7g.2xlarge"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        root_volume_type: large_root
+        data_volume_type: large_k8s
+      kubenode_high_compute:
+        prod: 
+          type: "m7g.4xlarge"
+        nonprod: 
+          type: "m7g.2xlarge"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        root_volume_type: large_root
+        data_volume_type: large_k8s
+      jumpbox:
+        prod: 
+          type: "t3.small"
+        nonprod: 
+          type: "t3.small"
+          data_volume_size: 64
+        ingress_rules: ["icmp","ssh", "nexus"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        root_volume_type: small_root
+        data_volume_type: none
+      bastion:
+        prod: 
+          type: "t3.small"
+        nonprod: 
+          type: "t3.small"
+          data_volume_size: 32
+        ingress_rules: ["icmp","ssh", "http", "https"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+          http: ["0.0.0.0/0"]
+          https: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        root_volume_type: small_root
+        data_volume_type: none
+    azure:
+      kubemaster:
+        prod: 
+          type: "Standard_DS3_v2"
+        nonprod: 
+          type: "Standard_DS3_v2"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      kubenode:
+        prod: 
+          type: "Standard_DS3_v2"
+        nonprod: 
+          type: "Standard_DS3_v2"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      kubenode_high_memory:
+        prod: 
+          type: "Standard_DS4_v2"
+        nonprod: 
+          type: "Standard_DS5_v2"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      kubenode_high_compute:
+        prod: 
+          type: "Standard_DS4_v2"
+        nonprod: 
+          type: "Standard_DS4_v2"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      jumpbox:
+        prod: 
+          type: "Standard_DS1_v2"
+        nonprod: 
+          type: "Standard_DS1_v2"
+          data_volume_size: 64
+        ingress_rules: ["icmp","ssh", "nexus"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      bastion:
+        prod: 
+          type: "Standard_DS1_v2"
+        nonprod: 
+          type: "Standard_DS1_v2"
+          data_volume_size: 32
+        ingress_rules: ["icmp","ssh", "http", "https"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+          http: ["0.0.0.0/0"]
+          https: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+    gcp:
+      kubemaster:
+        prod: 
+          type: "e2-standard-4"
+        nonprod: 
+          type: "e2-standard-4"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      kubenode:
+        prod: 
+          type: "e2-standard-4"
+        nonprod: 
+          type: "e2-standard-4"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      kubenode_high_memory:
+        prod: 
+        type: "e2-standard-8"
+        nonprod: 
+          type: "e2-standard-8"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      kubenode_high_compute:
+        prod: 
+          type: "e2-standard-8"
+        nonprod: 
+          type: "e2-standard-8"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      jumpbox:
+        prod: 
+          type: "e2-micro"
+        nonprod: 
+          type: "e2-micro"
+          data_volume_size: 64
+        ingress_rules: ["icmp","ssh", "nexus"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+      bastion:
+        prod: 
+          type: "e2-micro"
+        nonprod: 
+          type: "e2-micro"
+          data_volume_size: 32
+        ingress_rules: ["icmp","ssh", "http", "https"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+          http: ["0.0.0.0/0"]
+          https: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+    default:
+      kubemaster:
+        prod:
+          data_volume_size: 0
+          root_volume_size: 200
+          memory: 16384
+          nb_sockets: 1
+          nb_vcpu_per_socket: 4
+        nonprod:
+          data_volume_size: 0
+          root_volume_size: 100
+          memory: 8192
+          nb_sockets: 1
+          nb_vcpu_per_socket: 4
+      kubenode:
+        prod:
+          data_volume_size: 0
+          root_volume_size: 200
+          memory: 8192
+          nb_sockets: 1
+          nb_vcpu_per_socket: 4
+        nonprod:
+          data_volume_size: 0
+          root_volume_size: 100
+          memory: 8192
+          nb_sockets: 1
+          nb_vcpu_per_socket: 4
+      kubenode_high_memory:
+        prod:
+          data_volume_size: 0
+          root_volume_size: 200
+          memory: 65536
+          nb_sockets: 1
+          nb_vcpu_per_socket: 4
+        nonprod:
+          data_volume_size: 0
+          root_volume_size: 100
+          memory: 32768
+          nb_sockets: 1
+          nb_vcpu_per_socket: 4
+      kubenode_high_compute:
+        prod:
+          data_volume_size: 0
+          root_volume_size: 200
+          memory: 8192
+          nb_sockets: 2
+          nb_vcpu_per_socket: 8
+        nonprod:
+          data_volume_size: 0
+          root_volume_size: 100
+          memory: 8192
+          nb_sockets: 1
+          nb_vcpu_per_socket: 4
+      jumpbox:
+        prod:
+          data_volume_size: 0
+          root_volume_size: 100
+          memory: 2048
+          nb_sockets: 1
+          nb_vcpu_per_socket: 1
+        nonprod:
+          data_volume_size: 0
+          root_volume_size: 5
+          memory: 1024
+          nb_sockets: 1
+          nb_vcpu_per_socket: 1
+      bastion:
+        prod:
+          data_volume_size: 0
+          root_volume_size: 16
+          memory: 1024
+          nb_sockets: 1
+          nb_vcpu_per_socket: 1
+        nonprod:
+          data_volume_size: 0
+          root_volume_size: 16
+          memory: 1024
+          nb_sockets: 1
+          nb_vcpu_per_socket: 1
