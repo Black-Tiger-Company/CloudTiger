@@ -694,7 +694,7 @@ def generate(operation: Operation):
                 vm_values['egress_rules'] = copy.deepcopy(vm_type_parameters.get("egress_rules", []))
                 vm_values['egress_cidr'] = copy.deepcopy(vm_type_parameters.get("egress_cidr", {}))
                 vm_values['instance_profile'] = copy.deepcopy(vm_type_parameters.get("instance_profile", "default"))
-                vm_values["vm_type"] = added_vm_type
+                vm_values["type"] = added_vm_type
                 vm_values["root_volume_type"] = vm_type_parameters.get("root_volume_type", "small_root")
                 vm_values["data_volume_type"] = vm_type_parameters.get("data_volume_type", "small_data")
 
