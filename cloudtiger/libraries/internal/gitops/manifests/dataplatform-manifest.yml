@@ -1,4 +1,6 @@
 ### Modules for a Data Platform
+# A module is a functional aggregate of software services for a specific functional task
+### The current list of modules :
 # Base - base services for a Kubernetes Platform
 # Datases - set of databases (MongoDB, PostgreSQL, etc)
 # Dataflow - tools for data ingestion and ETLs
@@ -8,6 +10,10 @@
 # Spark Compute Stack
 # Dev CI Stack - set of tools for a Development platform (code versioning, publishing and testing)
 # Frontend Stack - GUI and data visualization tools
+### Modules structure
+# modules:
+# - id: internal name used for identifying the module
+#   name: displayed name in the CLI prompt
 modules:
 - id: base
   name: Base
@@ -27,89 +33,116 @@ modules:
   name: Dev CI Stack
 - id: front
   name: Frontend Stack
+### Components for a Data Platform
+# Each component is a software service attached to a component
+# components:
+# - name: displayed name in the CLI prompt
+#   version: version of the software
+#   id: internal name used for identifying the component
 components:
 - name: Longhorn
-    version: 1.5.1
-    id: longhorn
-    module: base
-  - name: Kubeapps
-    version: 14.0.2
-    id: kubeapps
-    module: monitoring
-  - name: Prometheus
-    version: 8.21.6
-    id: prometheus
-    module: monitoring
-  - name: Ingress Nginx
-    version: 4.8.2
-    id: nginx
-    module: base
-  - name: MongoDB
-    version: 6.0.5
-    id: mongodb
-    module: databases
-  - name: ElasticSearch
-    version: 8.7.0
-    id: elasticsearch
-    module: databases
-  - name: PostgreSQL
-    version: 15.2.0
-    id: postgresql
-    module: databases
-  - name: Redis
-    version: 7.0.11
-    id: redis
-    module: databases
-  - name: Kibana
-    version: 8.7.0
-    id: front
-    module: base
-  - name: Kafka
-    version: 3.4.0
-    id: kafka
-    module: dataflow
-  - name: Spark
-    version: 3.3.2
-    id: spark
-    module: compute
-  - name: Jupyterhub
-    version: 4.0.2
-    id: jupyterhub
-    module: lab
-  - name: ArgoCD
-    version: 2.6.7
-    id: argocd
-    module: monitoring
-  - name: KeyCloak
-    version: 21.0.2
-    id: keycloak
-    module: base
-  - name: Airflow
-    version: 2.6.1
-    id: airflow
-    module: compute
-  - name: Grafana
-    version: 9.4.7
-    id: grafana
-    module: monitoring
-  - name: Appsmith
-    version: v1.9.31
-    id: appsmith
-    module: front
-    default: false
-  - name: Oathkeeper
-    version: v0.40.6
-    id: oathkeeper
-    module: base
+  version: 1.5.1
+  id: longhorn
+  module: base
+- name: Kubeapps
+  version: 14.0.2
+  id: kubeapps
+  module: monitoring
+- name: Prometheus
+  version: 8.21.6
+  id: prometheus
+  module: monitoring
+- name: Ingress Nginx
+  version: 4.8.2
+  id: nginx
+  module: base
+- name: MongoDB
+  version: 6.0.5
+  id: mongodb
+  module: databases
+- name: ElasticSearch
+  version: 8.7.0
+  id: elasticsearch
+  module: databases
+- name: PostgreSQL
+  version: 15.2.0
+  id: postgresql
+  module: databases
+- name: Redis
+  version: 7.0.11
+  id: redis
+  module: databases
+- name: Kibana
+  version: 8.7.0
+  id: front
+  module: base
+- name: Kafka
+  version: 3.4.0
+  id: kafka
+  module: dataflow
+- name: Spark
+  version: 3.3.2
+  id: spark
+  module: compute
+- name: Jupyterhub
+  version: 4.0.2
+  id: jupyterhub
+  module: lab
+- name: ArgoCD
+  version: 2.6.7
+  id: argocd
+  module: monitoring
+- name: KeyCloak
+  version: 21.0.2
+  id: keycloak
+  module: base
+- name: Airflow
+  version: 2.6.1
+  id: airflow
+  module: compute
+- name: Grafana
+  version: 9.4.7
+  id: grafana
+  module: monitoring
+- name: Appsmith
+  version: v1.9.31
+  id: appsmith
+  module: front
+  default: false
+- name: Oathkeeper
+  version: v0.40.6
+  id: oathkeeper
+  module: base
 
+### Infrastructure information
+# This key gathers all information necessary for the infrastructure sizing of your platform
+### Structure
+# infrastructure:
+#   vm_types:
+#     <PROVIDER_NAME>:
+#       <VM_TYPE>:
+#         prod: ### characterization of the 'prod' environment
+#           type: "<VM_TYPE>" ### public cloud providers use specific names for VM sizings
+#         <ENVIRONMENT_NAME>: ### you can add the characterization of any other environment
+#           type: "m5.xlarge"
+#         nonprod: ### characterization of all other environment
+#           type: "m5.xlarge"
+#           data_volume_size: 125
+#         ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"] ### a list of pre-configured ingress rules
+#         ingress_cidr: ## a map of filtered IP ranges for ingress rules
+#           ssh: ["0.0.0.0/0"]
+#         egress_rules: ["default"] ### same for egress
+#         egress_cidr     : {}
+#         root_volume_type: large_root
+#         data_volume_type: large_k8s
 infrastructure:
   vm_types:
     aws:
       kubemaster:
         prod: 
-          type: "m7g.xlarge"
+          type: "m5.xlarge"
         nonprod: 
-          type: "m7g.xlarge"
+          type: "m5.xlarge"
           data_volume_size: 125
         ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
         ingress_cidr:
@@ -120,9 +153,9 @@ infrastructure:
         data_volume_type: large_k8s
       kubenode:
         prod: 
-          type: "m7g.xlarge"
+          type: "m5.xlarge"
         nonprod: 
-          type: "m7g.xlarge"
+          type: "m5.xlarge"
           data_volume_size: 125
         ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
         ingress_cidr:
@@ -133,9 +166,9 @@ infrastructure:
         data_volume_type: large_k8s
       kubenode_high_memory:
         prod: 
-          type: "m7g.4xlarge"
+          type: "m5.4xlarge"
         nonprod: 
-          type: "m7g.2xlarge"
+          type: "m5.2xlarge"
           data_volume_size: 125
         ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
         ingress_cidr:
@@ -146,9 +179,9 @@ infrastructure:
         data_volume_type: large_k8s
       kubenode_high_compute:
         prod: 
-          type: "m7g.4xlarge"
+          type: "m5.4xlarge"
         nonprod: 
-          type: "m7g.2xlarge"
+          type: "m5.2xlarge"
           data_volume_size: 125
         ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
         ingress_cidr:

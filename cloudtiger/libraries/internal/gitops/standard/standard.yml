@@ -1,25 +1,25 @@
 ##
 ## map of vm types values available for config.yml
-vm_types:
-  # for public cloud provider, the type should be a VM type name recognized by the provider
-  aws:
-    <VM_TYPE>:
-      prod:
-        type: "t3.medium"
-      nonprod: # 'nonprod' will cover all environments that are not prod or one of the other environments defined in the map
-        type: "t3.medium"
-      <OTHER_ENVIRONMENT_TYPE>: # here you can define other environements than 'prod' or default 'nonprod'
-        type: "t3.medium"
+# vm_types:
+#   # for public cloud provider, the type should be a VM type name recognized by the provider
+#   aws:
+#     <VM_TYPE>:
+#       prod:
+#         type: "t3.medium"
+#       nonprod: # 'nonprod' will cover all environments that are not prod or one of the other environments defined in the map
+#         type: "t3.medium"
+#       <OTHER_ENVIRONMENT_TYPE>: # here you can define other environements than 'prod' or default 'nonprod'
+#         type: "t3.medium"
 
-  # all providers not listed in the 'vm_types' map will fall in the 'default' key:
-  default:
-    data_volume_size: 0 # size of first data volume
-    root_volume_size: 20 # size of root volume
-    memory: 1024 # memory in Mo
-    nb_sockets: 1 # number of CPU sockets
-    nb_vcpu_per_socket: 1 # CPUs per socker
-    ### total number of CPUs will be nb_sockets * nb_vcpu_per_socket
-    ### WARNING : only vSphere supports nb_sockets parameter, for all other providers it will be considered as '1'
+#   # all providers not listed in the 'vm_types' map will fall in the 'default' key:
+#   default:
+#     data_volume_size: 0 # size of first data volume
+#     root_volume_size: 20 # size of root volume
+#     memory: 1024 # memory in Mo
+#     nb_sockets: 1 # number of CPU sockets
+#     nb_vcpu_per_socket: 1 # CPUs per socker
+#     ### total number of CPUs will be nb_sockets * nb_vcpu_per_socket
+#     ### WARNING : only vSphere supports nb_sockets parameter, for all other providers it will be considered as '1'
 
 
 ##
