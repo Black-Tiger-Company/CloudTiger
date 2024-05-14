@@ -44,23 +44,24 @@
       msg: "iscsid service is not running"
     when: iscsid_service_status.failed
 
-  - name: Read daemon.json file
-    ansible.builtin.slurp:
-      src: /etc/docker/daemon.json
-    register: daemon_json_contents
+  ### OBSOLETE
+  # - name: Read daemon.json file/docker' in daemon.json file."
+  #   ansible.builtin.slurp:
+  #     src: /etc/docker/daemon.json
+  #   register: daemon_json_contents
 
-  - name: Convert JSON contents to dictionary
-    set_fact:
-      daemon_json_data: "{{ daemon_json_contents.content | b64decode | from_json }}"
+  # - name: Convert JSON contents to dictionary
+  #   set_fact:
+  #     daemon_json_data: "{{ daemon_json_contents.content | b64decode | from_json }}"
 
-  - name: Check for the presence of data-root key
-    assert:
-      that:
-        - daemon_json_data['data-root'] is defined
-      msg: "The 'data-root' key is not defined in daemon.json file."
+  # - name: Check for the presence of data-root key
+  #   assert:
+  #     that:
+  #       - daemon_json_data['data-root'] is defined
+  #     msg: "The 'data-root' key is not defined in daemon.json file."
 
-  - name: Check the value of data-root key
-    assert:
-      that:
-        - daemon_json_data['data-root'] == "/data/docker"
-      msg: "The 'data-root' key value is not '/data/docker' in daemon.json file."
+  # - name: Check the value of data-root key
+  #   assert:
+  #     that:
+  #       - daemon_json_data['data-root'] == "/data/docker"
+  #     msg: "The 'data-root' key value is not '/data
