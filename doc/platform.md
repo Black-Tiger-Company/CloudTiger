@@ -197,3 +197,182 @@ At the end of the role, Ansible should dump you a Markdown file in this folder :
 
 You can have a look of an example of a manifest file [here](../cloudtiger/libraries/internal/gitops/manifests/dataplatform-manifest.yml).
 
+The structure in details :
+
+### List of modules
+
+A module is a functional aggregate of software services for a specific functional task.
+
+Modules structure:
+
+```yaml
+modules:
+- id: internal name used for identifying the module
+  name: displayed name in the CLI prompt
+```
+
+Example:
+
+```yaml
+modules:
+- id: base
+  name: Base
+- id: databases
+  name: Databases
+- id: dataflow
+  name: Dataflow
+- id: monitoring
+  name: Monitoring and Synchronization
+- id: high_memory
+  name: High Memory Stack
+- id: compute
+  name: Spark Compute Stack
+- id: lab
+  name: Spark Compute Stack
+- id: ci
+  name: Dev CI Stack
+- id: front
+  name: Frontend Stack
+```
+
+### List of components
+
+Each component is a software service attached to a component.
+
+Components structure:
+
+```yaml
+components:
+- name: displayed name in the CLI prompt
+  version: version of the software
+  id: internal name used for identifying the component
+```
+
+Example:
+
+```yaml
+components:
+- name: Longhorn
+  version: 1.5.1
+  id: longhorn
+  module: base
+- name: Kubeapps
+  version: 14.0.2
+  id: kubeapps
+  module: monitoring
+- name: Prometheus
+  version: 8.21.6
+  id: prometheus
+  module: monitoring
+- name: Ingress Nginx
+  version: 4.8.2
+  id: nginx
+  module: base
+- name: MongoDB
+  version: 6.0.5
+  id: mongodb
+  module: databases
+- name: ElasticSearch
+  version: 8.7.0
+  id: elasticsearch
+  module: databases
+- name: PostgreSQL
+  version: 15.2.0
+  id: postgresql
+  module: databases
+- name: Redis
+  version: 7.0.11
+  id: redis
+  module: databases
+- name: Kibana
+  version: 8.7.0
+  id: front
+  module: base
+- name: Kafka
+  version: 3.4.0
+  id: kafka
+  module: dataflow
+- name: Spark
+  version: 3.3.2
+  id: spark
+  module: compute
+- name: Jupyterhub
+  version: 4.0.2
+  id: jupyterhub
+  module: lab
+- name: ArgoCD
+  version: 2.6.7
+  id: argocd
+  module: monitoring
+- name: KeyCloak
+  version: 21.0.2
+  id: keycloak
+  module: base
+- name: Airflow
+  version: 2.6.1
+  id: airflow
+  module: compute
+- name: Grafana
+  version: 9.4.7
+  id: grafana
+  module: monitoring
+- name: Appsmith
+  version: v1.9.31
+  id: appsmith
+  module: front
+  default: false
+- name: Oathkeeper
+  version: v0.40.6
+  id: oathkeeper
+  module: base
+```
+
+### Infrastructure information
+
+This key gathers all information necessary for the infrastructure sizing of your platform.
+
+Structure:
+
+```yaml
+infrastructure:
+  vm_types:
+    <PROVIDER_NAME>:
+      <VM_TYPE>:
+        prod: ### characterization of the 'prod' environment
+          type: "<VM_TYPE>" ### public cloud providers use specific names for VM sizings
+        <ENVIRONMENT_NAME>: ### you can add the characterization of any other environment
+          type: "m7g.xlarge"
+        nonprod: ### characterization of all other environment
+          type: "m7g.xlarge"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"] ### a list of pre-configured ingress rules
+        ingress_cidr: ## a map of filtered IP ranges for ingress rules
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"] ### same for egress
+        egress_cidr     : {}
+        root_volume_type: large_root
+        data_volume_type: large_k8s
+```
+
+Example:
+
+```yaml
+infrastructure:
+  vm_types:
+    aws:
+      kubemaster:
+        prod: 
+          type: "m7g.xlarge"
+        nonprod: 
+          type: "m7g.xlarge"
+          data_volume_size: 125
+        ingress_rules: ["icmp","ssh", "nexus", "mongo", "http_bis","elastic","elastic_2"]
+        ingress_cidr:
+          ssh: ["0.0.0.0/0"]
+        egress_rules: ["default"]
+        egress_cidr     : {}
+        root_volume_type: large_root
+        data_volume_type: large_k8s
+      ...
+```
+

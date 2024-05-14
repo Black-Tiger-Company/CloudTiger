@@ -220,7 +220,7 @@ cloudtiger <SCOPE> tf init
 If you get a warning message from Terraform asking you that you need to migrate the tfstate to go further, you can emulate the native `terraform init -migrate` command with the command :
 
 ```bash
-cloudtiger <SCOPE> tf --migrate
+cloudtiger <SCOPE> tf init --migrate
 ```
 
 #### Apply
@@ -273,10 +273,16 @@ Hint : Ansible by default will not try to upgrade roles already installed. You c
 cloudtiger <SCOPE> ans D -F
 ```
 
-Copy Ansible playbooks from `cloudtiger/libraries/ansible/playbooks` to `<PROJECT_ROOT>/ansible/playbooks`
+Copy Ansible playbooks from `cloudtiger/libraries/ansible/playbooks` __AND__ from `<PROJECT_ROOT>/standard/playbooks` to `<PROJECT_ROOT>/ansible/playbooks`. If some playbooks have the same name, priority is for the playbooks from `<PROJECT_ROOT>/standard/playbooks`.
 
 ```bash
 cloudtiger <SCOPE> ans P
+```
+
+Copy Ansible roles from `cloudtiger/libraries/ansible/roles` to `<PROJECT_ROOT>/ansible/roles`. You can now call these roles with `cloudtiger ... ans 3` command with the key `type: internal_role` in the list `ansible` in `config.yml`. See [here](./commands.md) for more details.
+
+```bash
+cloudtiger <SCOPE> ans R
 ```
 
 Prepare Ansible meta-playbook `execute_ansible.yml` :
@@ -285,20 +291,39 @@ Prepare Ansible meta-playbook `execute_ansible.yml` :
 cloudtiger <SCOPE> ans 2
 ```
 
-Check SSH connexion to VMs (not mandatory for executing Ansible) :
+It is possible to target specific ansible section under another key than `ansible` in the `config.yml` file. If you have a key `ansible-key` defined in your `config.yml` with content using the same format as `ansible`, you can use it instead by adding the option `-a ansible-key`:
+
+```bash
+cloudtiger <SCOPE> ans 2 -a ansible-key
+```
+
+It is also possible to group multiple ansible keys using a comma-separated list of keys. In that case, the content of the ansible keys will be executed according to their order in the comma-separated list. For example, if you have a key `ansible-key-1` and a key `ansible-key-2` in your `config.yml`, you can execute the ansible tasks defined in `ansible-key-1` first, then the ones defined in `ansible-keys-2`, simply by adding the option `-a ansible-key-1,ansible-key-2`:
+
+```bash
+cloudtiger <SCOPE> ans 2 -a ansible-key-1,ansible-key-2
+```
+
+Check SSH connexion to VMs (not mandatory for executing Ansible). This command will clear all entries with hostnames and IP addresses defined in `config_ips.yml` from your SSH history, and try a first SSH connection on these addresses in order to avoid SSH warning messages of first connection attempt when you apply Ansible.
 
 ```bash
 cloudtiger <SCOPE> ans H
 ```
 
-Once it is done, you can run Ansible meta-playbook `execute_ansible.yml` :
+If you have generated an Ansible meta-playbook `execute_ansible.yml` file, you can execute Ansible on it with :
 
 ```bash
 cloudtiger <SCOPE> ans 3
 ```
 
+__NOTA BENE__ : the `ans 3` command is equivalent to :
+- using `scopes/<SCOPE_FOLDER>/inventory` as current working directory
+- using `scopes/<SCOPE_FOLDER>/inventory/ansible.cfg` as Ansible configuration file
+- using `scopes/<SCOPE_FOLDER>/inventory/ssh.cfg` as the SSH configuration file associated with Ansible
+- using `scopes/<SCOPE_FOLDER>/inventory/hosts.yml` as the Ansible hosts file
+- then applying `ansible-playbook` command on the `scopes/<SCOPE_FOLDER>/inventory/execute_ansible.yml` file
+
 __WARNING__ : if you are trying to connect to newly created VMs with Ansible, you will have a warning that the fingerprint of the machine is unknown (or has changed, if you have changed the remote host), and will have a prompt to validate or reject the fingerprint.
-To avoid having to validate manually many fingerprint, you can add the option '--no-check/-n' :
+To avoid having to validate manually many fingerprint, you can either run `cloudtiger <SCOPE> ans H` before, or add the option `--no-check/-n` :
 
 ```bash
 cloudtiger <SCOPE> ans 3 -n
