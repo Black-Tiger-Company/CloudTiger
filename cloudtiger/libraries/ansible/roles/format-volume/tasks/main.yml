@@ -1,3 +1,7 @@
+####################################
+# DESCRIPTION :
+# This role install all prerequisites for formatting a physical disk and mount it as a Logical Volume
+####################################
 - name: Install prerequisites for partition formatting (ubuntu)
   apt:
     update_cache: yes
@@ -16,6 +20,8 @@
   when: ansible_distribution == 'Debian'
 
 ### single disk to add, autodetect name
+# This loop is entered if variable 'autodetect_single_data_disk' is set to 'true'
+# typically set to True if you have a single physical disk to add as data volume
 - block:
       - name: Get disk name
         shell: |
@@ -37,6 +43,8 @@
   when: autodetect_single_data_disk is true
 
 ### multiple disks, known physical disks' names
+# This loop is entered if variable 'autodetect_single_data_disk' is set to 'false'
+# in this case, you have to know beforehand the names of the physical disks to format and mount
 - block:
       - name: Create Partition for "{{ item.mount_point }}" file system
         become: yes

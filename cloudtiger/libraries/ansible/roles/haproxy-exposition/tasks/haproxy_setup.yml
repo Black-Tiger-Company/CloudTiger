@@ -15,7 +15,6 @@
   become_method: sudo
   ignore_errors: true
 
-
 - name: Save haproxy.service file for safety purpose
   copy: 
     remote_src: yes
@@ -33,6 +32,11 @@
   become: true
   become_method: sudo
 
+####################################
+# Explanation :
+# The ha.cfg configuration file is useful for granting access to simple HTTP(S) service
+# exposed on the private Kubernetes Cluster from public internet
+####################################
 - name: Template and upload config files
   template:
     src: ha.cfg.j2
@@ -41,6 +45,12 @@
   become: true
   become_method: sudo
 
+####################################
+# Explanation :
+# The local_conf variable can be used to deploy completely custom HA Proxy
+# configuration files - one configuration file per element of the list
+# local_conf
+####################################
 - debug:
     var: item.content
   loop: "{{ local_conf }}"
@@ -63,6 +73,12 @@
   become: true
   become_method: sudo
 
+####################################
+# Explanation :
+# The following tasks are used to get the current proxy host's public IP.
+# This public IP can then be used to filter access to services exposed
+# behind the proxy
+####################################
 - name: Get localhost's public IP
   command: curl -s https://ifconfig.me/ip
   changed_when: false
@@ -73,6 +89,7 @@
   - auto_ip_filter is true
   delegate_to: localhost
 
+# if no ip_whitelist has been provided and auto_ip_filter is true, 
 - name: Set ip_whitelist if not already set
   set_fact:
     ip_whitelist: "{{ public_ip_result.stdout }}"
@@ -86,6 +103,10 @@
   when:
   - auto_ip_filter is true
 
+####################################
+# Explanation :
+# if no routes have been defined, we add default routes using ha.cfg.j2 template
+####################################
 - name: Configure default routing
   template:
     src: ha.cfg.j2
@@ -98,6 +119,11 @@
   become: true
   become_method: sudo
 
+####################################
+# Explanation :
+# The datastack.cfg configuration file is used for granting access to HTTP(S)
+# from the Kubernetes Cluster directly exposed as NodePort, without Ingresses
+####################################
 - name: Configure datastack routing
   template:
     src: datastack.cfg.j2
@@ -106,6 +132,12 @@
   become: true
   become_method: sudo
 
+####################################
+# Explanation :
+# The platform.cfg configuration file is used for granting access to all services
+# from a standard 'dataplatform' exposed on the Kubernetes Cluster, including
+# TCP services (for databases)
+####################################
 - name: Configure Platform routing
   template:
     src: platform.cfg.j2

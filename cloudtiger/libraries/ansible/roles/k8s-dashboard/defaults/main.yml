@@ -1,10 +1,16 @@
 ---
 # defaults file for k8s-dashboard
+
+### WARNING : the configuration of the Official Kubernetes Dashboard has significantly changed
+# at version 7, work on role needed to install a version >= 7
 # chart_version: 7.1.2
 chart_version: 6.0.8
+
 # token duration in seconds
 token_duration: 3600
+
 # node selector
 node_selector_type: master
+
 # exposed port of the node
 exposed_port: 30080

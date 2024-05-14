@@ -1,13 +1,24 @@
 ---
-# tasks file for haproxy
+####################################
+# DESCRIPTION :
+# This role install HAProxy on a public proxy, and configure it for public
+# exposition of services on a private Kubernetes Cluster
+####################################
+
+# Tasks to execute if you upload your own SSL certificates to the proxy host
 - include_tasks: upload_certificates.yml
   when: upload_certificates is true
 
+# Tasks to execute if the proxy host can download the SSL certificates by itself
+# on a dedicated repository like Nexus
 - include_tasks: download_certificates.yml
   when: download_certificates is true
 
+# Installation of HA Proxy as a systemd daemon
 - include_tasks: haproxy_install.yml
   when: install_haproxy is true
+
+# Custom configuration of HA Proxy for Kubernetes Services exposition
 - include_tasks: haproxy_setup.yml
   when: configure_haproxy is true
 

@@ -5,7 +5,6 @@
   become: yes
   become_method: sudo
 
-
 - name: Add HAProxy apt Repository
   apt_repository:
     repo: ppa:vbernat/haproxy-{{ haproxy_version }}

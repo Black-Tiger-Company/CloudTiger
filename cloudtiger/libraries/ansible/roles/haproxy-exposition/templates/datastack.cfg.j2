@@ -1,4 +1,4 @@
-frontend brennus_mongo
+frontend datastack_mongo
   bind *:27017
   mode tcp
 
@@ -10,7 +10,7 @@ frontend brennus_mongo
 
   use_backend mongo if backend_mongo is_internal
 
-frontend brennus_postgres
+frontend datastack_postgres
   bind *:5432
   mode tcp
 
@@ -22,7 +22,7 @@ frontend brennus_postgres
 
   use_backend postgres if backend_postgres is_internal
 
-frontend brennus_elastic
+frontend datastack_elastic
   bind *:9200
   mode tcp
 
@@ -34,7 +34,7 @@ frontend brennus_elastic
 
   use_backend elastic if backend_elastic is_internal
 
-frontend brennus_keycloak
+frontend datastack_keycloak
   bind *:8080
   mode tcp
 
@@ -46,7 +46,7 @@ frontend brennus_keycloak
 
   use_backend keycloak if backend_keycloak is_internal
 
-frontend brennus_kibana
+frontend datastack_kibana
   bind *:5601
   mode tcp
 
