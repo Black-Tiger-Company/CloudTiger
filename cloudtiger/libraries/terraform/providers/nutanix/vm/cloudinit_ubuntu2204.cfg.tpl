@@ -82,13 +82,14 @@ runcmd:
 - echo "waiting 10s"
 - sleep 10
 - service ssh stop
-- LANG=C sudo apt-file update && LANG=C sudo apt update && LANG=C sudo NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 apt-get dist-upgrade -y
+- LANG=C sudo apt-file update && LANG=C sudo apt update && LANG=C sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 apt-get dist-upgrade -y
 - echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}"
 - cp /root/temporary /etc/sssd/sssd.conf
 - sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart
 - rm /root/temporary
 - userdel -r ubuntu
 - apt list --upgradable -a && if test -f /var/run/reboot-required ; then banner reboot && sync && sync && sync && sudo reboot ; else service ssh start ; fi
+- eject
 
 # package_update: true
 # package_upgrade: true

@@ -5,6 +5,6 @@
   become_method: sudo
   tags: [always]
   tasks:
-    - name: Wait 300 seconds that ssh -> available
+    - name: Wait 600 seconds that ssh -> available
       ansible.builtin.wait_for_connection:
         timeout: 600
