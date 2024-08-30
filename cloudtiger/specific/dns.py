@@ -55,6 +55,51 @@ def dns_add_ptr_record(operation: Operation, hostname, ip_address, zonename, ms_
 
     return output
 
+def get_reverse_lookup_zone(ip_address):
+    # Split the IP address into octets
+    octets = ip_address.split('.')
+
+    # Reverse the order of the octets
+    reversed_octets = octets[::-1]
+    # Join the reversed octets with dots and append the domain suffix
+    reverse_lookup_zone = '.'.join(reversed_octets) + '.in-addr.arpa'
+
+    return reverse_lookup_zone
+
+
+def dns_add_reverse_lookup_zone(operation: Operation, zonename, ip_address,  ms_connection):
+
+    """ this function add a Reverse lookup zone to a Windows DNS server """
+    reverse_lookup_zone = get_reverse_lookup_zone(ip_address)
+
+    list_reverse_lookup_zone_powershell_script = f"""
+        $result = @(Get-DnsServerZone | ? {{ $_.IsReverseLookupZone -eq $true -and $_.IsAutoCreated -eq $false }}).ZoneName
+        Write-Output $result
+        """
+
+    create_reverse_lookup_zone_powershell_script = f"""
+        $result = Add-DnsServerPrimaryZone -Name "{zonename}" -ReplicationScope "Domain"
+        $isnoerror = $?
+        $error = $error
+        $res = $result + $isnoerror + $error
+        Write-Output $res
+        """
+
+    output, streams, had_errors = ms_connection.execute_ps(list_reverse_lookup_zone_powershell_script)
+    output=output+"\n11.163.106.10.in-addr.arpa"
+    list_reverse = output.split('\n')
+    operation.logger.info(f"Search if {reverse_lookup_zone} exists in reverse lookup zone list")
+    print(list_reverse)
+    if reverse_lookup_zone in list_reverse:
+        operation.logger.info(f"{reverse_lookup_zone} alreay exists")
+    else:
+        operation.logger.info(f"Nod Found => Creation of {reverse_lookup_zone}")
+        #output, streams, had_errors = ms_connection.execute_ps(create_reverse_lookup_zone_powershell_script)
+        #operation.logger.info(f"had_errors : {had_errors}")
+
+    return output
+
+
 def dns_delete_a_record(operation: Operation, hostname, ip_address, zonename, ms_connection):
 
     """ this function add an PTR record to a Windows DNS server """
