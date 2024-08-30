@@ -60,7 +60,8 @@ def get_reverse_lookup_zone(ip_address):
     octets = ip_address.split('.')
 
     # Reverse the order of the octets
-    reversed_octets = octets[::-1]
+    reversed_octets = octets[:3][::-1]
+    print(reversed_octets)
     # Join the reversed octets with dots and append the domain suffix
     reverse_lookup_zone = '.'.join(reversed_octets) + '.in-addr.arpa'
 
@@ -71,6 +72,7 @@ def dns_add_reverse_lookup_zone(operation: Operation, zonename, ip_address,  ms_
 
     """ this function add a Reverse lookup zone to a Windows DNS server """
     reverse_lookup_zone = get_reverse_lookup_zone(ip_address)
+    operation.logger.info(f"Check Reverse lookup zone {reverse_lookup_zone}")
 
     list_reverse_lookup_zone_powershell_script = f"""
         $result = @(Get-DnsServerZone | ? {{ $_.IsReverseLookupZone -eq $true -and $_.IsAutoCreated -eq $false }}).ZoneName
@@ -86,7 +88,6 @@ def dns_add_reverse_lookup_zone(operation: Operation, zonename, ip_address,  ms_
         """
 
     output, streams, had_errors = ms_connection.execute_ps(list_reverse_lookup_zone_powershell_script)
-    output=output+"\n11.163.106.10.in-addr.arpa"
     list_reverse = output.split('\n')
     operation.logger.info(f"Search if {reverse_lookup_zone} exists in reverse lookup zone list")
     print(list_reverse)
