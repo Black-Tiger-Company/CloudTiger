@@ -749,10 +749,8 @@ def operate_dns(operation: Operation, operator):
             for vm_name, ip_address in operation.scope_unpacked_ips.items():
                 operation.logger.info(f"Adding Reverse Lookup zone: domain {domain}")
                 dns_add_reverse_lookup_zone(operation, domain,ip_address, ms_connection)
-                #operation.logger.info(f"Adding VM DNS {vm_name} to domain {domain}")
-                #dns_add_a_record(operation, vm_name, ip_address, domain, ms_connection)
-                # if operation.ptr:
-                #     dns_add_ptr_record(operation, vm_name, ip_address, domain, ms_connection)
+                operation.logger.info(f"Adding VM DNS {vm_name} to domain {domain}")
+                dns_add_a_record(operation, vm_name, ip_address, domain, ms_connection)
 
         if operator == "delete":
             for vm_name, ip_address in operation.scope_unpacked_ips.items():

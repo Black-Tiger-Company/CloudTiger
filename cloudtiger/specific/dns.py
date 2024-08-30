@@ -20,7 +20,7 @@ def dns_add_a_record(operation: Operation, hostname, ip_address, zonename, ms_co
     """ this function add an A record to a Windows DNS server """
 
     powershell_script = f"""
-        $result = @(Add-DnsServerResourceRecordA -Name {hostname} -ZoneName {zonename} -AllowUpdateAny -IPv4Address {ip_address} -TimeToLive 01:00:00)
+        $result = @(Add-DnsServerResourceRecordA -Name {hostname} -ZoneName {zonename} -AllowUpdateAny -IPv4Address {ip_address} -TimeToLive 01:00:00 -CreatePtr)
         $isnoerror = $?      
         $error = $error
         $res = $result + $isnoerror + $error
@@ -61,7 +61,7 @@ def get_reverse_lookup_zone(ip_address):
 
     # Reverse the order of the octets
     reversed_octets = octets[:3][::-1]
-    print(reversed_octets)
+
     # Join the reversed octets with dots and append the domain suffix
     reverse_lookup_zone = '.'.join(reversed_octets) + '.in-addr.arpa'
 
@@ -79,14 +79,15 @@ def dns_add_reverse_lookup_zone(operation: Operation, zonename, ip_address,  ms_
         Write-Output $result
         """
 
+    cidr=".".join(ip_address.split('.')[0:3]) + ".0/24"
     create_reverse_lookup_zone_powershell_script = f"""
-        $result = Add-DnsServerPrimaryZone -Name "{zonename}" -ReplicationScope "Domain"
+        $result = @(Add-DnsServerPrimaryZone -NetworkID "{cidr}" -ReplicationScope "Domain")
         $isnoerror = $?
         $error = $error
         $res = $result + $isnoerror + $error
         Write-Output $res
         """
-
+    
     output, streams, had_errors = ms_connection.execute_ps(list_reverse_lookup_zone_powershell_script)
     list_reverse = output.split('\n')
     operation.logger.info(f"Search if {reverse_lookup_zone} exists in reverse lookup zone list")
@@ -94,9 +95,10 @@ def dns_add_reverse_lookup_zone(operation: Operation, zonename, ip_address,  ms_
     if reverse_lookup_zone in list_reverse:
         operation.logger.info(f"{reverse_lookup_zone} alreay exists")
     else:
-        operation.logger.info(f"Nod Found => Creation of {reverse_lookup_zone}")
-        #output, streams, had_errors = ms_connection.execute_ps(create_reverse_lookup_zone_powershell_script)
-        #operation.logger.info(f"had_errors : {had_errors}")
+        operation.logger.info(f"Nod Found => Creation of {reverse_lookup_zone} in CIDR {cidr}")
+        output, streams, had_errors = ms_connection.execute_ps(create_reverse_lookup_zone_powershell_script)
+        operation.logger.info(f"output : {output}")
+        operation.logger.info(f"had_errors : {had_errors}")
 
     return output
 
