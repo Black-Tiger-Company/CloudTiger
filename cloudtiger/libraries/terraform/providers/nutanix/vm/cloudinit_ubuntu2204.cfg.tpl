@@ -84,6 +84,7 @@ runcmd:
 - service ssh stop
 - LANG=C sudo apt-file update && LANG=C sudo apt update && LANG=C sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 apt-get dist-upgrade -y
 - echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}"
+#- LANG=C sudo apt-file update && LANG=C sudo apt update && LANG=C sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 apt-get dist-upgrade -y && echo "${password_user_ldap_join}" | realm join -v -U ${user_ldap_join} ${domain_ldap} --computer-ou="${ou_ldap}" && rm /var/cache/apt/archives/* ; LANG=C sudo update-initramfs -u -k all && LANG=C sudo update-grub
 - cp /root/temporary /etc/sssd/sssd.conf
 - sssctl cache-remove -o -p -s && sss_cache -E && service sssd restart
 - rm /root/temporary

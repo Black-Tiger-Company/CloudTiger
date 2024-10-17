@@ -160,7 +160,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
     size              = max(lookup(var.vm, "root_volume_size", var.vm.default_root_volume_size), local.main_disk.size)
     eagerly_scrub     = lookup(local.main_disk, "eagerly_scrub", true)
     thin_provisioned  = lookup(local.main_disk, "thin_provisioned", false)
-    keep_on_remove    = true
+    keep_on_remove    = false # true
     storage_policy_id = lookup(local.main_disk, "storage_policy_id", null)
   }
 
@@ -174,7 +174,7 @@ resource "vsphere_virtual_machine" "virtual_machine" {
       eagerly_scrub     = lookup(disk.value, "eagerly_scrub", false)
       thin_provisioned  = lookup(disk.value, "thin_provisioned", true)
       disk_sharing      = lookup(disk.value, "disk_sharing", "sharingNone")
-      keep_on_remove    = true
+      keep_on_remove    = false #
       storage_policy_id = lookup(disk.value, "storage_policy_id", null)
 
     }

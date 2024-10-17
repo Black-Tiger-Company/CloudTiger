@@ -1,5 +1,6 @@
 """ Common Tools for CloudTiger."""
 import json
+import yaml
 import logging
 import os
 import shutil
@@ -11,7 +12,7 @@ from InquirerPy import inquirer
 from collections import OrderedDict
 
 import yaml
-from jinja2 import Template
+from jinja2 import Template, Environment, FileSystemLoader
 
 # from cloudtiger.schema_validation_pydantic import Blacktiger
 
@@ -80,10 +81,10 @@ def j2(logger: Logger, template_file: str, dictionary: dict, output_file: str):
         logger.debug("Output folder %s does not exist, creating it" % output_dir)
         os.makedirs(output_dir, exist_ok=True)
 
-    with open(template_file, 'r') as f:
-        template = f.read()
-
-    tm = Template(template)
+    env = Environment(loader=FileSystemLoader(os.path.dirname(template_file)))
+    env.filters['json_to_yaml'] = json_to_yaml
+    # Load the template
+    tm = env.get_template(os.path.basename(template_file))
 
     with open(output_file, "w") as f:
         f.write(tm.render(dictionary, env=os.environ))
@@ -422,3 +423,7 @@ def read_user_choice(var_name, options):
         prompt, type=click.Choice(choices), default=default, show_choices=False
     )
     return choice_map[user_choice]
+
+def json_to_yaml(value, indent=4):
+    # Convert the value (JSON or dict) to YAML with proper indentation
+    return yaml.dump(value, default_flow_style=False, indent=indent)

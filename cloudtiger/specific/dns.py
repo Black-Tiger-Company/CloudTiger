@@ -102,13 +102,30 @@ def dns_add_reverse_lookup_zone(operation: Operation, zonename, ip_address,  ms_
 
     return output
 
+def dns_clean_record(operation: Operation, hostname, ip_address, zonename, ms_connection):
+
+    """ This function clean obsolete record (old ip) for a record """
+    operation.logger.info(f"Get-DnsServerResourceRecord  -ZoneName {zonename} -Name {hostname} ")
+    powershell_script = f"""
+        $result = @(Get-DnsServerResourceRecord -ZoneName {zonename} -Name {hostname} -RRType A | ForEach-Object {{ $_.RecordData.IPv4Address.IPAddressToString }} )
+        Write-Output $result
+        """
+
+    output, streams, had_errors = ms_connection.execute_ps(powershell_script)
+    list_ptr = output.split('\n')
+    for old_ip in list_ptr:
+        operation.logger.info(f"Delete a & ptr record:  {hostname} ({old_ip})")
+        reverse_lookup_zone = get_reverse_lookup_zone(old_ip)
+        dns_delete_ptr_record(operation,old_ip.split('.')[-1],reverse_lookup_zone, ms_connection)
+        dns_delete_a_record(operation,hostname,old_ip,zonename, ms_connection)
+    # operation.logger.info(f"output : {output}")
 
 def dns_delete_a_record(operation: Operation, hostname, ip_address, zonename, ms_connection):
 
     """ this function add an PTR record to a Windows DNS server """
-
+    operation.logger.info(f'Remove-DnsServerResourceRecord -Name {hostname} -ZoneName {zonename} -RRType "A"  -Force')
     powershell_script = f"""
-        $result = @(Remove-DnsServerResourceRecord -Name {hostname} -ZoneName {zonename} -RecordData {ip_address} -RecordType "A")
+        $result = @(Remove-DnsServerResourceRecord -Name {hostname} -ZoneName {zonename} -RRType A -Force)
         $isnoerror = $?      
         $error = $error
         $res = $result + $isnoerror + $error
@@ -123,12 +140,12 @@ def dns_delete_a_record(operation: Operation, hostname, ip_address, zonename, ms
 
     return output
 
-def dns_delete_ptr_record(operation: Operation, hostname, ip_address, zonename, ms_connection):
+def dns_delete_ptr_record(operation: Operation, ip , zonename, ms_connection):
 
     """ this function add an PTR record to a Windows DNS server """
-
+    operation.logger.info(f'Remove-DnsServerResourceRecord -ZoneName "{zonename}" -RRType "Ptr" -Name {ip} -Force')
     powershell_script = f"""
-        $result = @(Remove-DnsServerResourceRecord -Name {ip_address} -ZoneName {zonename} -PtrDomainName  {hostname} -RecordType "PTR")
+        $result = @(Remove-DnsServerResourceRecord -ZoneName "{zonename}" -RRType "Ptr" -Name {ip} -Force)
         $isnoerror = $?      
         $error = $error
         $res = $result + $isnoerror + $error

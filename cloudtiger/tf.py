@@ -8,6 +8,7 @@ from cloudtiger.cloudtiger import Operation
 from cloudtiger.common_tools import bash_action
 from cloudtiger.data import terraform_vm_resource_name, supported_providers
 from cloudtiger.specific.nutanix import get_vm_nutanix_uuid
+from cloudtiger.init import *
 
 DEFAULT_PASSWORD_LENGTH = 64
 
@@ -177,6 +178,7 @@ def tf_generic(operation: Operation, tf_action):
                     operation.terraform_output, single_output=True)
 
     if tf_action == "destroy":
+        delete_dns(operation)
         if operation.provider == "vsphere":
             # release the IPs
             scope_ips = os.path.join(operation.project_root, "config", operation.scope,

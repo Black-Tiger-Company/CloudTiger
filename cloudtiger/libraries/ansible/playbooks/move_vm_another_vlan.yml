@@ -1,0 +1,37 @@
+- name: "Move VM into new VLAN"
+  hosts: all
+  gather_facts: no
+  become: yes
+  become_method: sudo
+  tags: [always]
+  vars:
+    vlan: "{{ (network | dict2items | first ).value.subnets }}"
+  tasks:
+
+    - set_fact:
+        vlan_name: "{{ (vlan | dict2items | first).key }}"
+        vlan_info: "{{ (vlan | dict2items | first).value }}"
+
+    - name: Display information new vlan
+      debug:
+        msg: "Vlan name: {{ vlan_name }}. Ip gateway: {{ vlan_info.gateway_ip_address }}. New IP: {{ private_ip }}"
+
+    - name: Retrieve current netplan info
+      slurp:
+        src: /etc/netplan/00-installer-config.yaml
+      register: current_netplan
+
+    - debug:
+        var: current_netplan.content | b64decode | from_yaml
+
+    - name: Apply new netplan config
+      template:
+        src: template/netplan.yml.j2
+        dest: /etc/netplan/00-installer-config.yaml
+        mode: '0600'
+      become: true
+
+    - name: Apply netplan configuration
+      command: netplan apply
+      async: 20
+      poll: 0

@@ -1,0 +1,23 @@
+# This is the network config written by 'subiquity'
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      match:
+        name: en*
+      set-name: eth0
+      addresses:
+      - {{ private_ip }}/{{ vlan_info.cidr_block.split('/')[1]}}
+      nameservers:
+        addresses:
+{% for nameserver in vlan_info.nameservers %}
+        - {{ nameserver }}
+{% endfor %}
+        search:
+{% for domain in vlan_info.search %}
+        - {{ domain }}
+{% endfor %}
+      routes:
+      - to: default
+        via: {{ vlan_info.gateway_ip_address }}
