@@ -97,7 +97,9 @@ resource "vsphere_virtual_machine" "virtual_machine" {
       annotation,
       disk.0.eagerly_scrub,
       disk.0.thin_provisioned,
-      vapp.0.properties
+      vapp.0.properties,
+      clone.0.template_uuid,
+      boot_delay
     ]
   }
 
